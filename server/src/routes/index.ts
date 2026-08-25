@@ -33,36 +33,36 @@ router.post('/auth/logout', logout);
 router.get('/auth/me', authenticate, me);
 
 // Google OAuth Flow Routes
-router.get('/auth/google/connect', connectGoogle);
+router.get('/auth/google/connect', authenticate, connectGoogle);
 router.get('/auth/google/callback', googleCallback);
 
 // Connected Accounts CRUD Routes
-router.get('/accounts', listAccounts);
-router.patch('/accounts/:id', updateAccount);
-router.delete('/accounts/:id', disconnectAccount);
+router.get('/accounts', authenticate, listAccounts);
+router.patch('/accounts/:id', authenticate, updateAccount);
+router.delete('/accounts/:id', authenticate, disconnectAccount);
 
 // Sync Engine Trigger Route
-router.post('/sync/trigger', triggerManualSync);
+router.post('/sync/trigger', authenticate, triggerManualSync);
 
-// Email Routes (Scoped 50MB parser for attachment handling)
-router.get('/emails', listEmails);
-router.post('/emails/send', express.json({ limit: '50mb' }), sendEmail);
-router.patch('/emails/:id/read', markEmailAsRead);
-router.patch('/emails/:id/star', toggleStarEmail);
-router.delete('/emails/:id', deleteEmail);
+// Email Routes
+router.get('/emails', authenticate, listEmails);
+router.post('/emails/send', authenticate, express.json({ limit: '50mb' }), sendEmail);
+router.patch('/emails/:id/read', authenticate, markEmailAsRead);
+router.patch('/emails/:id/star', authenticate, toggleStarEmail);
+router.delete('/emails/:id', authenticate, deleteEmail);
 
 // Agenda / Calendar Routes
-router.get('/events', listEvents);
-router.post('/events', createEvent);
-router.patch('/events/:id', updateEvent);
-router.delete('/events/:id', deleteEvent);
-router.get('/agenda', listEvents);
-router.get('/calendars', listCalendars);
+router.get('/events', authenticate, listEvents);
+router.post('/events', authenticate, createEvent);
+router.patch('/events/:id', authenticate, updateEvent);
+router.delete('/events/:id', authenticate, deleteEvent);
+router.get('/agenda', authenticate, listEvents);
+router.get('/calendars', authenticate, listCalendars);
 
 // Tasks Routes
-router.get('/tasks', listTasks);
-router.post('/tasks', createTask);
-router.patch('/tasks/:id', updateTask);
-router.delete('/tasks/:id', deleteTask);
+router.get('/tasks', authenticate, listTasks);
+router.post('/tasks', authenticate, createTask);
+router.patch('/tasks/:id', authenticate, updateTask);
+router.delete('/tasks/:id', authenticate, deleteTask);
 
 export default router;

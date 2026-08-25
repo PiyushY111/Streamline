@@ -23,7 +23,7 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    const userId = req.user?.id || 'demo-user';
+    const userId = req.user?.id || 'authenticated-user';
     await oauthService.handleGoogleCallback(code, userId);
     res.redirect(`${env.CLIENT_URL}/inbox?accountConnected=true`);
   } catch (err: unknown) {
@@ -34,8 +34,11 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
 
 export async function listAccounts(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id || 'demo-user';
-    const accounts = await oauthService.getAccounts(userId);
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const accounts = await oauthService.getAccounts(req.user.id);
     res.json({ accounts });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to list accounts' });
@@ -48,9 +51,12 @@ export async function updateAccount(req: AuthenticatedRequest, res: Response): P
 
 export async function disconnectAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id || 'demo-user';
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await oauthService.disconnectAccount(id, userId);
+    await oauthService.disconnectAccount(id, req.user.id);
     res.json({ success: true, message: 'Account disconnected successfully' });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to disconnect account' });

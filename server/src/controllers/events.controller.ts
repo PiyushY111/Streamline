@@ -5,9 +5,12 @@ import { logger } from '../utils/logger.js';
 
 export async function listEvents(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id || 'demo-user';
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
-    const eventList = await eventsService.getEvents(userId, startDate, endDate);
+    const eventList = await eventsService.getEvents(req.user.id, startDate, endDate);
     res.json({ events: eventList });
   } catch (err: unknown) {
     logger.error({ err }, 'List events controller error');
@@ -17,8 +20,11 @@ export async function listEvents(req: AuthenticatedRequest, res: Response): Prom
 
 export async function listCalendars(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id || 'demo-user';
-    const calendarList = await eventsService.getCalendars(userId);
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const calendarList = await eventsService.getCalendars(req.user.id);
     res.json({ calendars: calendarList });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to fetch calendars' });

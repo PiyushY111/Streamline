@@ -5,9 +5,12 @@ import { logger } from '../utils/logger.js';
 
 export async function listEmails(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const userId = req.user?.id || 'demo-user';
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const folder = (req.query.folder as string) || 'inbox';
-    const emailList = await emailsService.getEmails(userId, folder);
+    const emailList = await emailsService.getEmails(req.user.id, folder);
     res.json({ emails: emailList });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to list emails';
@@ -18,6 +21,10 @@ export async function listEmails(req: AuthenticatedRequest, res: Response): Prom
 
 export async function sendEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
     const { to } = req.body;
     res.status(200).json({ success: true, message: `Email queued for sending to ${to}` });
   } catch (err: unknown) {
