@@ -53,13 +53,12 @@ export async function listEvents(req: AuthenticatedRequest, res: Response): Prom
         const startB = new Date(eventB.startTime).getTime();
 
         if (startB < endA) {
-          // Overlap detected!
           if (!conflictsMap[eventA.id]) conflictsMap[eventA.id] = [];
           if (!conflictsMap[eventB.id]) conflictsMap[eventB.id] = [];
           conflictsMap[eventA.id].push(eventB.id);
           conflictsMap[eventB.id].push(eventA.id);
         } else {
-          break; // Since list is sorted by startTime
+          break;
         }
       }
     }
@@ -67,7 +66,7 @@ export async function listEvents(req: AuthenticatedRequest, res: Response): Prom
     const processedEvents: EventWithConflict[] = rawEvents.map((evt) => ({
       ...evt,
       accountName: evt.accountName || 'Calendar',
-      accountColor: evt.accountColor || '#8b5cf6',
+      accountColor: evt.accountColor || '#4285F4',
       hasConflict: Boolean(conflictsMap[evt.id] && conflictsMap[evt.id].length > 0),
       conflictingWith: conflictsMap[evt.id] || [],
     }));
@@ -76,5 +75,98 @@ export async function listEvents(req: AuthenticatedRequest, res: Response): Prom
   } catch (err: any) {
     logger.error({ err }, 'Error listing agenda events from database');
     res.status(500).json({ error: 'Failed to fetch agenda events' });
+  }
+}
+
+export async function createEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { title, description, location, startTime, endTime, accountId, calendarId } = req.body;
+
+    // Find account or default
+    const [acc] = accountId
+      ? await db.select().from(connectedAccounts).where(eq(connectedAccounts.id, accountId))
+      : await db.select().from(connectedAccounts).limit(1);
+
+    const targetAccountId = acc?.id || '00000000-0000-0000-0000-000000000001';
+
+    // Find calendar or default
+    const [cal] = calendarId
+      ? await db.select().from(calendars).where(eq(calendars.id, calendarId))
+      : await db.select().from(calendars).limit(1);
+
+    const targetCalendarId = cal?.id || '00000000-0000-0000-0000-000000000002';
+
+    const [newEvent] = await db
+      .insert(events)
+      .values({
+        accountId: targetAccountId,
+        calendarId: targetCalendarId,
+        externalEventId: `evt_${Date.now()}`,
+        title: title || 'New Event',
+        description: description || null,
+        location: location || null,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+      })
+      .returning();
+
+    res.status(201).json({
+      event: {
+        ...newEvent,
+        accountName: acc?.label || 'Calendar',
+        accountColor: acc?.color || '#4285F4',
+        hasConflict: false,
+        conflictingWith: [],
+      },
+    });
+  } catch (err: any) {
+    logger.error({ err }, 'Error creating event');
+    res.status(500).json({ error: 'Failed to create event' });
+  }
+}
+
+export async function updateEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const targetId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { title, description, location, startTime, endTime } = req.body;
+
+    const [updated] = await db
+      .update(events)
+      .set({
+        title,
+        description,
+        location,
+        startTime: startTime ? new Date(startTime) : undefined,
+        endTime: endTime ? new Date(endTime) : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(events.id, targetId))
+      .returning();
+
+    res.json({ event: updated });
+  } catch (err: any) {
+    logger.error({ err }, 'Error updating event');
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+}
+
+export async function deleteEvent(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const targetId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    await db.delete(events).where(eq(events.id, targetId));
+    res.json({ success: true });
+  } catch (err: any) {
+    logger.error({ err }, 'Error deleting event');
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+}
+
+export async function listCalendars(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const cals = await db.select().from(calendars);
+    res.json({ calendars: cals });
+  } catch (err: any) {
+    logger.error({ err }, 'Error listing calendars');
+    res.status(500).json({ error: 'Failed to fetch calendars' });
   }
 }

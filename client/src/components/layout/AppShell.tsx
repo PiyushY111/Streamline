@@ -11,7 +11,7 @@ export interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
-  const isFullBleed = pathname === '/inbox';
+  const isFullBleed = pathname === '/inbox' || pathname === '/calendar';
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex text-slate-900 dark:text-slate-100 selection:bg-purple-500/20 selection:text-purple-900 dark:selection:text-purple-200 transition-colors duration-200">

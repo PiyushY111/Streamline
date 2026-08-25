@@ -15,7 +15,7 @@ import {
   deleteEmail,
   toggleStarEmail,
 } from '../controllers/emails.controller.js';
-import { listEvents } from '../controllers/events.controller.js';
+import { listEvents, createEvent, updateEvent, deleteEvent, listCalendars } from '../controllers/events.controller.js';
 import { listTasks, createTask, updateTask, deleteTask } from '../controllers/tasks.controller.js';
 import { triggerManualSync } from '../controllers/sync.controller.js';
 import { authenticate } from '../middlewares/auth.js';
@@ -52,7 +52,11 @@ router.delete('/emails/:id', deleteEmail);
 
 // Agenda / Calendar Routes
 router.get('/events', listEvents);
+router.post('/events', createEvent);
+router.patch('/events/:id', updateEvent);
+router.delete('/events/:id', deleteEvent);
 router.get('/agenda', listEvents);
+router.get('/calendars', listCalendars);
 
 // Tasks Routes
 router.get('/tasks', listTasks);
