@@ -15,10 +15,10 @@ server/dist/
 
 # Environment variables
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+*.env
+server/.env
+client/.env.local
 
 # Logs
 logs
@@ -37,3 +37,7 @@ pnpm-debug.log*
 .idea/
 *.swp
 *.swo
+
+# Agents & Skills
+.agents/
+
