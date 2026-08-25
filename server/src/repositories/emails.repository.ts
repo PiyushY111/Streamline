@@ -4,21 +4,37 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export class EmailsRepository {
   async listUserEmails(userId: string, folder: string = 'inbox') {
-    const userAccounts = await db.select({ id: connectedAccounts.id })
+    const userAccounts = await db.select({
+      id: connectedAccounts.id,
+      label: connectedAccounts.label,
+      email: connectedAccounts.email,
+      color: connectedAccounts.color,
+    })
       .from(connectedAccounts)
       .where(eq(connectedAccounts.userId, userId));
 
     if (userAccounts.length === 0) return [];
 
-    const accountIds = userAccounts.map((a: { id: string }) => a.id);
+    const accountMap = new Map(userAccounts.map(a => [a.id, a]));
+    const accountIds = userAccounts.map(a => a.id);
 
-    return db.select()
+    const emailRows = await db.select()
       .from(emails)
       .where(and(
         inArray(emails.accountId, accountIds),
         eq(emails.folder, folder)
       ))
       .orderBy(desc(emails.receivedAt));
+
+    return emailRows.map(e => {
+      const acc = accountMap.get(e.accountId);
+      return {
+        ...e,
+        accountName: acc?.label || acc?.email || 'Mailbox',
+        accountEmail: acc?.email || '',
+        accountColor: acc?.color || '#3b82f6',
+      };
+    });
   }
 
   async findById(id: string) {
@@ -44,6 +60,70 @@ export class EmailsRepository {
 
   async deleteEmail(id: string) {
     return db.delete(emails).where(eq(emails.id, id));
+  }
+
+  async createSentEmail(data: {
+    userId: string;
+    to: string;
+    subject: string;
+    body: string;
+    accountId?: string;
+    externalMessageId?: string;
+  }) {
+    let accountId = data.accountId;
+    if (!accountId) {
+      const userAccounts = await db.select({ id: connectedAccounts.id })
+        .from(connectedAccounts)
+        .where(eq(connectedAccounts.userId, data.userId))
+        .limit(1);
+      if (userAccounts.length > 0) {
+        accountId = userAccounts[0].id;
+      }
+    }
+
+    if (!accountId) {
+      throw new Error('No connected Google account found. Please connect an account first.');
+    }
+
+    const extId = data.externalMessageId || `sent_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    let [thread] = await db.select().from(emailThreads).where(eq(emailThreads.accountId, accountId)).limit(1);
+    if (!thread) {
+      [thread] = await db.insert(emailThreads).values({
+        accountId,
+        externalThreadId: extId,
+        subject: data.subject || '(No Subject)',
+        snippet: data.body.substring(0, 100),
+        lastMessageAt: new Date(),
+      }).returning();
+    }
+
+    const [sentEmail] = await db.insert(emails).values({
+      threadId: thread.id,
+      accountId,
+      externalMessageId: extId,
+      sender: 'me',
+      recipients: data.to,
+      subject: data.subject || '(No Subject)',
+      bodyText: data.body,
+      receivedAt: new Date(),
+      sentAt: new Date(),
+      folder: 'sent',
+      isRead: true,
+    }).returning();
+
+    const [acc] = await db.select({
+      label: connectedAccounts.label,
+      email: connectedAccounts.email,
+      color: connectedAccounts.color,
+    }).from(connectedAccounts).where(eq(connectedAccounts.id, accountId)).limit(1);
+
+    return {
+      ...sentEmail,
+      accountName: acc?.label || acc?.email || 'Mailbox',
+      accountEmail: acc?.email || '',
+      accountColor: acc?.color || '#3b82f6',
+    };
   }
 }
 

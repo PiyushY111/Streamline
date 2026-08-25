@@ -16,6 +16,7 @@ export interface EmailData {
   threadId: string;
   accountId: string;
   accountName: string;
+  accountEmail?: string;
   accountColor: string;
   sender: string;
   recipients: string;
@@ -26,7 +27,8 @@ export interface EmailData {
   receivedAt: string;
   isRead: boolean;
   isStarred: boolean;
-  isImportant: boolean;
+  folder?: string;
+  category?: 'primary' | 'promotions' | 'social' | 'updates';
 }
 
 export interface EventData {

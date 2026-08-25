@@ -68,6 +68,19 @@ export class AccountsRepository {
       and(eq(connectedAccounts.id, id), eq(connectedAccounts.userId, userId))
     );
   }
+
+  async updateAccountDetails(id: string, userId: string, data: { label?: string; color?: string }) {
+    const updatePayload: Record<string, any> = { updatedAt: new Date() };
+    if (data.label !== undefined) updatePayload.label = data.label;
+    if (data.color !== undefined) updatePayload.color = data.color;
+
+    const [updated] = await db.update(connectedAccounts)
+      .set(updatePayload)
+      .where(and(eq(connectedAccounts.id, id), eq(connectedAccounts.userId, userId)))
+      .returning();
+
+    return updated || null;
+  }
 }
 
 export const accountsRepository = new AccountsRepository();

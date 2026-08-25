@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { neon } from '@neondatabase/serverless';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import apiRouter from './routes/index.js';
@@ -56,7 +57,18 @@ app.get('/', (req, res) => {
   });
 });
 
+async function ensureSchemaUpdated() {
+  try {
+    const sql = neon(env.DATABASE_URL);
+    await sql`ALTER TABLE emails ADD COLUMN IF NOT EXISTS category text DEFAULT 'primary'`;
+    logger.info('✨ Verified DB schema: emails.category column is active');
+  } catch (err) {
+    logger.warn({ err }, 'Auto-schema update warning');
+  }
+}
+
 async function bootstrap() {
+  await ensureSchemaUpdated();
   const port = parseInt(env.PORT, 10) || 5001;
 
   const server = app.listen(port, () => {

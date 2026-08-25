@@ -1,3 +1,6 @@
+import { db } from '../db/index.js';
+import { connectedAccounts } from '../db/schema/index.js';
+import { eq } from 'drizzle-orm';
 import { eventsRepository } from '../repositories/events.repository.js';
 
 export class EventsService {
@@ -11,20 +14,45 @@ export class EventsService {
     return eventsRepository.listUserCalendars(userId);
   }
 
-  async createEvent(data: {
-    calendarId: string;
-    accountId: string;
-    externalEventId: string;
+  async createEvent(userId: string, data: {
+    calendarId?: string;
+    accountId?: string;
+    externalEventId?: string;
     title: string;
     description?: string;
     location?: string;
     startTime: string;
     endTime: string;
   }) {
+    let accountId = data.accountId;
+    if (!accountId) {
+      const accountsList = await db.select({ id: connectedAccounts.id })
+        .from(connectedAccounts)
+        .where(eq(connectedAccounts.userId, userId))
+        .limit(1);
+      if (accountsList.length === 0) {
+        throw new Error('No connected Google account found. Please connect an account first.');
+      }
+      accountId = accountsList[0].id;
+    }
+
+    let calendarId = data.calendarId;
+    if (!calendarId) {
+      const primaryCal = await eventsRepository.getOrCreatePrimaryCalendar(accountId);
+      calendarId = primaryCal.id;
+    }
+
+    const externalEventId = data.externalEventId || `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
     return eventsRepository.create({
-      ...data,
-      startTime: new Date(data.startTime),
-      endTime: new Date(data.endTime),
+      calendarId,
+      accountId,
+      externalEventId,
+      title: data.title || 'Untitled Event',
+      description: data.description,
+      location: data.location,
+      startTime: new Date(data.startTime || Date.now()),
+      endTime: new Date(data.endTime || Date.now() + 3600 * 1000),
     });
   }
 

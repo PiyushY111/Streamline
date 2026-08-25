@@ -33,6 +33,19 @@ export class EventsRepository {
     return db.select().from(calendars).where(inArray(calendars.accountId, accountIds));
   }
 
+  async getOrCreatePrimaryCalendar(accountId: string) {
+    const [existing] = await db.select().from(calendars).where(eq(calendars.accountId, accountId)).limit(1);
+    if (existing) return existing;
+
+    const [created] = await db.insert(calendars).values({
+      accountId,
+      externalCalendarId: 'primary',
+      name: 'Primary Calendar',
+      isPrimary: true,
+    }).returning();
+    return created;
+  }
+
   async create(data: {
     calendarId: string;
     accountId: string;

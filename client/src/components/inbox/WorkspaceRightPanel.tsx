@@ -83,7 +83,7 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
   return (
     <div className="flex shrink-0 z-20">
       {/* Right Icon Strip */}
-      <div className="w-14 bg-[#f6f8fc] dark:bg-[#1f1f1f] border-l border-slate-200/80 dark:border-slate-800 flex flex-col items-center py-4 space-y-4 shrink-0 select-none">
+      <div className="w-14 bg-[#f6f8fc] dark:bg-[#0D1322] border-l border-slate-200/80 dark:border-slate-800 flex flex-col items-center py-4 space-y-4 shrink-0 select-none">
         <button
           onClick={() => {
             setActiveTab('calendar');
@@ -92,7 +92,7 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
           className={`p-2.5 rounded-2xl transition-all ${
             isOpen && activeTab === 'calendar'
               ? 'bg-[#c2e7ff] text-[#001d35] shadow-xs dark:bg-purple-600 dark:text-white'
-              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
+              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800/80'
           }`}
           title="Google Calendar"
         >
@@ -107,7 +107,7 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
           className={`p-2.5 rounded-2xl transition-all ${
             isOpen && activeTab === 'tasks'
               ? 'bg-[#c2e7ff] text-[#001d35] shadow-xs dark:bg-purple-600 dark:text-white'
-              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
+              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800/80'
           }`}
           title="Google Tasks"
         >
@@ -122,7 +122,7 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
           className={`p-2.5 rounded-2xl transition-all ${
             isOpen && activeTab === 'notes'
               ? 'bg-[#c2e7ff] text-[#001d35] shadow-xs dark:bg-purple-600 dark:text-white'
-              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800'
+              : 'text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800/80'
           }`}
           title="Keep Notes"
         >
@@ -143,9 +143,9 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
 
       {/* Expanded Panel Drawer */}
       {isOpen && (
-        <div className="w-80 bg-white dark:bg-[#1e1e1e] border-l border-slate-200/80 dark:border-slate-800 flex flex-col shrink-0 animate-in slide-in-from-right duration-200 shadow-xl overflow-hidden">
+        <div className="w-80 bg-white dark:bg-[#0D1322] border-l border-slate-200/80 dark:border-slate-800 flex flex-col shrink-0 animate-in slide-in-from-right duration-200 shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="px-4 py-3.5 bg-[#f6f8fc] dark:bg-[#28292c] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="px-4 py-3.5 bg-[#f6f8fc] dark:bg-[#0F172A] border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <h3 className="text-xs font-bold capitalize text-slate-900 dark:text-white flex items-center space-x-2">
               {activeTab === 'calendar' && <CalendarIcon className="w-4 h-4 text-blue-600" />}
               {activeTab === 'tasks' && <TaskIcon className="w-4 h-4 text-[#0b57d0]" />}

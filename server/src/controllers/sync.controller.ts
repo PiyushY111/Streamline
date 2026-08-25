@@ -15,13 +15,15 @@ export async function triggerManualSync(req: AuthenticatedRequest, res: Response
 
     logger.info({ count: activeAccounts.length }, 'Triggering manual sync for active accounts...');
 
-    for (const acc of activeAccounts) {
-      syncGoogleAccountData(acc.id).catch((err: unknown) => {
-        logger.error({ err, accountId: acc.id }, 'Manual sync failed for account');
-      });
-    }
+    await Promise.all(
+      activeAccounts.map((acc) =>
+        syncGoogleAccountData(acc.id).catch((err: unknown) => {
+          logger.error({ err, accountId: acc.id }, 'Manual sync failed for account');
+        })
+      )
+    );
 
-    res.json({ message: 'Live synchronization triggered successfully', accountsSynced: activeAccounts.length });
+    res.json({ message: 'Live synchronization completed successfully', accountsSynced: activeAccounts.length });
   } catch (err: unknown) {
     logger.error({ err }, 'Error triggering manual sync');
     res.status(500).json({ error: 'Failed to trigger synchronization' });

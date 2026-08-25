@@ -19,7 +19,7 @@ export function generateCodeChallenge(verifier: string): string {
   return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
-export function getAuthUrl(): string {
+export function getAuthUrl(state?: string): string {
   const oauth2Client = createOAuth2Client();
   const scopes = [
     'https://www.googleapis.com/auth/userinfo.email',
@@ -33,6 +33,7 @@ export function getAuthUrl(): string {
     access_type: 'offline',
     prompt: 'consent',
     scope: scopes,
+    ...(state ? { state } : {}),
   });
 }
 

@@ -44,6 +44,7 @@ export const emails = pgTable('emails', {
   receivedAt: timestamp('received_at').notNull(),
   sentAt: timestamp('sent_at'),
   folder: text('folder').default('inbox').notNull(),
+  category: text('category').default('primary').notNull(),
   isRead: boolean('is_read').default(false).notNull(),
   isStarred: boolean('is_starred').default(false).notNull(),
   isImportant: boolean('is_important').default(false).notNull(),

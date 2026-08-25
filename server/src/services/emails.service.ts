@@ -1,4 +1,10 @@
 import { emailsRepository } from '../repositories/emails.repository.js';
+import {
+  syncGmailMarkAsRead,
+  syncGmailToggleStar,
+  syncGmailDeleteEmail,
+  syncGmailSendEmail,
+} from './google/gmail-sync.service.js';
 
 export class EmailsService {
   async getEmails(userId: string, folder?: string) {
@@ -6,15 +12,19 @@ export class EmailsService {
   }
 
   async markAsRead(id: string, isRead: boolean = true) {
-    return emailsRepository.markAsRead(id, isRead);
+    return syncGmailMarkAsRead(id, isRead);
   }
 
   async toggleStar(id: string, isStarred: boolean) {
-    return emailsRepository.toggleStar(id, isStarred);
+    return syncGmailToggleStar(id, isStarred);
   }
 
   async deleteEmail(id: string) {
-    return emailsRepository.deleteEmail(id);
+    return syncGmailDeleteEmail(id);
+  }
+
+  async sendEmail(userId: string, data: { to: string; subject: string; body: string; accountId?: string }) {
+    return syncGmailSendEmail(userId, data);
   }
 }
 

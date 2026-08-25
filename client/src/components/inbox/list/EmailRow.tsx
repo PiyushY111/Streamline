@@ -37,8 +37,23 @@ export function EmailRow({ email, isSelected, onSelect, onStar, onClick }: Email
         </div>
       </td>
       <td className="py-3 px-3 text-sm text-gray-800 dark:text-gray-200 truncate max-w-md">
-        <span className="text-gray-900 dark:text-gray-100">{email.subject}</span>
-        <span className="text-gray-500 dark:text-gray-400 ml-2 font-normal truncate">- {email.snippet}</span>
+        <div className="flex items-center gap-2 truncate">
+          {email.accountName && (
+            <span
+              className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-tight shrink-0 shadow-2xs"
+              style={{
+                backgroundColor: `${email.accountColor || '#3b82f6'}20`,
+                color: email.accountColor || '#3b82f6',
+                border: `1px solid ${email.accountColor || '#3b82f6'}40`,
+              }}
+              title={`Belongs to mailbox: ${email.accountName}`}
+            >
+              {email.accountName}
+            </span>
+          )}
+          <span className="text-gray-900 dark:text-gray-100 font-semibold truncate">{email.subject}</span>
+          <span className="text-gray-500 dark:text-gray-400 font-normal truncate">- {email.snippet}</span>
+        </div>
       </td>
       <td className="py-3 pr-4 pl-2 w-28 text-right text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
         {new Date(email.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

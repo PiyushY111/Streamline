@@ -1,6 +1,8 @@
 import { accountsRepository } from '../repositories/accounts.repository.js';
 import { createOAuth2Client } from '../utils/google-oauth.js';
 import { encrypt } from '../utils/encryption.js';
+import { syncGoogleAccountData } from './google/google-sync.service.js';
+import { logger } from '../utils/logger.js';
 
 export class OAuthService {
   async getAccounts(userId: string) {
@@ -9,6 +11,10 @@ export class OAuthService {
 
   async disconnectAccount(id: string, userId: string) {
     return accountsRepository.delete(id, userId);
+  }
+
+  async updateAccount(id: string, userId: string, data: { label?: string; color?: string }) {
+    return accountsRepository.updateAccountDetails(id, userId, data);
   }
 
   async handleGoogleCallback(code: string, userId: string) {
@@ -27,7 +33,7 @@ export class OAuthService {
     const encryptedRefresh = encrypt(tokens.refresh_token || tokens.access_token!);
     const expiresAt = new Date(tokens.expiry_date || Date.now() + 3600 * 1000);
 
-    return accountsRepository.upsertAccount({
+    const account = await accountsRepository.upsertAccount({
       userId,
       providerAccountId: profile.id,
       email: profile.email,
@@ -39,6 +45,13 @@ export class OAuthService {
       scopes: tokens.scope || '',
       avatar: profile.picture,
     });
+
+    // Trigger initial background sync asynchronously
+    syncGoogleAccountData(account.id).catch(err => {
+      logger.error({ err, accountId: account.id }, 'Initial background sync after OAuth callback failed');
+    });
+
+    return account;
   }
 }
 

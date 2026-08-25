@@ -61,7 +61,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'bg-slate-50/90 dark:bg-slate-950/80 border-r border-slate-200/80 dark:border-slate-800/80 flex flex-col justify-between shrink-0 h-screen sticky top-0 backdrop-blur-xl z-30 transition-all duration-300 ease-in-out',
+        'bg-slate-50/90 dark:bg-[#0B101D]/95 border-r border-slate-200/80 dark:border-slate-800/60 flex flex-col justify-between shrink-0 h-screen sticky top-0 backdrop-blur-xl z-30 transition-all duration-300 ease-in-out',
         isCollapsed ? 'w-20' : 'w-64'
       )}
     >
@@ -73,7 +73,7 @@ export function Sidebar() {
         )}
       >
         <Link href="/inbox" className="flex items-center space-x-3 group" title="Streamline OS">
-          <div className="h-9 w-9 rounded-xl bg-purple-600 flex items-center justify-center shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform duration-200 shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-500 flex items-center justify-center shadow-md shadow-purple-500/25 group-hover:scale-105 transition-transform duration-200 shrink-0">
             <Layers className="h-5 w-5 text-white" />
           </div>
           {!isCollapsed && (
@@ -81,7 +81,7 @@ export function Sidebar() {
               <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
                 Streamline
               </span>
-              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono tracking-wider uppercase">
+              <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono tracking-wider uppercase font-semibold">
                 Personal OS
               </span>
             </div>
@@ -91,7 +91,7 @@ export function Sidebar() {
         {/* Collapse / Expand Trigger Button */}
         <button
           onClick={toggleCollapse}
-          className="p-1.5 rounded-xl bg-slate-200/60 dark:bg-slate-900 border border-slate-300/60 dark:border-slate-800 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-300/60 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+          className="p-1.5 rounded-xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-300/60 dark:border-slate-800/80 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-300/60 dark:hover:bg-slate-800 transition-colors shadow-2xs"
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
           {isCollapsed ? (
@@ -105,7 +105,7 @@ export function Sidebar() {
       {/* Navigation List */}
       <div className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
         {!isCollapsed && (
-          <div className="px-3 pb-2 text-[10px] font-semibold tracking-wider text-slate-400 dark:text-slate-500 uppercase animate-in fade-in">
+          <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase animate-in fade-in">
             Workspace Navigation
           </div>
         )}
@@ -123,7 +123,7 @@ export function Sidebar() {
                 'flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
                 isCollapsed ? 'justify-center px-0' : 'justify-between space-x-3',
                 isActive
-                  ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20 font-semibold'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30 font-semibold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-900/60'
               )}
             >
@@ -131,7 +131,7 @@ export function Sidebar() {
                 <Icon
                   className={cn(
                     'h-4 w-4 transition-colors shrink-0',
-                    isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200'
+                    isActive ? 'text-white' : 'text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-purple-300'
                   )}
                 />
                 {!isCollapsed && <span className="truncate">{item.name}</span>}
@@ -141,6 +141,13 @@ export function Sidebar() {
         })}
       </div>
 
+      {/* Sidebar Footer with Theme Toggle */}
+      <div className="p-3 border-t border-slate-200/80 dark:border-slate-800/60 flex items-center justify-between">
+        {!isCollapsed && (
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Theme</span>
+        )}
+        <ThemeToggle />
+      </div>
     </aside>
   );
 }
