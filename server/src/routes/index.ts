@@ -1,0 +1,63 @@
+import { Router } from 'express';
+import { checkHealth } from '../controllers/health.controller.js';
+import { register, login, me, logout } from '../controllers/auth.controller.js';
+import {
+  connectGoogle,
+  googleCallback,
+  listAccounts,
+  updateAccount,
+  disconnectAccount,
+} from '../controllers/oauth.controller.js';
+import {
+  listEmails,
+  sendEmail,
+  markEmailAsRead,
+  deleteEmail,
+  toggleStarEmail,
+} from '../controllers/emails.controller.js';
+import { listEvents } from '../controllers/events.controller.js';
+import { listTasks, createTask, updateTask, deleteTask } from '../controllers/tasks.controller.js';
+import { triggerManualSync } from '../controllers/sync.controller.js';
+import { authenticate } from '../middlewares/auth.js';
+
+const router = Router();
+
+// Health Check
+router.get('/health', checkHealth);
+
+// App Auth Routes
+router.post('/auth/register', register);
+router.post('/auth/login', login);
+router.post('/auth/logout', logout);
+router.get('/auth/me', authenticate, me);
+
+// Google OAuth Flow Routes
+router.get('/auth/google/connect', connectGoogle);
+router.get('/auth/google/callback', googleCallback);
+
+// Connected Accounts CRUD Routes
+router.get('/accounts', listAccounts);
+router.patch('/accounts/:id', updateAccount);
+router.delete('/accounts/:id', disconnectAccount);
+
+// Sync Engine Trigger Route
+router.post('/sync/trigger', triggerManualSync);
+
+// Email Routes
+router.get('/emails', listEmails);
+router.post('/emails/send', sendEmail);
+router.patch('/emails/:id/read', markEmailAsRead);
+router.patch('/emails/:id/star', toggleStarEmail);
+router.delete('/emails/:id', deleteEmail);
+
+// Agenda / Calendar Routes
+router.get('/events', listEvents);
+router.get('/agenda', listEvents);
+
+// Tasks Routes
+router.get('/tasks', listTasks);
+router.post('/tasks', createTask);
+router.patch('/tasks/:id', updateTask);
+router.delete('/tasks/:id', deleteTask);
+
+export default router;
