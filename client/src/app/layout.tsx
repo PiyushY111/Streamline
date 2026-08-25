@@ -3,8 +3,16 @@ import './globals.css';
 import { Providers } from '../providers/providers';
 
 export const metadata: Metadata = {
-  title: 'Streamline — Personal Productivity OS',
-  description: 'Unified email, calendar, agenda, and task management across multiple accounts.',
+  title: {
+    default: 'Streamline OS',
+    template: '%s | Streamline OS',
+  },
+  description: 'Unified Inbox, Calendar, Agenda & Task Management Workspace',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
@@ -13,8 +21,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="antialiased min-h-screen bg-background text-foreground">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+      </head>
+      <body className="antialiased min-h-screen bg-background text-foreground transition-colors duration-200">
         <Providers>{children}</Providers>
       </body>
     </html>
