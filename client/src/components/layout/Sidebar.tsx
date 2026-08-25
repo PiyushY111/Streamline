@@ -141,22 +141,6 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* Footer Sync Engine Status & Theme Switcher */}
-      <div className={cn('p-4 border-t border-slate-200/80 dark:border-slate-800/60 space-y-3', isCollapsed && 'p-3 text-center')}>
-        <div className={cn('flex items-center justify-between', isCollapsed && 'flex-col space-y-3')}>
-          <div className="flex items-center space-x-2" title="Gmail Live Sync Engine Active">
-            <span className="relative flex h-2 w-2 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            {!isCollapsed && (
-              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">Sync Engine</span>
-            )}
-          </div>
-
-          <ThemeToggle />
-        </div>
-      </div>
     </aside>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Plus,
@@ -21,7 +21,7 @@ import {
 
 const COLOR_OPTIONS = ['#ec4899', '#3b82f6', '#10b981', '#a855f7', '#f59e0b', '#06b6d4'];
 
-export default function SettingsPage() {
+function SettingsContent() {
   const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,3 +265,12 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-slate-400">Loading settings...</div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
