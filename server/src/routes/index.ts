@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import express, { Router } from 'express';
 import { checkHealth } from '../controllers/health.controller.js';
 import { register, login, me, logout } from '../controllers/auth.controller.js';
 import {
@@ -19,15 +19,16 @@ import { listEvents, createEvent, updateEvent, deleteEvent, listCalendars } from
 import { listTasks, createTask, updateTask, deleteTask } from '../controllers/tasks.controller.js';
 import { triggerManualSync } from '../controllers/sync.controller.js';
 import { authenticate } from '../middlewares/auth.js';
+import { authRateLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // Health Check
 router.get('/health', checkHealth);
 
-// App Auth Routes
-router.post('/auth/register', register);
-router.post('/auth/login', login);
+// App Auth Routes (Rate Limited)
+router.post('/auth/register', authRateLimiter, register);
+router.post('/auth/login', authRateLimiter, login);
 router.post('/auth/logout', logout);
 router.get('/auth/me', authenticate, me);
 
@@ -43,9 +44,9 @@ router.delete('/accounts/:id', disconnectAccount);
 // Sync Engine Trigger Route
 router.post('/sync/trigger', triggerManualSync);
 
-// Email Routes
+// Email Routes (Scoped 50MB parser for attachment handling)
 router.get('/emails', listEmails);
-router.post('/emails/send', sendEmail);
+router.post('/emails/send', express.json({ limit: '50mb' }), sendEmail);
 router.patch('/emails/:id/read', markEmailAsRead);
 router.patch('/emails/:id/star', toggleStarEmail);
 router.delete('/emails/:id', deleteEmail);

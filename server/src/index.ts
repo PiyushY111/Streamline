@@ -6,24 +6,35 @@ import { logger } from './utils/logger.js';
 import apiRouter from './routes/index.js';
 import { startWorkers } from './workers/index.js';
 import { startSyncScheduler } from './workers/scheduler.js';
+import { securityHeaders } from './middlewares/security.js';
+import { apiRateLimiter } from './middlewares/rateLimiter.js';
 
 const app = express();
 
-// Middlewares
+// Security Headers
+app.use(securityHeaders);
+
+// CORS Whitelist Configuration
+const allowedOrigins = [
+  env.CLIENT_URL,
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+].filter(Boolean);
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, or same-origin rewrites)
-    if (!origin) return callback(null, true);
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, true);
+    return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
   },
   credentials: true,
 }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Global Rate Limiting & Parsing (1MB default limit)
+app.use(apiRateLimiter);
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(cookieParser());
 
 // Request Logger
@@ -51,7 +62,6 @@ async function bootstrap() {
   const server = app.listen(port, () => {
     logger.info({ port, env: env.NODE_ENV }, `⚡ Streamline Backend API running on port ${port}`);
 
-    // Initialize BullMQ Workers and Cron Sync Scheduler
     startWorkers();
     startSyncScheduler();
   });

@@ -1,12 +1,11 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../queues/index.js';
-import { syncGoogleAccountData } from '../services/google-sync.service.js';
+import { syncGoogleAccountData } from '../services/google/google-sync.service.js';
 import { logger } from '../utils/logger.js';
 
 export function startWorkers() {
   logger.info('🚀 Starting BullMQ multi-queue background workers for Gmail & Calendar...');
 
-  // 1. Gmail Sync Worker (Concurrency: 3)
   const gmailWorker = new Worker(
     'gmail-sync-queue',
     async (job: Job) => {
@@ -25,7 +24,6 @@ export function startWorkers() {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Gmail Sync Worker job failed');
   });
 
-  // 2. Calendar Sync Worker (Concurrency: 3)
   const calendarWorker = new Worker(
     'calendar-sync-queue',
     async (job: Job) => {

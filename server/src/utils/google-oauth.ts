@@ -11,20 +11,16 @@ export function createOAuth2Client() {
   );
 }
 
-// Generate PKCE code verifier
 export function generateCodeVerifier(): string {
   return crypto.randomBytes(32).toString('base64url');
 }
 
-// Compute PKCE code challenge (SHA-256 base64url)
 export function generateCodeChallenge(verifier: string): string {
   return crypto.createHash('sha256').update(verifier).digest('base64url');
 }
 
-// Generate Google OAuth URL with PKCE and CSRF state
-export function getGoogleAuthUrl(state: string, codeChallenge: string): string {
+export function getAuthUrl(): string {
   const oauth2Client = createOAuth2Client();
-
   const scopes = [
     'https://www.googleapis.com/auth/userinfo.email',
     'https://www.googleapis.com/auth/userinfo.profile',
@@ -33,7 +29,23 @@ export function getGoogleAuthUrl(state: string, codeChallenge: string): string {
     'https://www.googleapis.com/auth/gmail.send',
     'https://www.googleapis.com/auth/calendar',
   ];
+  return oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: scopes,
+  });
+}
 
+export function getGoogleAuthUrl(state: string, codeChallenge: string): string {
+  const oauth2Client = createOAuth2Client();
+  const scopes = [
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/calendar',
+  ];
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
@@ -59,25 +71,18 @@ export interface GoogleTokenResult {
   profile: GoogleProfile;
 }
 
-// Exchange authorization code for tokens and fetch user profile
 export async function exchangeCodeForTokens(
   code: string,
   codeVerifier: string
 ): Promise<GoogleTokenResult> {
   const oauth2Client = createOAuth2Client();
-
-  const { tokens } = await oauth2Client.getToken({
-    code,
-    codeVerifier,
-  });
+  const { tokens } = await oauth2Client.getToken({ code, codeVerifier });
 
   if (!tokens.access_token) {
     throw new Error('Google OAuth failed to return access token');
   }
 
   oauth2Client.setCredentials(tokens);
-
-  // Fetch Google User Profile info
   const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
   const { data: userInfo } = await oauth2.userinfo.get();
 
@@ -103,13 +108,12 @@ export async function exchangeCodeForTokens(
   };
 }
 
-// Revoke OAuth refresh or access token with Google API
 export async function revokeGoogleToken(token: string): Promise<void> {
   try {
     const oauth2Client = createOAuth2Client();
     await oauth2Client.revokeToken(token);
     logger.info('Google OAuth token revoked successfully');
   } catch (err) {
-    logger.warn({ err }, 'Failed to revoke Google token with Google servers (token may already be invalid)');
+    logger.warn({ err }, 'Failed to revoke Google token with Google servers');
   }
 }

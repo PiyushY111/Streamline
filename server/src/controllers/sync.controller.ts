@@ -1,9 +1,9 @@
 import { Response } from 'express';
 import { eq } from 'drizzle-orm';
-import { db } from '../db/client.js';
+import { db } from '../db/index.js';
 import { connectedAccounts } from '../db/schema/index.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
-import { syncGoogleAccountData } from '../services/google-sync.service.js';
+import { syncGoogleAccountData } from '../services/google/google-sync.service.js';
 import { logger } from '../utils/logger.js';
 
 export async function triggerManualSync(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -16,13 +16,13 @@ export async function triggerManualSync(req: AuthenticatedRequest, res: Response
     logger.info({ count: activeAccounts.length }, 'Triggering manual sync for active accounts...');
 
     for (const acc of activeAccounts) {
-      syncGoogleAccountData(acc.id).catch((err) => {
+      syncGoogleAccountData(acc.id).catch((err: unknown) => {
         logger.error({ err, accountId: acc.id }, 'Manual sync failed for account');
       });
     }
 
     res.json({ message: 'Live synchronization triggered successfully', accountsSynced: activeAccounts.length });
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error({ err }, 'Error triggering manual sync');
     res.status(500).json({ error: 'Failed to trigger synchronization' });
   }
