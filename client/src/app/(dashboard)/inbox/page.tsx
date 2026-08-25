@@ -40,6 +40,7 @@ import {
   HardDrive,
   Download,
   File,
+  Pencil,
 } from 'lucide-react';
 import { fetchEmails, fetchConnectedAccounts, EmailData, AccountData } from '@/lib/api';
 
@@ -356,7 +357,7 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] -m-6 overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-200">
+    <div className="flex h-[calc(100vh-6rem)] -m-6 overflow-hidden bg-[#f6f8fc] dark:bg-[#18191b] transition-colors duration-200">
       {/* Hidden File Inputs */}
       <input
         type="file"
@@ -373,23 +374,23 @@ export default function InboxPage() {
         onChange={handleReplyFileSelect}
       />
 
-      {/* 1. Gmail Left Navigation Sidebar */}
-      <aside className="w-56 bg-slate-100/70 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800 p-3 flex flex-col justify-between shrink-0">
+      {/* 1. Gmail Material You Navigation Sidebar */}
+      <aside className="w-56 bg-[#f6f8fc] dark:bg-[#1e1e1e] border-r border-slate-200/80 dark:border-slate-800/80 p-3 flex flex-col justify-between shrink-0">
         <div className="space-y-4">
-          {/* Compose Button */}
+          {/* Gmail Classic Compose Button */}
           <button
             onClick={() => {
               setShowComposeModal(true);
               setIsComposeMinimized(false);
             }}
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs shadow-md shadow-purple-600/20 transition-all hover:scale-[1.01] active:scale-95"
+            className="w-full flex items-center space-x-3 px-5 py-3.5 rounded-2xl bg-[#c2e7ff] hover:bg-[#b3d7f0] dark:bg-purple-600 dark:hover:bg-purple-700 text-[#001d35] dark:text-white font-semibold text-xs shadow-sm transition-all hover:scale-[1.01] active:scale-95"
           >
-            <Plus className="w-4 h-4" />
-            <span>Compose</span>
+            <Pencil className="w-4 h-4 text-[#0b57d0] dark:text-white" />
+            <span className="font-bold text-xs tracking-wide">Compose</span>
           </button>
 
-          {/* Mail Folders */}
-          <nav className="space-y-0.5">
+          {/* Gmail Folders */}
+          <nav className="space-y-1">
             {[
               { id: 'inbox', label: 'Inbox', icon: InboxIcon, count: emails.filter((e) => !e.isRead && (e as any).folder === 'inbox').length },
               { id: 'starred', label: 'Starred', icon: Star, count: emails.filter((e) => e.isStarred).length },
@@ -407,21 +408,21 @@ export default function InboxPage() {
                     setActiveFolder(folder.id as any);
                     setCurrentPage(1);
                   }}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                  className={`w-full flex items-center justify-between px-4 py-2.5 rounded-full text-xs transition-colors ${
                     isActive
-                      ? 'bg-purple-100/80 text-purple-950 dark:bg-purple-600/20 dark:text-purple-200 font-bold'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                      ? 'bg-[#c2e7ff] text-[#001d35] font-bold dark:bg-[#2d3748] dark:text-[#d3e3fd]'
+                      : 'text-[#444746] dark:text-slate-300 hover:bg-[#eaeff6] dark:hover:bg-slate-800/60 font-medium'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-purple-600 dark:text-purple-400' : 'text-slate-500'}`} />
+                  <div className="flex items-center space-x-3.5">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#0b57d0] dark:text-[#a855f7]' : 'text-slate-500'}`} />
                     <span>{folder.label}</span>
                   </div>
                   {folder.count !== undefined && folder.count > 0 && (
                     <span
                       className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold ${
                         isActive
-                          ? 'bg-purple-600 text-white'
+                          ? 'bg-[#0b57d0] text-white dark:bg-purple-600'
                           : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
                     >
@@ -433,15 +434,15 @@ export default function InboxPage() {
             })}
           </nav>
 
-          {/* Connected Accounts Filter Badges */}
+          {/* Connected Mailboxes */}
           <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800 space-y-2">
-            <div className="px-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="px-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
               Connected Mailboxes
             </div>
             {accounts.map((acc) => (
               <div
                 key={acc.id}
-                className="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-white/60 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 text-xs"
+                className="flex items-center space-x-2.5 px-3 py-1.5 rounded-xl bg-white/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 text-xs"
               >
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: acc.color }} />
                 <div className="flex flex-col text-left truncate">
@@ -453,7 +454,7 @@ export default function InboxPage() {
           </div>
         </div>
 
-        {/* Sync Status Footer */}
+        {/* Live Sync Indicator */}
         <div className="px-3 py-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500">
           <span className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -465,18 +466,18 @@ export default function InboxPage() {
         </div>
       </aside>
 
-      {/* 2. Gmail Main Mail List & Toolbar */}
-      <div className="w-96 border-r border-slate-200/80 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-950 shrink-0">
-        {/* Gmail Search & Toolbar */}
+      {/* 2. Gmail Mail List Panel */}
+      <div className="w-96 border-r border-slate-200/80 dark:border-slate-800 flex flex-col bg-white dark:bg-[#18191b] shrink-0">
+        {/* Gmail Search & Categories */}
         <div className="p-3 border-b border-slate-200/80 dark:border-slate-800 space-y-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search mail..."
-              className="w-full bg-slate-100/80 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 shadow-xs"
+              placeholder="Search in mail"
+              className="w-full bg-[#eaf1fb] dark:bg-[#28292c] border border-transparent dark:border-slate-800 rounded-full pl-10 pr-4 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:bg-white focus:border-[#0b57d0] transition-all"
             />
           </div>
 
@@ -484,7 +485,7 @@ export default function InboxPage() {
             <div className="flex items-center space-x-2">
               <button onClick={toggleSelectAll} className="p-1 hover:text-slate-800 dark:hover:text-slate-200">
                 {selectedEmailIds.length === filteredEmails.length && filteredEmails.length > 0 ? (
-                  <CheckSquare className="w-4 h-4 text-purple-600" />
+                  <CheckSquare className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
                 ) : (
                   <Square className="w-4 h-4 text-slate-400" />
                 )}
@@ -524,10 +525,10 @@ export default function InboxPage() {
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold capitalize whitespace-nowrap transition-colors ${
+                className={`px-3 py-1 rounded-full text-[10px] font-semibold capitalize whitespace-nowrap transition-colors ${
                   activeCategory === cat
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                    ? 'bg-[#0b57d0] text-white dark:bg-purple-600'
+                    : 'bg-[#eaf1fb] dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
                 {cat}
@@ -557,10 +558,10 @@ export default function InboxPage() {
                   onClick={() => handleSelectEmail(email)}
                   className={`p-3.5 flex items-start space-x-3 cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-purple-50 dark:bg-purple-950/20 border-l-4 border-l-purple-600'
+                      ? 'bg-[#c2e7ff]/80 text-[#001d35] border-l-4 border-l-[#0b57d0] dark:bg-[#2d3748] dark:text-white dark:border-l-purple-500'
                       : !email.isRead
-                      ? 'bg-white dark:bg-slate-900 border-l-4 border-l-purple-500 font-bold shadow-xs'
-                      : 'bg-slate-100/60 dark:bg-slate-950/60 opacity-75 hover:opacity-100'
+                      ? 'bg-white text-[#1f1f1f] font-bold border-l-4 border-l-[#0b57d0] dark:bg-[#232427] dark:text-[#f1f3f4] dark:border-l-purple-500 shadow-2xs'
+                      : 'bg-[#f6f8fc] text-[#444746] dark:bg-[#1e1e1e]/60 dark:text-slate-400 hover:bg-slate-200/50'
                   }`}
                 >
                   <button
@@ -570,14 +571,14 @@ export default function InboxPage() {
                     }}
                     className="mt-0.5 text-slate-400 hover:text-slate-600 shrink-0"
                   >
-                    {isChecked ? <CheckSquare className="w-4 h-4 text-purple-600" /> : <Square className="w-4 h-4 text-slate-300" />}
+                    {isChecked ? <CheckSquare className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" /> : <Square className="w-4 h-4 text-slate-300" />}
                   </button>
 
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5 truncate">
                         {!email.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0" title="Unread" />
+                          <span className="w-2 h-2 rounded-full bg-[#0b57d0] dark:bg-purple-500 shrink-0" title="Unread" />
                         )}
                         <span className={`text-xs truncate ${!email.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-600 dark:text-slate-400'}`}>
                           {email.sender}
@@ -603,7 +604,7 @@ export default function InboxPage() {
                         >
                           <Star className={`w-3.5 h-3.5 ${email.isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
                         </button>
-                        <span className={`text-[10px] font-mono ${!email.isRead ? 'font-bold text-purple-600 dark:text-purple-400' : 'text-slate-400'}`}>
+                        <span className={`text-[10px] font-mono ${!email.isRead ? 'font-bold text-[#0b57d0] dark:text-purple-400' : 'text-slate-400'}`}>
                           {new Date(email.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -612,7 +613,7 @@ export default function InboxPage() {
                     <div className="flex items-center space-x-1.5">
                       <span
                         className="w-2 h-2 rounded-full shrink-0"
-                        style={{ backgroundColor: email.accountColor || '#8b5cf6' }}
+                        style={{ backgroundColor: email.accountColor || '#0b57d0' }}
                       />
                       <p className={`text-xs truncate ${!email.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-normal text-slate-600 dark:text-slate-400'}`}>
                         {email.subject}
@@ -630,11 +631,11 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* 3. Gmail Native Thread Reader View (With Attachments Display) */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-slate-950 overflow-hidden">
+      {/* 3. Gmail Native Thread Reader Canvas */}
+      <div className="flex-1 flex flex-col bg-white dark:bg-[#1e1e1e] overflow-hidden">
         {selectedEmail ? (
           <div className="flex-1 flex flex-col min-h-0">
-            {/* Native Gmail Subject Bar */}
+            {/* Subject Header Bar */}
             <div className="px-6 py-4 border-b border-slate-200/80 dark:border-slate-800 space-y-2 shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -662,7 +663,7 @@ export default function InboxPage() {
                     <Star className={`w-4 h-4 ${selectedEmail.isStarred ? 'fill-amber-400 text-amber-400' : ''}`} />
                   </button>
                   <button
-                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-purple-600 transition-colors"
+                    className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-[#0b57d0] dark:hover:text-purple-400 transition-colors"
                     title="Create Action Item / Task"
                   >
                     <TaskIcon className="w-4 h-4" />
@@ -688,7 +689,7 @@ export default function InboxPage() {
               </h1>
             </div>
 
-            {/* Native Gmail Seamless Thread Canvas */}
+            {/* Messages Flow */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-200/80 dark:divide-slate-800">
               {currentThreadMessages.map((msg, index) => {
                 const match = msg.sender.match(/^(.*?)\s*<([^>]+)>$/);
@@ -712,7 +713,7 @@ export default function InboxPage() {
                     {/* Header Row */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="h-9 w-9 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-[#0b57d0] dark:bg-purple-600 flex items-center justify-center text-white font-bold text-xs shadow-xs shrink-0">
                           {senderName.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -758,7 +759,7 @@ export default function InboxPage() {
                     {attachmentsList.length > 0 && (
                       <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-2">
                         <div className="flex items-center space-x-1.5 text-xs text-slate-500 font-semibold">
-                          <Paperclip className="w-3.5 h-3.5 text-purple-600" />
+                          <Paperclip className="w-3.5 h-3.5 text-[#0b57d0] dark:text-purple-400" />
                           <span>{attachmentsList.length} Attachment{attachmentsList.length === 1 ? '' : 's'}</span>
                         </div>
 
@@ -768,7 +769,7 @@ export default function InboxPage() {
                             return (
                               <div
                                 key={attIdx}
-                                className="flex flex-col p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs hover:border-purple-300 dark:hover:border-purple-800 transition-all shadow-2xs max-w-[220px]"
+                                className="flex flex-col p-2.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs hover:border-[#0b57d0] dark:hover:border-purple-800 transition-all shadow-2xs max-w-[220px]"
                               >
                                 {isImage && att.content && (
                                   <div className="w-full h-28 rounded-xl overflow-hidden bg-slate-200 dark:bg-slate-800 mb-2 relative">
@@ -777,14 +778,14 @@ export default function InboxPage() {
                                 )}
                                 <div className="flex items-center justify-between space-x-2">
                                   <div className="flex items-center space-x-1.5 truncate">
-                                    <File className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                    <File className="w-3.5 h-3.5 text-[#0b57d0] dark:text-purple-400 shrink-0" />
                                     <span className="font-semibold text-slate-900 dark:text-white truncate">{att.filename}</span>
                                   </div>
                                   {att.content && (
                                     <a
                                       href={att.content}
                                       download={att.filename}
-                                      className="p-1 rounded-lg bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 hover:bg-purple-200 transition-colors shrink-0"
+                                      className="p-1 rounded-lg bg-blue-50 dark:bg-purple-900/40 text-[#0b57d0] dark:text-purple-300 hover:bg-blue-100 transition-colors shrink-0"
                                       title="Download file"
                                     >
                                       <Download className="w-3.5 h-3.5" />
@@ -803,8 +804,8 @@ export default function InboxPage() {
               })}
             </div>
 
-            {/* Native Gmail Bottom Action / Reply Container */}
-            <div className="p-5 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950 space-y-3 shrink-0">
+            {/* Bottom Action Container */}
+            <div className="p-5 border-t border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc]/50 dark:bg-[#18191b] space-y-3 shrink-0">
               {!isReplying ? (
                 <div className="flex items-center space-x-3">
                   <button
@@ -833,7 +834,7 @@ export default function InboxPage() {
                 <div className="p-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      {replyMode === 'reply' ? <CornerUpLeft className="w-4 h-4 text-purple-600" /> : <CornerUpRight className="w-4 h-4 text-purple-600" />}
+                      {replyMode === 'reply' ? <CornerUpLeft className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" /> : <CornerUpRight className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />}
                       <span>{replyMode === 'reply' ? `Reply to ${selectedEmail.sender}` : `Forward message`}</span>
                     </div>
                     <button onClick={() => setIsReplying(false)} className="text-slate-400 hover:text-slate-600">
@@ -846,7 +847,7 @@ export default function InboxPage() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write your response..."
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#0b57d0] resize-none"
                   />
 
                   {/* Reply Attachments Badges */}
@@ -855,15 +856,15 @@ export default function InboxPage() {
                       {replyFiles.map((file, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200"
+                          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-purple-950/40 border border-blue-200 dark:border-purple-800 text-xs text-[#0b57d0] dark:text-purple-200"
                         >
-                          <Paperclip className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                          <Paperclip className="w-3.5 h-3.5 text-[#0b57d0] shrink-0" />
                           <span className="truncate max-w-[140px] font-medium">{file.filename}</span>
                           <span className="text-[10px] opacity-70 font-mono">({formatFileSize(file.size)})</span>
                           <button
                             type="button"
                             onClick={() => setReplyFiles((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-purple-400 hover:text-rose-600 ml-1"
+                            className="text-slate-400 hover:text-rose-600 ml-1"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -877,7 +878,7 @@ export default function InboxPage() {
                       <button
                         disabled={isSendingReply || !replyText.trim()}
                         onClick={handleSendReply}
-                        className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all active:scale-95 disabled:opacity-50"
+                        className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-[#0b57d0] hover:bg-[#0a4ab8] text-white text-xs font-semibold shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>{isSendingReply ? 'Sending via Gmail...' : 'Send'}</span>
@@ -885,7 +886,7 @@ export default function InboxPage() {
                       <button
                         type="button"
                         onClick={() => replyFileInputRef.current?.click()}
-                        className="p-2 text-slate-400 hover:text-purple-600 transition-colors"
+                        className="p-2 text-slate-400 hover:text-[#0b57d0] transition-colors"
                         title="Attach files"
                       >
                         <Paperclip className="w-4 h-4" />
@@ -916,12 +917,12 @@ export default function InboxPage() {
         )}
       </div>
 
-      {/* Native Gmail Floating Bottom-Right Compose Dock */}
+      {/* Gmail Floating Bottom-Right Compose Dock */}
       {showComposeModal && (
         isComposeMinimized ? (
           <div
             onClick={() => setIsComposeMinimized(false)}
-            className="fixed bottom-0 right-12 z-50 bg-slate-900 hover:bg-slate-800 text-white rounded-t-xl px-5 py-2.5 text-xs font-semibold shadow-2xl flex items-center space-x-4 cursor-pointer transition-all border-t border-x border-slate-700"
+            className="fixed bottom-0 right-12 z-50 bg-[#1f1f1f] hover:bg-slate-800 text-white rounded-t-xl px-5 py-2.5 text-xs font-semibold shadow-2xl flex items-center space-x-4 cursor-pointer transition-all border-t border-x border-slate-700"
           >
             <span>New Message</span>
             <div className="flex items-center space-x-2 text-slate-400">
@@ -956,26 +957,26 @@ export default function InboxPage() {
             }`}
           >
             {/* Header Bar */}
-            <div className="bg-slate-900 dark:bg-slate-800 text-white px-4 py-3 rounded-t-2xl flex items-center justify-between shrink-0 select-none">
+            <div className="bg-[#f2f6fc] dark:bg-slate-800 text-[#1f1f1f] dark:text-white px-4 py-3 rounded-t-2xl flex items-center justify-between shrink-0 select-none border-b border-slate-200 dark:border-slate-700">
               <span className="text-xs font-bold tracking-tight">New Message</span>
-              <div className="flex items-center space-x-2 text-slate-400">
+              <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
                 <button
                   onClick={() => setIsComposeMinimized(true)}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
                   title="Minimize"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setIsComposeMaximized(!isComposeMaximized)}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
                   title={isComposeMaximized ? 'Restore' : 'Maximize'}
                 >
                   {isComposeMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
                 </button>
                 <button
                   onClick={() => setShowComposeModal(false)}
-                  className="p-1 hover:text-white transition-colors"
+                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
                   title="Close"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -999,12 +1000,12 @@ export default function InboxPage() {
                   />
                   <div className="flex items-center space-x-2 text-slate-400 text-[11px] font-mono">
                     {!showCc && (
-                      <button type="button" onClick={() => setShowCc(true)} className="hover:text-purple-600">
+                      <button type="button" onClick={() => setShowCc(true)} className="hover:text-[#0b57d0]">
                         Cc
                       </button>
                     )}
                     {!showBcc && (
-                      <button type="button" onClick={() => setShowBcc(true)} className="hover:text-purple-600">
+                      <button type="button" onClick={() => setShowBcc(true)} className="hover:text-[#0b57d0]">
                         Bcc
                       </button>
                     )}
@@ -1068,15 +1069,15 @@ export default function InboxPage() {
                     {composeFiles.map((file, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 text-xs text-purple-900 dark:text-purple-200"
+                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-purple-950/40 border border-blue-200 dark:border-purple-800 text-xs text-[#0b57d0] dark:text-purple-200"
                       >
-                        <Paperclip className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                        <Paperclip className="w-3.5 h-3.5 text-[#0b57d0] shrink-0" />
                         <span className="truncate max-w-[160px] font-medium">{file.filename}</span>
                         <span className="text-[10px] opacity-70 font-mono">({formatFileSize(file.size)})</span>
                         <button
                           type="button"
                           onClick={() => setComposeFiles((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-purple-400 hover:text-rose-600 ml-1"
+                          className="text-slate-400 hover:text-rose-600 ml-1"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -1087,39 +1088,39 @@ export default function InboxPage() {
               </div>
 
               {/* Gmail Action & Formatting Footer Bar */}
-              <div className="px-4 py-3 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950 flex items-center justify-between shrink-0">
+              <div className="px-4 py-3 border-t border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc] dark:bg-slate-950 flex items-center justify-between shrink-0">
                 <div className="flex items-center space-x-3">
                   <button
                     type="submit"
                     disabled={isSendingCompose}
-                    className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-600/20 transition-all active:scale-95 disabled:opacity-50"
+                    className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-full bg-[#0b57d0] hover:bg-[#0a4ab8] text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
                   >
                     <span>{isSendingCompose ? 'Sending...' : 'Send'}</span>
-                    <ChevronDown className="w-3.5 h-3.5 border-l border-purple-400 pl-1" />
+                    <ChevronDown className="w-3.5 h-3.5 border-l border-blue-400 pl-1" />
                   </button>
 
-                  <div className="flex items-center space-x-1 text-slate-400">
-                    <button type="button" className="p-1.5 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg" title="Formatting options">
+                  <div className="flex items-center space-x-1 text-slate-500 dark:text-slate-400">
+                    <button type="button" className="p-1.5 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg" title="Formatting options">
                       <Type className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => composeFileInputRef.current?.click()}
-                      className="p-1.5 hover:text-purple-600 transition-colors rounded-lg"
+                      className="p-1.5 hover:text-[#0b57d0] transition-colors rounded-lg"
                       title="Attach files"
                     >
-                      <Paperclip className="w-4 h-4 text-purple-600" />
+                      <Paperclip className="w-4 h-4 text-[#0b57d0]" />
                     </button>
-                    <button type="button" className="p-1.5 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg" title="Insert link">
+                    <button type="button" className="p-1.5 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg" title="Insert link">
                       <LinkIcon className="w-4 h-4" />
                     </button>
-                    <button type="button" className="p-1.5 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg" title="Insert emoji">
+                    <button type="button" className="p-1.5 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg" title="Insert emoji">
                       <Smile className="w-4 h-4" />
                     </button>
-                    <button type="button" className="p-1.5 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg" title="Insert files using Drive">
+                    <button type="button" className="p-1.5 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg" title="Insert files using Drive">
                       <HardDrive className="w-4 h-4" />
                     </button>
-                    <button type="button" className="p-1.5 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg" title="Insert photo">
+                    <button type="button" className="p-1.5 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg" title="Insert photo">
                       <ImageIcon className="w-4 h-4" />
                     </button>
                   </div>

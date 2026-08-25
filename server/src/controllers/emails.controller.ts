@@ -212,6 +212,7 @@ export async function markEmailAsRead(req: AuthenticatedRequest, res: Response):
 
     // 1. Update in Neon PostgreSQL
     await db.update(emails).set({ isRead: true }).where(eq(emails.id, emailId));
+    await db.update(emailThreads).set({ isStarred: email.isStarred }).where(eq(emailThreads.id, email.threadId));
 
     // 2. Mark as read on Google Gmail servers via Gmail API (remove UNREAD label)
     const [account] = await db
