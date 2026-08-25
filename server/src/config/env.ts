@@ -2,15 +2,19 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { z } from 'zod';
 
-dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: z.string().default('3000'),
+  PORT: z.string().default('5001'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be a 64-character hex string (32 bytes)'),
+  JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
+  GOOGLE_CLIENT_ID: z.string().optional().default(''),
+  GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
+  GOOGLE_REDIRECT_URI: z.string().optional().default('http://localhost:5001/api/auth/google/callback'),
 });
 
 export const env = envSchema.parse({
@@ -18,5 +22,9 @@ export const env = envSchema.parse({
   PORT: process.env.PORT,
   DATABASE_URL: process.env.DATABASE_URL,
   REDIS_URL: process.env.REDIS_URL,
-  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  JWT_SECRET: process.env.JWT_SECRET || 'fallback-dev-jwt-secret-key-123456789',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
 });
