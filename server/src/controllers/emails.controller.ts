@@ -9,6 +9,7 @@ import { decrypt } from '../utils/encryption.js';
 import { logger } from '../utils/logger.js';
 
 export async function listEmails(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const startTime = Date.now();
   try {
     const { accountId, folder } = req.query;
 
@@ -34,7 +35,8 @@ export async function listEmails(req: AuthenticatedRequest, res: Response): Prom
       })
       .from(emails)
       .leftJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-      .orderBy(desc(emails.receivedAt));
+      .orderBy(desc(emails.receivedAt))
+      .limit(300);
 
     if (accountId && typeof accountId === 'string') {
       query.where(eq(emails.accountId, accountId));
@@ -45,7 +47,27 @@ export async function listEmails(req: AuthenticatedRequest, res: Response): Prom
     }
 
     const emailList = await query;
-    res.json({ emails: emailList });
+
+    // Fast payload optimization: strip massive base64 content blobs from list response
+    const lightEmailList = emailList.map((e) => {
+      const atts = Array.isArray(e.attachments) ? e.attachments : [];
+      const cleanAtts = atts.map((att: any) => ({
+        filename: att.filename,
+        mimeType: att.mimeType,
+        size: att.size,
+        attachmentId: att.attachmentId,
+        content: att.content && att.content.length < 300000 ? att.content : undefined,
+      }));
+      return {
+        ...e,
+        attachments: cleanAtts,
+      };
+    });
+
+    const duration = Date.now() - startTime;
+    logger.info({ count: lightEmailList.length, durationMs: duration }, '⚡ Ultra-fast email list returned');
+
+    res.json({ emails: lightEmailList });
   } catch (err: any) {
     logger.error({ err }, 'Error listing emails from database');
     res.status(500).json({ error: 'Failed to fetch emails' });
