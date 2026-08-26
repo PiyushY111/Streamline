@@ -3,7 +3,7 @@ import { EmailData } from './types';
 
 export async function fetchEmails(folder?: string): Promise<EmailData[]> {
   try {
-    const query = folder ? `?folder=${encodeURIComponent(folder)}` : '';
+    const query = folder ? `?folder=${encodeURIComponent(folder)}&limit=1000` : '?limit=1000';
     const res = await safeFetch(`/emails${query}`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
@@ -52,6 +52,28 @@ export async function toggleStarEmailApi(id: string, isStarred: boolean = true):
 export async function deleteEmailApi(id: string): Promise<void> {
   const res = await safeFetch(`/emails/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete email');
+}
+
+export async function fetchEmailByIdApi(id: string): Promise<EmailData | null> {
+  try {
+    const res = await safeFetch(`/emails/${id}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.email || null;
+  } catch (err: unknown) {
+    return null;
+  }
+}
+
+export async function updateEmailCategoryApi(id: string, category: string): Promise<EmailData> {
+  const res = await safeFetch(`/emails/${id}/category`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ category }),
+  });
+  if (!res.ok) throw new Error('Failed to update email category');
+  const data = await res.json();
+  return data.email;
 }
 
 export async function triggerSyncApi(): Promise<void> {

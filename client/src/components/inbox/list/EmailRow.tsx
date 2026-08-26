@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star, Square, CheckSquare, Paperclip } from 'lucide-react';
 import { EmailData } from '@/lib/api';
+import { formatEmailDate } from '@/lib/utils';
 
 interface EmailRowProps {
   email: EmailData;
@@ -56,7 +57,7 @@ export function EmailRow({ email, isSelected, onSelect, onStar, onClick }: Email
         </div>
       </td>
       <td className="py-3 pr-4 pl-2 w-28 text-right text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-        {new Date(email.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {formatEmailDate(email.receivedAt)}
       </td>
     </tr>
   );

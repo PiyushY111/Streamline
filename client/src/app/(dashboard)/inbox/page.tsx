@@ -44,6 +44,7 @@ import {
   Lock,
   Rows,
   ShieldAlert,
+  FolderInput,
   Settings as SettingsIcon,
 } from 'lucide-react';
 import {
@@ -54,9 +55,12 @@ import {
   deleteEmailApi,
   sendEmailApi,
   triggerSyncApi,
+  updateEmailCategoryApi,
+  fetchEmailByIdApi,
   EmailData,
   AccountData,
 } from '@/lib/api';
+import { formatEmailDate } from '@/lib/utils';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { AdvancedSearchModal, SearchFilterState } from '@/components/inbox/AdvancedSearchModal';
 import { SnoozeModal } from '@/components/inbox/SnoozeModal';
@@ -77,7 +81,7 @@ function InboxContent() {
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'>('inbox');
-  const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('primary');
+  const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('all');
   const [selectedAccountFilter, setSelectedAccountFilter] = useState<string | 'all'>('all');
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(urlEmailId);
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,6 +108,7 @@ function InboxContent() {
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [labelTargetEmailId, setLabelTargetEmailId] = useState<string | null>(null);
   const [selectedCustomLabelFilter, setSelectedCustomLabelFilter] = useState<string | 'all'>('all');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Email Templates State
   const [savedTemplates, setSavedTemplates] = useState<EmailTemplate[]>([
@@ -207,6 +212,24 @@ function InboxContent() {
     }
   }, [composeTo, composeSubject, composeBody, composeFromAccountId]);
 
+  const updateEmailsState = (incoming: EmailData[]) => {
+    setEmails((prev) => {
+      const prevMap = new Map(prev.map((e) => [e.id, e]));
+      return incoming.map((item) => {
+        const existing = prevMap.get(item.id);
+        if (existing) {
+          return {
+            ...item,
+            bodyHtml: existing.bodyHtml || item.bodyHtml,
+            bodyText: existing.bodyText || item.bodyText,
+            attachments: existing.attachments || item.attachments,
+          };
+        }
+        return item;
+      });
+    });
+  };
+
   const loadData = async (forceSync: boolean = false) => {
     try {
       setLoading(true);
@@ -214,7 +237,7 @@ function InboxContent() {
         await triggerSyncApi();
       }
       const [emailData, accData] = await Promise.all([fetchEmails(), fetchConnectedAccounts()]);
-      setEmails(emailData);
+      updateEmailsState(emailData);
       setAccounts(accData);
       if (emailData.length > 0 && !selectedEmailId) {
         setSelectedEmailId(emailData[0].id);
@@ -236,12 +259,27 @@ function InboxContent() {
     // Auto-polling interval every 15 seconds to automatically receive incoming emails
     const pollInterval = setInterval(() => {
       fetchEmails().then((emailData) => {
-        if (emailData.length > 0) setEmails(emailData);
+        if (emailData.length > 0) updateEmailsState(emailData);
       }).catch(() => {});
     }, 15000);
 
     return () => clearInterval(pollInterval);
   }, []);
+
+  // Automatically fetch full HTML body for selected email if missing
+  useEffect(() => {
+    if (!selectedEmailId) return;
+    const target = emails.find((e) => e.id === selectedEmailId);
+    if (target && !target.bodyHtml && !target.bodyText) {
+      fetchEmailByIdApi(selectedEmailId).then((full) => {
+        if (full) {
+          setEmails((prev) =>
+            prev.map((e) => (e.id === selectedEmailId ? { ...e, ...full } : e))
+          );
+        }
+      }).catch((err) => console.warn('Failed to auto-fetch full email details:', err));
+    }
+  }, [selectedEmailId, emails]);
 
   // Sync selected email and thread view when URL query 'id' changes or on initial load
   useEffect(() => {
@@ -289,6 +327,54 @@ function InboxContent() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
+  const getEmailCategory = (email: EmailData): 'promotions' | 'social' | 'updates' | 'primary' => {
+    const cat = (email.category || '').toLowerCase();
+    if (cat === 'promotions') return 'promotions';
+    if (cat === 'social') return 'social';
+    if (cat === 'updates') return 'updates';
+
+    const senderLower = email.sender.toLowerCase();
+    const subjectLower = email.subject.toLowerCase();
+
+    if (
+      senderLower.includes('newsletter') ||
+      senderLower.includes('marketing') ||
+      subjectLower.includes('offer') ||
+      subjectLower.includes('sale') ||
+      subjectLower.includes('discount') ||
+      subjectLower.includes('deal') ||
+      subjectLower.includes('subscription')
+    ) {
+      return 'promotions';
+    }
+
+    if (
+      senderLower.includes('linkedin') ||
+      senderLower.includes('twitter') ||
+      senderLower.includes('facebook') ||
+      senderLower.includes('instagram') ||
+      senderLower.includes('github') ||
+      senderLower.includes('youtube')
+    ) {
+      return 'social';
+    }
+
+    if (
+      senderLower.includes('google') ||
+      senderLower.includes('security') ||
+      senderLower.includes('notification') ||
+      senderLower.includes('receipt') ||
+      senderLower.includes('invoice') ||
+      senderLower.includes('billing') ||
+      subjectLower.includes('verify') ||
+      subjectLower.includes('confirm')
+    ) {
+      return 'updates';
+    }
+
+    return 'primary';
+  };
+
   // Filter emails by active folder, category tab, account label, custom label, search query, and advanced filters
   const filteredEmails = emails.filter((email) => {
     // Account / Mailbox Label filter
@@ -319,39 +405,9 @@ function InboxContent() {
 
     // Category filter for Inbox
     if (activeFolder === 'inbox' && activeCategory !== 'all') {
-      const emailCategory = (email.category || 'primary').toLowerCase();
-      if (activeCategory === 'promotions') {
-        const isPromo = emailCategory === 'promotions' ||
-          email.subject.toLowerCase().includes('offer') ||
-          email.subject.toLowerCase().includes('sale') ||
-          email.subject.toLowerCase().includes('discount') ||
-          email.sender.toLowerCase().includes('newsletter');
-        if (!isPromo) return false;
-      } else if (activeCategory === 'social') {
-        const isSocial = emailCategory === 'social' ||
-          email.sender.toLowerCase().includes('linkedin') ||
-          email.sender.toLowerCase().includes('twitter') ||
-          email.sender.toLowerCase().includes('facebook') ||
-          email.sender.toLowerCase().includes('github') ||
-          email.sender.toLowerCase().includes('youtube');
-        if (!isSocial) return false;
-      } else if (activeCategory === 'updates') {
-        const isUpdate = emailCategory === 'updates' ||
-          email.sender.toLowerCase().includes('google') ||
-          email.sender.toLowerCase().includes('security') ||
-          email.sender.toLowerCase().includes('no-reply') ||
-          email.sender.toLowerCase().includes('noreply') ||
-          email.subject.toLowerCase().includes('verify') ||
-          email.subject.toLowerCase().includes('confirm');
-        if (!isUpdate) return false;
-      } else if (activeCategory === 'primary') {
-        const isOther = emailCategory === 'promotions' || emailCategory === 'social' || emailCategory === 'updates' ||
-          email.subject.toLowerCase().includes('offer') ||
-          email.subject.toLowerCase().includes('sale') ||
-          email.sender.toLowerCase().includes('linkedin') ||
-          email.sender.toLowerCase().includes('newsletter') ||
-          email.sender.toLowerCase().includes('no-reply');
-        if (isOther) return false;
+      const emailCat = getEmailCategory(email);
+      if (emailCat !== activeCategory) {
+        return false;
       }
     }
 
@@ -529,7 +585,18 @@ function InboxContent() {
     }
   };
 
-  const handleSelectEmail = (email: EmailData) => {
+  const handleCategoryShift = async (emailId: string, newCategory: 'primary' | 'promotions' | 'social' | 'updates') => {
+    setEmails((prev) =>
+      prev.map((e) => (e.id === emailId ? { ...e, category: newCategory } : e))
+    );
+    try {
+      await updateEmailCategoryApi(emailId, newCategory);
+    } catch (err) {
+      console.warn('Failed to shift email category:', err);
+    }
+  };
+
+  const handleSelectEmail = async (email: EmailData) => {
     setSelectedEmailId(email.id);
     setIsReadingThread(true);
     setIsReplying(false);
@@ -547,6 +614,18 @@ function InboxContent() {
       markEmailAsReadApi(email.id, true).catch((err) => {
         console.warn('Failed to mark email as read:', err);
       });
+    }
+
+    // Immediately fetch full HTML content for the selected email
+    try {
+      const full = await fetchEmailByIdApi(email.id);
+      if (full) {
+        setEmails((prev) =>
+          prev.map((e) => (e.id === email.id ? { ...e, ...full } : e))
+        );
+      }
+    } catch (err) {
+      console.warn('Failed to fetch full email body:', err);
     }
   };
 
@@ -1105,24 +1184,19 @@ function InboxContent() {
                 {activeFolder === 'inbox' && (
                   <div className="flex items-center border-b border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc]/60 dark:bg-[#1a1b1e] shrink-0 overflow-x-auto">
                     {[
+                      { id: 'all', label: 'All Mail', icon: Mail, color: 'border-slate-600 text-slate-600 dark:border-slate-300 dark:text-slate-300' },
                       { id: 'primary', label: 'Primary', icon: InboxIcon, color: 'border-[#0b57d0] text-[#0b57d0] dark:border-purple-400 dark:text-purple-400' },
                       { id: 'promotions', label: 'Promotions', icon: Tag, color: 'border-[#137333] text-[#137333] dark:border-emerald-400 dark:text-emerald-400' },
                       { id: 'social', label: 'Social', icon: Users, color: 'border-[#1a73e8] text-[#1a73e8] dark:border-blue-400 dark:text-blue-400' },
                       { id: 'updates', label: 'Updates', icon: AlertOctagon, color: 'border-[#b06000] text-[#b06000] dark:border-amber-400 dark:text-amber-400' },
-                      { id: 'all', label: 'All Mail', icon: Mail, color: 'border-slate-600 text-slate-600 dark:border-slate-300 dark:text-slate-300' },
                     ].map((cat) => {
                       const Icon = cat.icon;
                       const isActive = activeCategory === cat.id;
                       const count = emails.filter((e) => {
                         if (e.folder && e.folder !== 'inbox') return false;
                         if (selectedAccountFilter !== 'all' && e.accountId !== selectedAccountFilter) return false;
-                        const c = (e.category || 'primary').toLowerCase();
                         if (cat.id === 'all') return true;
-                        if (cat.id === 'promotions') return c === 'promotions' || e.subject.toLowerCase().includes('offer') || e.sender.toLowerCase().includes('newsletter');
-                        if (cat.id === 'social') return c === 'social' || e.sender.toLowerCase().includes('linkedin') || e.sender.toLowerCase().includes('twitter') || e.sender.toLowerCase().includes('github');
-                        if (cat.id === 'updates') return c === 'updates' || e.sender.toLowerCase().includes('google') || e.sender.toLowerCase().includes('no-reply');
-                        if (cat.id === 'primary') return c === 'primary' && !e.subject.toLowerCase().includes('offer') && !e.sender.toLowerCase().includes('linkedin') && !e.sender.toLowerCase().includes('no-reply');
-                        return false;
+                        return getEmailCategory(e) === cat.id;
                       }).length;
 
                       return (
@@ -1284,7 +1358,7 @@ function InboxContent() {
                           {/* Timestamp & Hover Quick Actions */}
                           <div className="w-32 shrink-0 flex items-center justify-end">
                             <span className="group-hover:hidden text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                              {new Date(email.receivedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {formatEmailDate(email.receivedAt)}
                             </span>
 
                             <div className="hidden group-hover:flex items-center space-x-1 text-slate-500">
@@ -1356,6 +1430,57 @@ function InboxContent() {
                     >
                       {selectedEmail?.accountName || selectedEmail?.accountEmail || 'Mailbox'}
                     </span>
+
+                    {/* Shift Category Pill Dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                        className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all shadow-2xs cursor-pointer hover:opacity-90"
+                        style={{
+                          backgroundColor: `${selectedEmail?.accountColor || '#0b57d0'}15`,
+                          color: selectedEmail?.accountColor || '#0b57d0',
+                          borderColor: `${selectedEmail?.accountColor || '#0b57d0'}40`,
+                        }}
+                        title="Move to category"
+                      >
+                        <FolderInput className="w-3 h-3" />
+                        <span className="capitalize">{selectedEmail?.category || 'primary'}</span>
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+
+                      {isCategoryDropdownOpen && (
+                        <div className="absolute left-0 mt-2 w-44 rounded-2xl bg-white dark:bg-[#1a1b1e] border border-slate-200 dark:border-slate-800 shadow-xl z-50 py-1.5 animate-in fade-in zoom-in-95">
+                          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Move to Category
+                          </div>
+                          {[
+                            { id: 'primary', label: 'Primary', icon: InboxIcon, color: 'text-[#0b57d0]' },
+                            { id: 'promotions', label: 'Promotions', icon: Tag, color: 'text-emerald-600' },
+                            { id: 'social', label: 'Social', icon: Users, color: 'text-blue-600' },
+                            { id: 'updates', label: 'Updates', icon: AlertOctagon, color: 'text-amber-600' },
+                          ].map((cat) => {
+                            const Icon = cat.icon;
+                            return (
+                              <button
+                                key={cat.id}
+                                onClick={() => {
+                                  if (selectedEmail) {
+                                    handleCategoryShift(selectedEmail.id, cat.id as any);
+                                  }
+                                  setIsCategoryDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center space-x-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 ${
+                                  (selectedEmail?.category || 'primary') === cat.id ? 'font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-600' : 'text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                <Icon className={`w-4 h-4 ${cat.color}`} />
+                                <span>{cat.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -1478,10 +1603,17 @@ function InboxContent() {
                                 className="w-full border-0 bg-transparent overflow-hidden"
                                 style={{ height: iframeHeights[msg.id] ? `${iframeHeights[msg.id]}px` : '100px' }}
                               />
-                            ) : (
+                            ) : msg.bodyText ? (
                               <p className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                                {msg.bodyText || msg.snippet}
+                                {msg.bodyText}
                               </p>
+                            ) : (
+                              <div className="space-y-3 py-3 animate-pulse">
+                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-3/4" />
+                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-1/2" />
+                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-5/6" />
+                                <div className="h-20 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl w-full" />
+                              </div>
                             )}
                           </div>
 

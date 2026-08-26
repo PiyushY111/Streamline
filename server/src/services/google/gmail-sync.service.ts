@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger.js';
 import { createOAuth2Client } from '../../utils/google-oauth.js';
 import { decrypt, encrypt } from '../../utils/encryption.js';
 import { emailsRepository } from '../../repositories/emails.repository.js';
+import { delCache } from '../cache.service.js';
 
 function decodeBase64(data: string): string {
   try {
@@ -107,17 +108,40 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
   const clientData = await getGmailClientForAccount(accountId);
   const gmail = clientData ? clientData.gmail : google.gmail({ version: 'v1', auth: oauth2Client });
 
-  const messagesRes = await gmail.users.messages.list({ userId: 'me', maxResults: 100 });
-  const messageMetas = messagesRes.data.messages || [];
+  // Fetch all messages from past 30 days using Gmail query with pagination
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const yyyy = thirtyDaysAgo.getFullYear();
+  const mm = String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0');
+  const dd = String(thirtyDaysAgo.getDate()).padStart(2, '0');
+  const q = `after:${yyyy}/${mm}/${dd}`;
 
-  if (messageMetas.length === 0) return 0;
+  let pageToken: string | undefined = undefined;
+  let allMessageMetas: any[] = [];
 
-  const fullMessages = await Promise.all(
-    messageMetas.map(m => gmail.users.messages.get({ userId: 'me', id: m.id!, format: 'full' }))
-  );
+  do {
+    const listRes: any = await gmail.users.messages.list({
+      userId: 'me',
+      q,
+      maxResults: 500,
+      pageToken,
+    });
+    const metas = listRes.data.messages || [];
+    allMessageMetas.push(...metas);
+    pageToken = listRes.data.nextPageToken || undefined;
+  } while (pageToken);
 
+  if (allMessageMetas.length === 0) return 0;
+
+  const batchSize = 25;
   let syncedCount = 0;
-  for (const msgRes of fullMessages) {
+
+  for (let i = 0; i < allMessageMetas.length; i += batchSize) {
+    const chunk = allMessageMetas.slice(i, i + batchSize);
+    const fullMessages = await Promise.all(
+      chunk.map((m) => gmail.users.messages.get({ userId: 'me', id: m.id!, format: 'full' }))
+    );
+
+    for (const msgRes of fullMessages) {
     const msg = msgRes.data;
     if (!msg.id || !msg.threadId) continue;
 
@@ -243,6 +267,11 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
     }
 
     syncedCount++;
+    }
+  }
+
+  if (syncedCount > 0) {
+    await delCache('emails:*');
   }
 
   logger.info({ accountId, syncedCount }, 'Gmail messages sync completed');
@@ -305,6 +334,49 @@ export async function syncGmailToggleStar(emailId: string, isStarred: boolean) {
       }
     } catch (err) {
       logger.warn({ err, emailId }, 'Failed to sync star status with Gmail API');
+    }
+  }
+
+  return updated;
+}
+
+export async function syncGmailUpdateCategory(emailId: string, category: string) {
+  const [email] = await db.select().from(emails).where(eq(emails.id, emailId)).limit(1);
+  if (!email) return null;
+
+  const [updated] = await db.update(emails)
+    .set({ category, updatedAt: new Date() })
+    .where(eq(emails.id, emailId))
+    .returning();
+
+  if (email.accountId && email.externalMessageId) {
+    try {
+      const clientData = await getGmailClientForAccount(email.accountId);
+      if (clientData) {
+        const categoryLabelMap: Record<string, string> = {
+          promotions: 'CATEGORY_PROMOTIONS',
+          social: 'CATEGORY_SOCIAL',
+          updates: 'CATEGORY_UPDATES',
+          primary: 'CATEGORY_PERSONAL',
+        };
+
+        const addLabel = categoryLabelMap[category];
+        const removeLabels = Object.values(categoryLabelMap).filter(l => l !== addLabel);
+
+        if (addLabel) {
+          await clientData.gmail.users.messages.modify({
+            userId: 'me',
+            id: email.externalMessageId,
+            requestBody: {
+              addLabelIds: [addLabel],
+              removeLabelIds: removeLabels,
+            },
+          });
+        }
+        logger.info({ emailId, category }, 'Successfully synced category update with Gmail API');
+      }
+    } catch (err) {
+      logger.warn({ err, emailId }, 'Failed to sync category with Gmail API');
     }
   }
 

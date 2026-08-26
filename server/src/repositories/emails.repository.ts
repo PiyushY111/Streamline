@@ -3,7 +3,7 @@ import { emails, emailThreads, connectedAccounts } from '../db/schema/index.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export class EmailsRepository {
-  async listUserEmails(userId: string, folder: string = 'inbox') {
+  async listUserEmails(userId: string, folder: string = 'inbox', limit: number = 1000, page: number = 1) {
     const userAccounts = await db.select({
       id: connectedAccounts.id,
       label: connectedAccounts.label,
@@ -17,19 +17,40 @@ export class EmailsRepository {
 
     const accountMap = new Map(userAccounts.map(a => [a.id, a]));
     const accountIds = userAccounts.map(a => a.id);
+    const offset = (page - 1) * limit;
 
-    const emailRows = await db.select()
+    const emailRows = await db.select({
+      id: emails.id,
+      threadId: emails.threadId,
+      accountId: emails.accountId,
+      externalMessageId: emails.externalMessageId,
+      sender: emails.sender,
+      recipients: emails.recipients,
+      subject: emails.subject,
+      bodyText: emails.bodyText,
+      receivedAt: emails.receivedAt,
+      sentAt: emails.sentAt,
+      folder: emails.folder,
+      category: emails.category,
+      isRead: emails.isRead,
+      isStarred: emails.isStarred,
+      isImportant: emails.isImportant,
+    })
       .from(emails)
       .where(and(
         inArray(emails.accountId, accountIds),
         eq(emails.folder, folder)
       ))
-      .orderBy(desc(emails.receivedAt));
+      .orderBy(desc(emails.receivedAt))
+      .limit(limit)
+      .offset(offset);
 
     return emailRows.map(e => {
       const acc = accountMap.get(e.accountId);
+      const { bodyText, ...rest } = e;
       return {
-        ...e,
+        ...rest,
+        snippet: bodyText ? bodyText.substring(0, 120).replace(/\s+/g, ' ').trim() : '(No content snippet)',
         accountName: acc?.label || acc?.email || 'Mailbox',
         accountEmail: acc?.email || '',
         accountColor: acc?.color || '#3b82f6',
@@ -53,6 +74,14 @@ export class EmailsRepository {
   async toggleStar(id: string, isStarred: boolean) {
     const [updated] = await db.update(emails)
       .set({ isStarred, updatedAt: new Date() })
+      .where(eq(emails.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateCategory(id: string, category: string) {
+    const [updated] = await db.update(emails)
+      .set({ category, updatedAt: new Date() })
       .where(eq(emails.id, id))
       .returning();
     return updated;

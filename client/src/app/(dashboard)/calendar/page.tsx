@@ -102,7 +102,7 @@ export default function CalendarPage() {
 
   // Filter events by account, search query, and guest filter
   const filteredEvents = events.filter((e) => {
-    if (visibleAccounts.length > 0 && !visibleAccounts.includes(e.accountId)) {
+    if (visibleAccounts.length > 0 && e.accountId && !visibleAccounts.includes(e.accountId)) {
       return false;
     }
     if (searchQuery.trim()) {

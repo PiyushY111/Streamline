@@ -10,12 +10,33 @@ export async function listEmails(req: AuthenticatedRequest, res: Response): Prom
       return;
     }
     const folder = (req.query.folder as string) || 'inbox';
-    const emailList = await emailsService.getEmails(req.user.id, folder);
+    const limit = parseInt(req.query.limit as string, 10) || 1000;
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const emailList = await emailsService.getEmails(req.user.id, folder, limit, page);
     res.json({ emails: emailList });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to list emails';
     logger.error({ err }, 'List emails controller error');
     res.status(500).json({ error: message });
+  }
+}
+
+export async function getEmailById(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const email = await emailsService.getEmailById(id);
+    if (!email) {
+      res.status(404).json({ error: 'Email not found' });
+      return;
+    }
+    res.json({ success: true, email });
+  } catch (err: unknown) {
+    logger.error({ err }, 'Get email by ID controller error');
+    res.status(500).json({ error: 'Failed to fetch email details' });
   }
 }
 
@@ -66,6 +87,26 @@ export async function toggleStarEmail(req: AuthenticatedRequest, res: Response):
     res.json({ success: true, email: updated });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to update star status' });
+  }
+}
+
+export async function updateEmailCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { category } = req.body;
+    if (!category) {
+      res.status(400).json({ error: 'Category is required' });
+      return;
+    }
+    const updated = await emailsService.updateCategory(id, category);
+    res.json({ success: true, email: updated });
+  } catch (err: unknown) {
+    logger.error({ err }, 'Update email category controller error');
+    res.status(500).json({ error: 'Failed to update email category' });
   }
 }
 

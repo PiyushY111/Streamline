@@ -61,7 +61,16 @@ async function ensureSchemaUpdated() {
   try {
     const sql = neon(env.DATABASE_URL);
     await sql`ALTER TABLE emails ADD COLUMN IF NOT EXISTS category text DEFAULT 'primary'`;
-    logger.info('✨ Verified DB schema: emails.category column is active');
+    await sql`DELETE FROM emails WHERE external_message_id LIKE 'seed_%'`;
+    await sql`DELETE FROM events WHERE external_event_id LIKE 'seed_%'`;
+    await sql`DELETE FROM tasks WHERE title IN (
+      'Review Q3 Product Architecture & API Specs',
+      'Prepare Presentation for Academic Advisory Meeting',
+      'Follow up on Client Onboarding & Security Clearance',
+      'Set up Automated CI/CD Build & Type-Check Pipeline',
+      'Schedule 1:1 Mentorship Sessions for September'
+    )`;
+    logger.info('✨ Verified DB schema & cleaned all hardcoded seed entries');
   } catch (err) {
     logger.warn({ err }, 'Auto-schema update warning');
   }

@@ -4,7 +4,12 @@ import { eq, inArray, gte, lte, and, desc } from 'drizzle-orm';
 
 export class EventsRepository {
   async listUserEvents(userId: string, startDate?: Date, endDate?: Date) {
-    const userAccounts = await db.select({ id: connectedAccounts.id })
+    const userAccounts = await db.select({
+      id: connectedAccounts.id,
+      label: connectedAccounts.label,
+      email: connectedAccounts.email,
+      color: connectedAccounts.color,
+    })
       .from(connectedAccounts)
       .where(eq(connectedAccounts.userId, userId));
 
@@ -16,10 +21,41 @@ export class EventsRepository {
     if (startDate) conditions.push(gte(events.startTime, startDate));
     if (endDate) conditions.push(lte(events.endTime, endDate));
 
-    return db.select()
+    const eventRows = await db.select()
       .from(events)
       .where(and(...conditions))
       .orderBy(desc(events.startTime));
+
+    const accountMap = new Map(userAccounts.map(a => [a.id, a]));
+
+    return eventRows.map((e, _, arr) => {
+      const acc = accountMap.get(e.accountId);
+      const eStart = new Date(e.startTime).getTime();
+      const eEnd = new Date(e.endTime).getTime();
+
+      const isAllDay = (eEnd - eStart) >= 24 * 60 * 60 * 1000;
+      let conflicts: typeof arr = [];
+
+      if (!isAllDay) {
+        conflicts = arr.filter((other) => {
+          if (other.id === e.id) return false;
+          const oStart = new Date(other.startTime).getTime();
+          const oEnd = new Date(other.endTime).getTime();
+          const otherAllDay = (oEnd - oStart) >= 24 * 60 * 60 * 1000;
+          if (otherAllDay) return false;
+
+          return (eStart < oEnd && eEnd > oStart);
+        });
+      }
+
+      return {
+        ...e,
+        accountName: acc?.label || acc?.email || 'Calendar',
+        accountColor: acc?.color || '#3b82f6',
+        hasConflict: conflicts.length > 0,
+        conflictingWith: conflicts.map((c) => c.title),
+      };
+    });
   }
 
   async listUserCalendars(userId: string) {

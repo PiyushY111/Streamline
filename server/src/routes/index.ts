@@ -10,10 +10,12 @@ import {
 } from '../controllers/oauth.controller.js';
 import {
   listEmails,
+  getEmailById,
   sendEmail,
   markEmailAsRead,
   deleteEmail,
   toggleStarEmail,
+  updateEmailCategory,
 } from '../controllers/emails.controller.js';
 import { listEvents, createEvent, updateEvent, deleteEvent, listCalendars } from '../controllers/events.controller.js';
 import { listTasks, createTask, updateTask, deleteTask } from '../controllers/tasks.controller.js';
@@ -46,9 +48,11 @@ router.post('/sync/trigger', authenticate, triggerManualSync);
 
 // Email Routes
 router.get('/emails', authenticate, listEmails);
+router.get('/emails/:id', authenticate, getEmailById);
 router.post('/emails/send', authenticate, express.json({ limit: '50mb' }), sendEmail);
 router.patch('/emails/:id/read', authenticate, markEmailAsRead);
 router.patch('/emails/:id/star', authenticate, toggleStarEmail);
+router.patch('/emails/:id/category', authenticate, updateEmailCategory);
 router.delete('/emails/:id', authenticate, deleteEmail);
 
 // Agenda / Calendar Routes

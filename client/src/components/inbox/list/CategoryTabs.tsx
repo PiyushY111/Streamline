@@ -9,11 +9,11 @@ interface CategoryTabsProps {
 
 export function CategoryTabs({ activeCategory, setActiveCategory, enabledCategories }: CategoryTabsProps) {
   const tabs = [
+    { key: 'all', label: 'All Mail', icon: Mail, enabled: true },
     { key: 'primary', label: 'Primary', icon: Inbox, enabled: enabledCategories?.primary !== false },
     { key: 'promotions', label: 'Promotions', icon: Tag, enabled: enabledCategories?.promotions !== false },
     { key: 'social', label: 'Social', icon: Users, enabled: enabledCategories?.social !== false },
     { key: 'updates', label: 'Updates', icon: AlertOctagon, enabled: enabledCategories?.updates !== false },
-    { key: 'all', label: 'All Mail', icon: Mail, enabled: true },
   ];
 
   return (

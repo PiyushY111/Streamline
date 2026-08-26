@@ -7,7 +7,7 @@ export function useInboxState(urlEmailId: string | null) {
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'>('inbox');
-  const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('primary');
+  const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('all');
   const [selectedAccountFilter, setSelectedAccountFilter] = useState<string | 'all'>('all');
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(urlEmailId);
   const [searchQuery, setSearchQuery] = useState('');

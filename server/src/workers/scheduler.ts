@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import { connectedAccounts } from '../db/schema/index.js';
-import { gmailSyncQueue, calendarSyncQueue } from '../queues/index.js';
+import { accountSyncQueue } from '../queues/index.js';
 import { logger } from '../utils/logger.js';
 
 export function startSyncScheduler() {
@@ -20,16 +20,19 @@ export function startSyncScheduler() {
       logger.info({ count: activeAccounts.length }, '⏰ Cron Scheduler enqueuing background sync jobs...');
 
       for (const account of activeAccounts) {
-        await gmailSyncQueue.add(
-          'sync-gmail',
-          { accountId: account.id },
-          { jobId: `gmail-sync-${account.id}-${Date.now()}` }
-        );
+        const jobId = `account-sync-${account.id}`;
+        const existingJob = await accountSyncQueue.getJob(jobId);
+        if (existingJob) {
+          const state = await existingJob.getState();
+          if (state === 'active' || state === 'waiting' || state === 'delayed') {
+            continue;
+          }
+        }
 
-        await calendarSyncQueue.add(
-          'sync-calendar',
+        await accountSyncQueue.add(
+          'sync-account',
           { accountId: account.id },
-          { jobId: `calendar-sync-${account.id}-${Date.now()}` }
+          { jobId }
         );
       }
     } catch (err: any) {

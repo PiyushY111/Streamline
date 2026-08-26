@@ -29,6 +29,7 @@ export interface EmailData {
   isStarred: boolean;
   folder?: string;
   category?: 'primary' | 'promotions' | 'social' | 'updates';
+  attachments?: any[];
 }
 
 export interface EventData {

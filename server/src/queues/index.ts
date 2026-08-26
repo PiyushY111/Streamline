@@ -8,32 +8,12 @@ export const redisConnection = new Redis(env.REDIS_URL, {
   tls: { rejectUnauthorized: false },
 });
 
-export const gmailSyncQueue = new Queue('gmail-sync-queue', {
+export const accountSyncQueue = new Queue('account-sync-queue', {
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: { type: 'exponential', delay: 2000 },
-    removeOnComplete: 100,
-    removeOnFail: 200,
-  },
-});
-
-export const calendarSyncQueue = new Queue('calendar-sync-queue', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: 'exponential', delay: 2000 },
-    removeOnComplete: 100,
-    removeOnFail: 200,
-  },
-});
-
-export const emailSendQueue = new Queue('email-send-queue', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    attempts: 5,
-    backoff: { type: 'exponential', delay: 3000 },
-    removeOnComplete: 100,
-    removeOnFail: 500,
+    removeOnComplete: { age: 3600, count: 100 },
+    removeOnFail: { age: 86400, count: 200 },
   },
 });
