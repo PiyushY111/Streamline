@@ -1,7 +1,6 @@
 # Streamline — Personal Productivity OS
 
 Production-grade monorepo setup for Streamline Personal Productivity OS, connecting multiple Google email/calendar accounts into a single unified inbox, agenda, and task manager.
-
 ## 🏗 Repository Structure
 
 ```text
