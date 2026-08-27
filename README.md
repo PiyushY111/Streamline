@@ -29,12 +29,43 @@ Streamline/
     └── db/              # Drizzle ORM Database Schema & Neon DB client connection
 ```
 
+## 📐 Architecture & System Design
+
+```text
++-------------------------------------------------------------+
+|                     Next.js Frontend App                    |
+|      (App Router UI, TanStack Query, Zustand State)          |
++------------------------------+------------------------------+
+                               |
+                               v
++------------------------------+------------------------------+
+|                  Neon PostgreSQL Database                   |
+|           (Drizzle ORM Schema, Users, Tokens, Events)       |
++------------------------------+------------------------------+
+                               ^
+                               |
++------------------------------+------------------------------+
+|                    BullMQ Worker Service                    |
+|       (Google API Sync, Token Refresh, Email Ingestion)     |
++-------------------------------------------------------------+
+```
+
+### Core Architecture Components
+
+- **Client App (`/client`)**: Modern Next.js 14 web application featuring full responsive design, email thread visualizers, and interactive calendar controls.
+- **Worker Service (`/server`)**: Standalone background worker consuming queues for email synchronization, periodic polling, and token refreshing without blocking user requests.
+- **Database Package (`/packages/db`)**: Shared package encapsulating Drizzle ORM schemas, migrations, and serverless Postgres connections.
+
+---
+
 ## 🚀 Stack Overview
 
 - **Frontend**: Next.js (App Router), TypeScript, Tailwind CSS, TanStack Query, Zustand, React Hook Form, Zod
 - **Backend / Worker**: Node.js, TypeScript, BullMQ, Redis
 - **Database**: Neon PostgreSQL via Drizzle ORM (`@neondatabase/serverless`)
 - **Monorepo Manager**: npm Workspaces
+
+---
 
 ## 🛠 Getting Started
 
