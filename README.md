@@ -102,3 +102,32 @@ npm run dev
 # Run Worker Service
 npm run dev:worker
 ```
+
+---
+
+## 🗺️ Product Roadmap
+
+- [x] Multi-account OAuth connection setup
+- [x] Initial sync worker pipeline using BullMQ
+- [x] Unified inbox view with label filtering
+- [ ] AI-assisted email summarization & smart reply draft generator
+- [ ] Cross-calendar scheduling conflict auto-resolution
+- [ ] Desktop notifications & offline support
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these steps to contribute:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin main`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the MIT License. See `LICENSE` for more information.
