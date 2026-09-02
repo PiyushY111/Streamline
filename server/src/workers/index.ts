@@ -1,6 +1,8 @@
 import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../queues/index.js';
 import { syncGoogleAccountData } from '../services/google/google-sync.service.js';
+import { createAiTriageWorker } from './ai-triage.worker.js';
+import { createDailyDigestWorker, startDailyDigestScheduler } from './daily-digest.worker.js';
 import { logger } from '../utils/logger.js';
 
 export function startWorkers() {
@@ -24,5 +26,11 @@ export function startWorkers() {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Account Sync Worker job failed');
   });
 
-  logger.info('✨ BullMQ background worker initialized and active!');
+  // Start AI Triage and Daily Digest Workers
+  createAiTriageWorker();
+  createDailyDigestWorker();
+  startDailyDigestScheduler();
+
+  logger.info('✨ All BullMQ background workers and AI schedulers initialized and active!');
 }
+
