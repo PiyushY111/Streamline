@@ -1,5 +1,5 @@
 import { db } from '../db/index.js';
-import { emails, emailThreads, connectedAccounts } from '../db/schema/index.js';
+import { emails, emailThreads, connectedAccounts, emailAiMetadata } from '../db/schema/index.js';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export class EmailsRepository {
@@ -38,6 +38,7 @@ export class EmailsRepository {
         recipients: emails.recipients,
         subject: emails.subject,
         bodyText: emails.bodyText,
+        bodyHtml: emails.bodyHtml,
         receivedAt: emails.receivedAt,
         sentAt: emails.sentAt,
         folder: emails.folder,
@@ -45,8 +46,15 @@ export class EmailsRepository {
         isRead: emails.isRead,
         isStarred: emails.isStarred,
         isImportant: emails.isImportant,
+        aiPriority: emailAiMetadata.priority,
+        aiUrgencyScore: emailAiMetadata.urgencyScore,
+        aiSummary: emailAiMetadata.oneSentenceSummary,
+        aiNewsletterTopic: emailAiMetadata.newsletterTopic,
+        aiSentiment: emailAiMetadata.sentiment,
+        aiExtractedTasks: emailAiMetadata.extractedTasks,
       })
       .from(emails)
+      .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
       .where(and(inArray(emails.accountId, accountIds), eq(emails.folder, folder)))
       .orderBy(desc(emails.receivedAt))
       .limit(limit)
@@ -54,10 +62,11 @@ export class EmailsRepository {
 
     return emailRows.map((e) => {
       const acc = accountMap.get(e.accountId);
-      const { bodyText, ...rest } = e;
       return {
-        ...rest,
-        snippet: bodyText ? bodyText.substring(0, 120).replace(/\s+/g, ' ').trim() : '(No content snippet)',
+        ...e,
+        bodyText: e.bodyText || '',
+        bodyHtml: e.bodyHtml || '',
+        snippet: e.bodyText ? e.bodyText.substring(0, 120).replace(/\s+/g, ' ').trim() : '(No content snippet)',
         accountName: acc?.label || acc?.email || 'Mailbox',
         accountEmail: acc?.email || '',
         accountColor: acc?.color || '#3b82f6',
@@ -65,18 +74,50 @@ export class EmailsRepository {
     });
   }
 
+
+
   async findById(id: string, userId: string) {
     const accountIds = await this.getUserAccountIds(userId);
     if (accountIds.length === 0) return null;
 
     const [email] = await db
-      .select()
+      .select({
+        id: emails.id,
+        threadId: emails.threadId,
+        accountId: emails.accountId,
+        externalMessageId: emails.externalMessageId,
+        sender: emails.sender,
+        recipients: emails.recipients,
+        cc: emails.cc,
+        bcc: emails.bcc,
+        subject: emails.subject,
+        bodyText: emails.bodyText,
+        bodyHtml: emails.bodyHtml,
+        receivedAt: emails.receivedAt,
+        sentAt: emails.sentAt,
+        folder: emails.folder,
+        category: emails.category,
+        isRead: emails.isRead,
+        isStarred: emails.isStarred,
+        isImportant: emails.isImportant,
+        attachments: emails.attachments,
+        createdAt: emails.createdAt,
+        updatedAt: emails.updatedAt,
+        aiPriority: emailAiMetadata.priority,
+        aiUrgencyScore: emailAiMetadata.urgencyScore,
+        aiSummary: emailAiMetadata.oneSentenceSummary,
+        aiNewsletterTopic: emailAiMetadata.newsletterTopic,
+        aiSentiment: emailAiMetadata.sentiment,
+        aiExtractedTasks: emailAiMetadata.extractedTasks,
+      })
       .from(emails)
+      .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
       .where(and(eq(emails.id, id), inArray(emails.accountId, accountIds)))
       .limit(1);
 
     return email || null;
   }
+
 
   async markAsRead(id: string, userId: string, isRead: boolean = true) {
     const accountIds = await this.getUserAccountIds(userId);
