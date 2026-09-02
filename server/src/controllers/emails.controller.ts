@@ -10,9 +10,11 @@ export async function listEmails(req: AuthenticatedRequest, res: Response): Prom
       return;
     }
     const folder = (req.query.folder as string) || 'inbox';
-    const limit = parseInt(req.query.limit as string, 10) || 1000;
+    const parsedLimit = parseInt(req.query.limit as string, 10) || 50;
+    const limit = Math.min(Math.max(1, parsedLimit), 100);
     const page = parseInt(req.query.page as string, 10) || 1;
     const emailList = await emailsService.getEmails(req.user.id, folder, limit, page);
+
     res.json({ emails: emailList });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to list emails';

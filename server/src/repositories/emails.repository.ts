@@ -1,6 +1,6 @@
 import { db } from '../db/index.js';
 import { emails, emailThreads, connectedAccounts, emailAiMetadata } from '../db/schema/index.js';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, sql } from 'drizzle-orm';
 
 export class EmailsRepository {
   private async getUserAccountIds(userId: string): Promise<string[]> {
@@ -11,7 +11,7 @@ export class EmailsRepository {
     return userAccounts.map((a) => a.id);
   }
 
-  async listUserEmails(userId: string, folder: string = 'inbox', limit: number = 1000, page: number = 1) {
+  async listUserEmails(userId: string, folder: string = 'inbox', limit: number = 50, page: number = 1) {
     const userAccounts = await db
       .select({
         id: connectedAccounts.id,
@@ -28,6 +28,7 @@ export class EmailsRepository {
     const accountIds = userAccounts.map((a) => a.id);
     const offset = (page - 1) * limit;
 
+    // Optimized projection: Omit full multi-megabyte bodyHtml/bodyText from list queries
     const emailRows = await db
       .select({
         id: emails.id,
@@ -37,8 +38,7 @@ export class EmailsRepository {
         sender: emails.sender,
         recipients: emails.recipients,
         subject: emails.subject,
-        bodyText: emails.bodyText,
-        bodyHtml: emails.bodyHtml,
+        snippet: sql<string>`SUBSTRING(COALESCE(${emails.bodyText}, ''), 1, 200)`,
         receivedAt: emails.receivedAt,
         sentAt: emails.sentAt,
         folder: emails.folder,
@@ -62,19 +62,18 @@ export class EmailsRepository {
 
     return emailRows.map((e) => {
       const acc = accountMap.get(e.accountId);
+      const cleanSnippet = e.snippet ? e.snippet.replace(/\s+/g, ' ').trim() : '(No content snippet)';
       return {
         ...e,
-        bodyText: e.bodyText || '',
-        bodyHtml: e.bodyHtml || '',
-        snippet: e.bodyText ? e.bodyText.substring(0, 120).replace(/\s+/g, ' ').trim() : '(No content snippet)',
+        bodyText: '',
+        bodyHtml: '',
+        snippet: cleanSnippet,
         accountName: acc?.label || acc?.email || 'Mailbox',
         accountEmail: acc?.email || '',
         accountColor: acc?.color || '#3b82f6',
       };
     });
   }
-
-
 
   async findById(id: string, userId: string) {
     const accountIds = await this.getUserAccountIds(userId);
@@ -117,7 +116,6 @@ export class EmailsRepository {
 
     return email || null;
   }
-
 
   async markAsRead(id: string, userId: string, isRead: boolean = true) {
     const accountIds = await this.getUserAccountIds(userId);
@@ -177,7 +175,6 @@ export class EmailsRepository {
   }) {
     let accountId = data.accountId;
     if (accountId) {
-      // Verify account belongs to user
       const [acc] = await db
         .select({ id: connectedAccounts.id })
         .from(connectedAccounts)

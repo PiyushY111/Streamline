@@ -9,6 +9,8 @@ import { startWorkers } from './workers/index.js';
 import { startSyncScheduler } from './workers/scheduler.js';
 import { securityHeaders } from './middlewares/security.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
+import { initDatabaseSchema } from './db/init-all.js';
+
 
 const app = express();
 
@@ -59,6 +61,7 @@ app.get('/', (req, res) => {
 
 async function ensureSchemaUpdated() {
   try {
+    await initDatabaseSchema();
     const sql = neon(env.DATABASE_URL);
     await sql`ALTER TABLE emails ADD COLUMN IF NOT EXISTS category text DEFAULT 'primary'`;
     await sql`DELETE FROM emails WHERE external_message_id LIKE 'seed_%'`;
@@ -75,6 +78,7 @@ async function ensureSchemaUpdated() {
     logger.warn({ err }, 'Auto-schema update warning');
   }
 }
+
 
 async function bootstrap() {
   await ensureSchemaUpdated();

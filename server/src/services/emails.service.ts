@@ -10,8 +10,9 @@ import {
 import { getCache, setCache, delCache } from './cache.service.js';
 
 export class EmailsService {
-  async getEmails(userId: string, folder: string = 'inbox', limit: number = 1000, page: number = 1) {
+  async getEmails(userId: string, folder: string = 'inbox', limit: number = 50, page: number = 1) {
     const cacheKey = `emails:${userId}:${folder}:${page}:${limit}`;
+
     const cached = await getCache<any[]>(cacheKey);
     if (cached) return cached;
 

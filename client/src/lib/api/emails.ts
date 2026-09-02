@@ -1,10 +1,13 @@
 import { safeFetch } from './client';
 import { EmailData } from './types';
 
-export async function fetchEmails(folder?: string): Promise<EmailData[]> {
+export async function fetchEmails(folder?: string, limit: number = 50, page: number = 1): Promise<EmailData[]> {
   try {
-    const query = folder ? `?folder=${encodeURIComponent(folder)}&limit=1000` : '?limit=1000';
-    const res = await safeFetch(`/emails${query}`, { cache: 'no-store' });
+    const params = new URLSearchParams();
+    if (folder) params.set('folder', folder);
+    params.set('limit', String(limit));
+    params.set('page', String(page));
+    const res = await safeFetch(`/emails?${params.toString()}`, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
     return data.emails || [];
@@ -12,6 +15,7 @@ export async function fetchEmails(folder?: string): Promise<EmailData[]> {
     return [];
   }
 }
+
 
 export async function sendEmailApi(payload: { to: string; subject: string; body: string; accountId?: string }): Promise<EmailData> {
   const res = await safeFetch('/emails/send', {
