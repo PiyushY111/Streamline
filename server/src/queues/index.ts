@@ -1,12 +1,7 @@
 import { Queue } from 'bullmq';
-import Redis from 'ioredis';
-import { env } from '../config/env.js';
+import { redisConnection } from './connection.js';
 
-export const redisConnection = new Redis(env.REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  tls: { rejectUnauthorized: false },
-});
+export { redisConnection } from './connection.js';
 
 export const accountSyncQueue = new Queue('account-sync-queue', {
   connection: redisConnection,
@@ -17,3 +12,5 @@ export const accountSyncQueue = new Queue('account-sync-queue', {
     removeOnFail: { age: 86400, count: 200 },
   },
 });
+
+export * from './ai.queue.js';

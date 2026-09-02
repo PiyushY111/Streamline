@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { AuthenticatedRequest } from './auth.js';
 
 // Rate limiter for authentication routes (login, register)
@@ -29,7 +29,8 @@ export const syncRateLimiter = rateLimit({
   max: 5, // Limit each user/IP to 5 manual sync triggers per minute
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: AuthenticatedRequest) => req.user?.id || req.ip || 'anonymous',
+  keyGenerator: (req: AuthenticatedRequest) => req.user?.id || (req.ip ? ipKeyGenerator(req.ip) : 'anonymous'),
+  validate: { keyGeneratorIpFallback: false },
   message: {
     error: 'Too many sync trigger requests. Please wait a minute before triggering synchronization again.',
   },
@@ -41,7 +42,8 @@ export const sendEmailRateLimiter = rateLimit({
   max: 15, // Limit each user to 15 emails sent per minute
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req: AuthenticatedRequest) => req.user?.id || req.ip || 'anonymous',
+  keyGenerator: (req: AuthenticatedRequest) => req.user?.id || (req.ip ? ipKeyGenerator(req.ip) : 'anonymous'),
+  validate: { keyGeneratorIpFallback: false },
   message: {
     error: 'Email sending rate limit exceeded. Please wait a minute before sending more emails.',
   },
