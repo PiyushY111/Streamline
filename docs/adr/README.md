@@ -1,0 +1,15 @@
+# Architecture Decision Records (ADRs)
+
+Architecture Decision Records (ADRs) document significant architectural decisions, the context in which they were made, the alternatives considered, and their consequences.
+
+---
+
+## 📋 ADR Index
+
+| ADR | Title | Status | Date |
+| :--- | :--- | :--- | :--- |
+| [ADR-0001](./0001-bullmq-redis-for-async-jobs.md) | Use BullMQ & Redis for Background Job Processing | **Accepted** | 2026-08-15 |
+| [ADR-0002](./0002-aes-256-gcm-application-encryption.md) | Application-Level AES-256-GCM Token Encryption over Cloud KMS | **Accepted** | 2026-08-18 |
+| [ADR-0003](./0003-multi-model-cascade-fallback.md) | Multi-Model Cascade Fallback vs Single-Model Exponential Retry | **Accepted** | 2026-08-25 |
+| [ADR-0004](./0004-neon-postgres-drizzle-orm.md) | Neon Serverless PostgreSQL with Drizzle ORM | **Accepted** | 2026-08-20 |
+| [ADR-0005](./0005-sse-over-websockets-for-ai-streaming.md) | Server-Sent Events (SSE) over WebSockets for AI Draft Streaming | **Accepted** | 2026-08-28 |

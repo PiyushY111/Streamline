@@ -1,7 +1,7 @@
 import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS, generateContentWithFallback } from './gemini.client.js';
 import { Type } from '@google/genai';
 import { aiRepository } from '../../repositories/ai.repository.js';
-
+import { aiCostGuardService } from './cost-guard.service.js';
 import { logger } from '../../utils/logger.js';
 import { NewsletterTopicSummary, DigestActionSummary } from '../../db/schema/index.js';
 
@@ -12,6 +12,13 @@ export async function generateDailyDigestForUser(userId: string): Promise<any> {
   const newsletters = await aiRepository.getNewslettersForUser(userId, since);
   const urgentEmails = await aiRepository.getUrgentEmailsForUser(userId, since);
   const prefs = await aiRepository.getUserPreferences(userId);
+
+  // Check Circuit Breaker
+  const circuit = await aiCostGuardService.checkCircuitBreaker(userId);
+  if (circuit.isTripped) {
+    logger.warn({ userId, reason: circuit.reason }, 'AI Circuit Breaker tripped, using fallback digest synthesis');
+    return generateFallbackDigest(userId, newsletters, urgentEmails);
+  }
 
   const gemini = getGeminiClient();
 
@@ -102,8 +109,20 @@ Requirements:
       }
     );
 
-
     const parsed = JSON.parse(response.text || '{}');
+
+    // Record token usage asynchronously
+    if (response.text) {
+      const promptTokens = aiCostGuardService.estimateTokens(prompt);
+      const completionTokens = aiCostGuardService.estimateTokens(response.text);
+      aiCostGuardService.recordUsage({
+        userId,
+        model: PRIMARY_FLASH_MODEL,
+        operation: 'digest',
+        promptTokens,
+        completionTokens,
+      });
+    }
 
     const saved = await aiRepository.saveDailyDigest({
       userId,

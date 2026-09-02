@@ -9,6 +9,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  varchar,
 } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
 import { emails, emailThreads } from './emails.js';
@@ -106,5 +107,27 @@ export const dailyDigests = pgTable(
   },
   (table) => ({
     userDigestIdx: index('daily_digests_user_idx').on(table.userId, table.digestDate),
+  })
+);
+
+// 4. AI Token Usage, Cost Tracking & Circuit Breaker Records
+export const aiTokenUsage = pgTable(
+  'ai_token_usage',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
+    model: varchar('model', { length: 100 }).notNull(),
+    operation: varchar('operation', { length: 50 }).notNull(), // 'triage' | 'reply_draft' | 'digest' | 'summary'
+    promptTokens: integer('prompt_tokens').default(0).notNull(),
+    completionTokens: integer('completion_tokens').default(0).notNull(),
+    totalTokens: integer('total_tokens').default(0).notNull(),
+    estimatedCostUsd: varchar('estimated_cost_usd', { length: 30 }).default('0.000000').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    userTokenIdx: index('ai_token_usage_user_idx').on(table.userId, table.createdAt),
+    operationIdx: index('ai_token_usage_operation_idx').on(table.operation),
   })
 );

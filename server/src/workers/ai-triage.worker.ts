@@ -60,6 +60,7 @@ export function createAiTriageWorker() {
               receivedAt: email.receivedAt,
             },
             {
+              userId: email.userId,
               vipSenders: prefs?.vipSenders || [],
               userEmail: email.userEmail,
             }

@@ -1,8 +1,8 @@
 import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS, generateContentWithFallback } from './gemini.client.js';
 import { Type } from '@google/genai';
 import { logger } from '../../utils/logger.js';
-
 import { ExtractedTaskItem } from '../../db/schema/index.js';
+import { aiCostGuardService } from './cost-guard.service.js';
 import crypto from 'crypto';
 
 export interface TriageResult {
@@ -26,12 +26,22 @@ export async function triageEmail(
     attachments?: any;
   },
   options?: {
+    userId?: string;
     vipSenders?: string[];
     userEmail?: string;
   }
 ): Promise<TriageResult> {
   const senderLower = email.sender.toLowerCase();
   const isVip = (options?.vipSenders || []).some((vip) => senderLower.includes(vip.toLowerCase()));
+
+  // If userId provided, verify AI Circuit Breaker budget
+  if (options?.userId) {
+    const circuit = await aiCostGuardService.checkCircuitBreaker(options.userId);
+    if (circuit.isTripped) {
+      logger.warn({ userId: options.userId, reason: circuit.reason }, 'AI Circuit Breaker tripped, using heuristic triage');
+      return heuristicFallbackTriage(email, isVip);
+    }
+  }
 
   const gemini = getGeminiClient();
 
@@ -125,7 +135,6 @@ ${(email.bodyText || '').substring(0, 4000)}
       }
     );
 
-
     const parsed = JSON.parse(response.text || '{}');
 
     let priority = parsed.priority as TriageResult['priority'];
@@ -144,6 +153,19 @@ ${(email.bodyText || '').substring(0, 4000)}
       isConverted: false,
       isDismissed: false,
     }));
+
+    // Record token usage asynchronously
+    if (options?.userId && response.text) {
+      const promptTokens = aiCostGuardService.estimateTokens(prompt);
+      const completionTokens = aiCostGuardService.estimateTokens(response.text);
+      aiCostGuardService.recordUsage({
+        userId: options.userId,
+        model: PRIMARY_FLASH_MODEL,
+        operation: 'triage',
+        promptTokens,
+        completionTokens,
+      });
+    }
 
     return {
       priority: priority || 'p2_important',

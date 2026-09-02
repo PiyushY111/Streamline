@@ -4,6 +4,7 @@ import { emails, emailThreads, connectedAccounts } from '../../db/schema/index.j
 import { eq, and, asc, desc, or } from 'drizzle-orm';
 import { logger } from '../../utils/logger.js';
 import { aiRepository } from '../../repositories/ai.repository.js';
+import { aiCostGuardService } from './cost-guard.service.js';
 import { Response } from 'express';
 
 export interface DraftOptions {
@@ -47,9 +48,7 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
 
   if (targetId) {
     try {
-      // Find candidate email or thread
       if (isValidUuid(targetId)) {
-        // Direct UUID thread lookup
         threadMessages = await db
           .select({
             id: emails.id,
@@ -62,42 +61,12 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
             receivedAt: emails.receivedAt,
           })
           .from(emails)
-          .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-          .where(and(eq(emails.threadId, targetId), eq(connectedAccounts.userId, userId)))
+          .where(or(eq(emails.threadId, targetId), eq(emails.id, targetId)))
           .orderBy(asc(emails.receivedAt));
-
-        // If not found by threadId, try by email.id
-        if (threadMessages.length === 0) {
-          const [singleEmail] = await db
-            .select({ id: emails.id, threadId: emails.threadId })
-            .from(emails)
-            .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-            .where(and(eq(emails.id, targetId), eq(connectedAccounts.userId, userId)))
-            .limit(1);
-
-          if (singleEmail) {
-            threadMessages = await db
-              .select({
-                id: emails.id,
-                threadId: emails.threadId,
-                sender: emails.sender,
-                recipients: emails.recipients,
-                subject: emails.subject,
-                bodyText: emails.bodyText,
-                bodyHtml: emails.bodyHtml,
-                receivedAt: emails.receivedAt,
-              })
-              .from(emails)
-              .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-              .where(and(eq(emails.threadId, singleEmail.threadId), eq(connectedAccounts.userId, userId)))
-              .orderBy(asc(emails.receivedAt));
-          }
-        }
       }
 
-      // If still empty, search by externalThreadId or externalMessageId
       if (threadMessages.length === 0) {
-        const matchingThreads = await db
+        const matchingEmails = await db
           .select({
             id: emails.id,
             threadId: emails.threadId,
@@ -109,21 +78,32 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
             receivedAt: emails.receivedAt,
           })
           .from(emails)
-          .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
           .innerJoin(emailThreads, eq(emails.threadId, emailThreads.id))
+          .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
           .where(
             and(
               eq(connectedAccounts.userId, userId),
-              or(
-                eq(emailThreads.externalThreadId, targetId),
-                eq(emails.externalMessageId, targetId)
-              )
+              or(eq(emails.externalMessageId, targetId), eq(emailThreads.externalThreadId, targetId))
             )
           )
           .orderBy(asc(emails.receivedAt));
 
-        if (matchingThreads.length > 0) {
-          threadMessages = matchingThreads;
+        if (matchingEmails.length > 0) {
+          const actualThreadId = matchingEmails[0].threadId;
+          threadMessages = await db
+            .select({
+              id: emails.id,
+              threadId: emails.threadId,
+              sender: emails.sender,
+              recipients: emails.recipients,
+              subject: emails.subject,
+              bodyText: emails.bodyText,
+              bodyHtml: emails.bodyHtml,
+              receivedAt: emails.receivedAt,
+            })
+            .from(emails)
+            .where(eq(emails.threadId, actualThreadId))
+            .orderBy(asc(emails.receivedAt));
         }
       }
     } catch (err: any) {
@@ -131,21 +111,44 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
     }
   }
 
-  // 3. Fallback to client-provided emailContext if threadMessages is still empty
+  // 3. Fallback: Context text from client if DB records empty
   let conversationHistory = '';
   if (threadMessages.length > 0) {
     conversationHistory = threadMessages
-      .map(
-        (m, idx) =>
-          `[Message ${idx + 1} of ${threadMessages.length}]\nFrom: ${m.sender}\nTo: ${m.recipients}\nDate: ${m.receivedAt?.toISOString() || 'Unknown'}\nSubject: ${m.subject || ''}\nBody:\n${(m.bodyText || m.bodyHtml || '').substring(0, 2000)}`
-      )
-      .join('\n\n------------------------\n\n');
-  } else if (emailContext && emailContext.trim()) {
-    conversationHistory = emailContext.trim();
+      .map((msg, index) => {
+        const dateStr = msg.receivedAt ? msg.receivedAt.toISOString() : 'Unknown date';
+        const cleanBody = (msg.bodyText || msg.bodyHtml || '')
+          .replace(/<[^>]*>?/gm, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 1500);
+
+        return `[Message ${index + 1} | Date: ${dateStr}]
+From: ${msg.sender}
+To: ${msg.recipients}
+Subject: ${msg.subject || 'No Subject'}
+Content:
+${cleanBody}`;
+      })
+      .join('\n\n---\n\n');
+  } else if (emailContext && emailContext.trim().length > 0) {
+    conversationHistory = `Context provided by user:\n${emailContext.trim().slice(0, 3000)}`;
   }
 
   if (!conversationHistory) {
     res.write(`data: ${JSON.stringify({ error: 'No email content or thread history found to draft a reply.' })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+    return;
+  }
+
+  // 4. Circuit Breaker Check
+  const circuit = await aiCostGuardService.checkCircuitBreaker(userId);
+  if (circuit.isTripped) {
+    logger.warn({ userId, reason: circuit.reason }, 'AI Circuit Breaker tripped for reply drafter');
+    const fallbackText = `Hi,\n\nThank you for your message. I have received your email and will get back to you shortly.\n\nBest regards,`;
+    res.write(`data: ${JSON.stringify({ text: fallbackText })}\n\n`);
+    res.write('data: [DONE]\n\n');
     res.end();
     return;
   }
@@ -190,9 +193,12 @@ ${conversationHistory}
 
   const candidateModels = [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS, 'gemini-3.7-flash', 'gemini-3.5-flash'];
   let streamSucceeded = false;
+  let fullGeneratedDraft = '';
+  let usedModel = PRIMARY_FLASH_MODEL;
 
   for (const model of candidateModels) {
     try {
+      usedModel = model;
       const stream = await gemini.models.generateContentStream({
         model,
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
@@ -200,6 +206,7 @@ ${conversationHistory}
 
       for await (const chunk of stream) {
         if (chunk.text) {
+          fullGeneratedDraft += chunk.text;
           res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
         }
       }
@@ -219,14 +226,29 @@ ${conversationHistory}
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
       });
       if (response.text) {
+        fullGeneratedDraft = response.text;
         res.write(`data: ${JSON.stringify({ text: response.text })}\n\n`);
       }
       res.write('data: [DONE]\n\n');
       res.end();
+      streamSucceeded = true;
     } catch (err: any) {
       logger.error({ err: err.message, targetId }, 'Error generating reply draft from Gemini');
       res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
       res.end();
     }
+  }
+
+  // 5. Asynchronously Record Token Usage
+  if (streamSucceeded && fullGeneratedDraft) {
+    const promptTokens = aiCostGuardService.estimateTokens(prompt);
+    const completionTokens = aiCostGuardService.estimateTokens(fullGeneratedDraft);
+    aiCostGuardService.recordUsage({
+      userId,
+      model: usedModel,
+      operation: 'reply_draft',
+      promptTokens,
+      completionTokens,
+    });
   }
 }

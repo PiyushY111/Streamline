@@ -170,3 +170,34 @@ Convert an AI-extracted radar task into an official Streamline task.
 
 ### `GET /api/ai/digest/latest`
 Retrieve the latest synthesized Daily Executive & Newsletter Digest.
+
+### `GET /api/ai/usage`
+Retrieve real-time token tracking, USD costs, and circuit breaker status for the authenticated user.
+* **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "today": {
+        "tokens": 42150,
+        "costUsd": 0.004125,
+        "tokenLimit": 250000,
+        "costLimitUsd": 0.50,
+        "percentUsed": 16.86
+      },
+      "last30Days": {
+        "tokens": 894200,
+        "costUsd": 0.087210
+      },
+      "breakdown": [
+        { "operation": "triage", "tokens": 620100, "costUsd": 0.051200 },
+        { "operation": "reply_draft", "tokens": 194100, "costUsd": 0.024800 },
+        { "operation": "digest", "tokens": 80000, "costUsd": 0.011210 }
+      ],
+      "circuitBreaker": {
+        "isTripped": false
+      }
+    }
+  }
+  ```
+

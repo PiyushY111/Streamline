@@ -12,7 +12,9 @@ import {
   summarizeThread,
   triggerAutoLabelAll,
   labelSingleEmail,
+  getTokenUsageStats,
 } from '../controllers/ai.controller.js';
+
 import { authenticate } from '../middlewares/auth.js';
 import { validateBody, validateParams } from '../middlewares/validate.js';
 import {
@@ -32,9 +34,11 @@ router.use(authenticate);
 router.post('/triage/all', triggerAutoLabelAll);
 router.post('/emails/:emailId/triage', labelSingleEmail);
 
-// User AI Preferences
+// User AI Preferences & Cost Guard
 router.get('/preferences', getPreferences);
 router.patch('/preferences', validateBody(updateAiPreferencesSchema), updatePreferences);
+router.get('/usage', getTokenUsageStats);
+
 
 // AI Task Radar
 router.get('/tasks/radar', getRadarTasks);

@@ -10,6 +10,8 @@ import { db } from '../db/index.js';
 import { eq, and, asc, desc, inArray } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 import { Type } from '@google/genai';
+import { aiCostGuardService } from '../services/ai/cost-guard.service.js';
+
 
 
 function getUserId(req: Request): string {
@@ -384,4 +386,16 @@ export async function labelSingleEmail(req: Request, res: Response): Promise<voi
     res.status(500).json({ error: 'Failed to label email with Gemini' });
   }
 }
+
+export async function getTokenUsageStats(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = getUserId(req);
+    const stats = await aiCostGuardService.getUserUsageStats(userId);
+    res.status(200).json({ success: true, data: stats });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Failed to get AI token usage stats');
+    res.status(500).json({ error: 'Failed to retrieve AI token usage stats' });
+  }
+}
+
 
