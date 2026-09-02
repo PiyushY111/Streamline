@@ -1,6 +1,6 @@
 # System Architecture & Overview
 
-Streamline is architected as a modular, event-driven personal productivity platform designed for sub-second responsiveness, background data synchronization, and autonomous AI-assisted workflow orchestration.
+Streamline is architected as a modular, event-driven personal productivity platform designed for background data synchronization, decoupled processing, and autonomous AI-assisted workflow orchestration.
 
 ---
 
@@ -144,7 +144,7 @@ sequenceDiagram
         Cache-->>API: Return Cached Email Array
     else Cache Miss
         API->>DB: Query Emails joined with AI Metadata
-        DB-->>API: Return 50 Rows
+        DB-->>API: Return Queried Rows
         API->>Cache: Set Cache (TTL 30s)
     end
     API-->>Client: 200 OK (Clean payload without sensitive tokens)

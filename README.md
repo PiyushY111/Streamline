@@ -9,7 +9,7 @@
 [![AI Engine](https://img.shields.io/badge/AI-Google%20Gemini%203.5%20Flash-4285F4.svg)](https://ai.google.dev/)
 [![Queues](https://img.shields.io/badge/Queues-BullMQ%20%7C%20Redis-DC382D.svg)](https://bullmq.io/)
 
-**An autonomous, unified personal operating system aggregating multi-account Gmail, Google Calendar, and AI-driven workflow intelligence into a single sub-second dashboard.**
+**An autonomous, unified personal operating system aggregating multi-account Gmail, Google Calendar, and AI-driven workflow intelligence into a single unified dashboard.**
 
 [Explore Documentation](./docs/README.md) · [Architecture Overview](./docs/architecture/system-overview.md) · [REST API Specs](./docs/api/endpoints.md) · [Developer Setup](./docs/development/setup-guide.md)
 
@@ -19,7 +19,7 @@
 
 ## ⚡ Executive Overview
 
-**Streamline** eliminates email fragmentation and context switching by unifying multiple Google Workspace accounts into a single high-performance feed. Powered by **Google Gemini Foundation Models**, Streamline triages incoming messages in real-time, extracts action items into official tasks, drafts contextual replies in sub-second streams, and delivers synthesized daily executive digests.
+**Streamline** eliminates email fragmentation and context switching by unifying multiple Google Workspace accounts into a single high-performance feed. Powered by **Google Gemini Foundation Models**, Streamline triages incoming messages in real-time, extracts action items into official tasks, drafts contextual replies via streaming responses, and delivers synthesized daily executive digests.
 
 ```mermaid
 graph TD
@@ -58,20 +58,20 @@ graph TD
 ## ✨ Core Features
 
 ### 📬 1. Unified Multi-Account Inbox
-* **Consolidated Feed**: Aggregate emails from unlimited Google accounts in one synchronized view.
+* **Consolidated Feed**: Aggregate emails from multiple Google accounts into a synchronized view.
 * **Account Badging**: Clean, color-coded mailbox pills identifying sender domains and accounts.
-* **Offline Cache & Instant Search**: Redis-backed L1 caching for sub-millisecond query responses.
+* **L1 Cache Layer**: Redis-backed caching for responsive mailbox views.
 
 ### 🧠 2. Gemini Autonomous Intelligence Pipeline
-* **Multi-Model Cascade Engine**: Sub-second triage utilizing `gemini-3.5-flash-lite` (~680ms) with automated fallbacks to `gemini-3.6-flash`.
+* **Multi-Model Cascade Engine**: Multi-tiered AI orchestration utilizing `gemini-3.5-flash-lite` with automated candidate fallbacks.
 * **Live Priority Badging**: Real-time semantic categorization:
   * `🔥 P1 Action`: Urgent deadlines and actionable requests.
   * `💬 P2 Direct`: 1-on-1 human conversations.
   * `🔔 P3 Updates`: Notifications, security alerts, and system policies.
   * `📰 P4 News`: Subscriptions, digests, and newsletters.
 * **Smart Topic Tagging**: Semantic cluster pills (`🎓 Academics`, `🚀 Tech & AI`, `💼 DevClub`, `👥 Community`).
-* **Streaming Reply Drafter**: Instant contextual reply drafting with tone modulation (*Professional*, *Friendly*, *Concise*, *Custom Prompt*).
-* **Daily Executive Digest**: Daily morning briefing synthesizing 24-hour newsletters and action items into a clean magazine-style dashboard.
+* **Streaming Reply Drafter**: Contextual reply drafting with tone modulation (*Professional*, *Friendly*, *Concise*, *Custom Prompt*).
+* **Daily Executive Digest**: Daily morning briefing synthesizing newsletters and action items into a clean dashboard.
 
 ### 🛡️ 3. Bank-Grade Security & Privacy
 * **AES-256-GCM Encryption at Rest**: All Google access and refresh tokens are encrypted using individual initialization vectors and cryptographic authentication tags.
@@ -148,11 +148,10 @@ Open **`http://localhost:3000`** in your browser.
 
 ```bash
 # Run Vitest test suite
-npm test --workspace=@streamline/server
+npm test
 
 # Run TypeScript type verification
-npm run type-check --workspace=@streamline/client
-npm run type-check --workspace=@streamline/server
+npm run type-check
 ```
 
 ---

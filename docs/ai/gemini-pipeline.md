@@ -1,16 +1,16 @@
 # Gemini AI Intelligence Pipeline
 
-Streamline integrates Google's latest **Gemini Foundation Models** via the official `@google/genai` SDK to transform static emails and notifications into an autonomous, actionable personal intelligence hub.
+Streamline integrates Google's **Gemini Foundation Models** via the official `@google/genai` SDK to transform static emails and notifications into an actionable personal intelligence hub.
 
 ---
 
 ## 1. Multi-Model Cascade Architecture
 
-To ensure sub-second response times, 99.9% uptime, and zero-cost resilience under free/paid API limits, Streamline implements an intelligent **Multi-Model Cascade Engine**.
+To ensure high availability, fast response times, and resilience against upstream rate limits or outages, Streamline implements a configurable **Multi-Model Cascade Engine**.
 
 ```mermaid
 graph TD
-    Request["Incoming AI Request (Triage / Reply / Digest)"] --> Model1["Primary: gemini-3.5-flash-lite (Latency: ~680ms)"]
+    Request["Incoming AI Request (Triage / Reply / Digest)"] --> Model1["Primary: gemini-3.5-flash-lite"]
     Model1 -->|Success (200 OK)| Result["Structured JSON / SSE Stream"]
     Model1 -->|Rate Limit / Error| Model2["Fallback 1: gemini-3.6-flash"]
     Model2 -->|Success| Result
@@ -22,10 +22,10 @@ graph TD
     Heuristic --> Result
 ```
 
-### Model Performance Benchmarks:
-* **`gemini-3.5-flash-lite`**: **681 ms** average latency (Default for all real-time triage and reply generation).
-* **`gemini-3.6-flash`**: **1.98 s** average latency (Deep newsletter summarization & multi-message synthesis).
-* **`gemini-3.1-pro-preview`**: High reasoning model reserved for complex scheduling conflict resolution.
+### Model Roles & Tiering:
+* **`gemini-3.5-flash-lite`**: Primary lightweight model utilized for real-time triage and streaming reply generation.
+* **`gemini-3.6-flash`**: Secondary model utilized for comprehensive newsletter synthesis and deep thread summaries.
+* **`Deterministic Heuristics`**: Rule-based fallback parsing to ensure email classification proceeds reliably even when external AI endpoints are unreachable.
 
 ---
 
@@ -55,7 +55,7 @@ Whenever an email is ingested from Google, the `ai-email-triage-queue` passes th
 ```
 
 ### B. Streaming AI Reply Drafter
-* **Latency**: Starts streaming tokens within **~400ms**.
+* **Streaming Protocol**: Utilizes Server-Sent Events (`text/event-stream`) for progressive token delivery directly to the client interface.
 * **Context Awareness**: Gathers the entire thread history (all prior sender/recipient turns) so Gemini drafts contextual replies matching the active thread conversation.
 * **Tone Modulation**:
   * **Professional**: Formal, direct, and action-oriented.
@@ -67,9 +67,9 @@ Whenever an email is ingested from Google, the `ai-email-triage-queue` passes th
 Every morning (configurable in Settings), the `daily-digest-cron-queue` aggregates all newsletters, promotional subscriptions, and urgent action items received over the last 24 hours.
 
 Gemini generates a structured executive briefing containing:
-1. **Executive Greeting**: A 2-sentence situational awareness opening.
+1. **Executive Greeting**: A situational awareness opening summary.
 2. **Operational Schedule Summary**: High-level readiness context.
-3. **Thematic Newsletter Clusters**: Groups 20+ newsletters into clean topic tabs (e.g. *Tech & AI*, *Macro Economy*) with punchy bullet points and clickable source links.
+3. **Thematic Newsletter Clusters**: Groups incoming newsletters into topic tabs (e.g. *Tech & AI*, *Academics*, *Community*) with bullet points and source links.
 4. **Action Item Radar**: Consolidates open deliverables requiring user decision.
 
 ---
