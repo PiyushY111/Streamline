@@ -20,31 +20,31 @@ export class EmailsService {
     return emailList;
   }
 
-  async getEmailById(id: string) {
-    return emailsRepository.findById(id);
+  async getEmailById(id: string, userId: string) {
+    return emailsRepository.findById(id, userId);
   }
 
-  async markAsRead(id: string, isRead: boolean = true) {
-    const result = await syncGmailMarkAsRead(id, isRead);
-    await delCache('emails:*');
+  async markAsRead(id: string, userId: string, isRead: boolean = true) {
+    const result = await syncGmailMarkAsRead(id, userId, isRead);
+    await delCache(`emails:${userId}:*`);
     return result;
   }
 
-  async toggleStar(id: string, isStarred: boolean) {
-    const result = await syncGmailToggleStar(id, isStarred);
-    await delCache('emails:*');
+  async toggleStar(id: string, userId: string, isStarred: boolean) {
+    const result = await syncGmailToggleStar(id, userId, isStarred);
+    await delCache(`emails:${userId}:*`);
     return result;
   }
 
-  async updateCategory(id: string, category: string) {
-    const result = await syncGmailUpdateCategory(id, category);
-    await delCache('emails:*');
+  async updateCategory(id: string, userId: string, category: string) {
+    const result = await syncGmailUpdateCategory(id, userId, category);
+    await delCache(`emails:${userId}:*`);
     return result;
   }
 
-  async deleteEmail(id: string) {
-    const result = await syncGmailDeleteEmail(id);
-    await delCache('emails:*');
+  async deleteEmail(id: string, userId: string) {
+    const result = await syncGmailDeleteEmail(id, userId);
+    await delCache(`emails:${userId}:*`);
     return result;
   }
 

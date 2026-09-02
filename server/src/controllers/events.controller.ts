@@ -53,7 +53,11 @@ export async function updateEvent(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const updated = await eventsService.updateEvent(id, req.body);
+    const updated = await eventsService.updateEvent(id, req.user.id, req.body);
+    if (!updated) {
+      res.status(404).json({ error: 'Event not found or unauthorized' });
+      return;
+    }
     res.json({ event: updated });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to update event' });
@@ -67,7 +71,7 @@ export async function deleteEvent(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await eventsService.deleteEvent(id);
+    await eventsService.deleteEvent(id, req.user.id);
     res.json({ success: true });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to delete event' });

@@ -28,7 +28,7 @@ export async function getEmailById(req: AuthenticatedRequest, res: Response): Pr
       return;
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const email = await emailsService.getEmailById(id);
+    const email = await emailsService.getEmailById(id, req.user.id);
     if (!email) {
       res.status(404).json({ error: 'Email not found' });
       return;
@@ -47,10 +47,6 @@ export async function sendEmail(req: AuthenticatedRequest, res: Response): Promi
       return;
     }
     const { to, subject, body, accountId } = req.body;
-    if (!to) {
-      res.status(400).json({ error: 'Recipient "to" address is required.' });
-      return;
-    }
     const sentEmail = await emailsService.sendEmail(req.user.id, { to, subject, body, accountId });
     res.status(200).json({ success: true, email: sentEmail, message: `Email sent to ${to}` });
   } catch (err: unknown) {
@@ -68,7 +64,11 @@ export async function markEmailAsRead(req: AuthenticatedRequest, res: Response):
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { isRead = true } = req.body;
-    const updated = await emailsService.markAsRead(id, isRead);
+    const updated = await emailsService.markAsRead(id, req.user.id, isRead);
+    if (!updated) {
+      res.status(404).json({ error: 'Email not found' });
+      return;
+    }
     res.json({ success: true, email: updated });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to update read status' });
@@ -83,7 +83,11 @@ export async function toggleStarEmail(req: AuthenticatedRequest, res: Response):
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { isStarred = true } = req.body;
-    const updated = await emailsService.toggleStar(id, isStarred);
+    const updated = await emailsService.toggleStar(id, req.user.id, isStarred);
+    if (!updated) {
+      res.status(404).json({ error: 'Email not found' });
+      return;
+    }
     res.json({ success: true, email: updated });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to update star status' });
@@ -98,11 +102,11 @@ export async function updateEmailCategory(req: AuthenticatedRequest, res: Respon
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     const { category } = req.body;
-    if (!category) {
-      res.status(400).json({ error: 'Category is required' });
+    const updated = await emailsService.updateCategory(id, req.user.id, category);
+    if (!updated) {
+      res.status(404).json({ error: 'Email not found' });
       return;
     }
-    const updated = await emailsService.updateCategory(id, category);
     res.json({ success: true, email: updated });
   } catch (err: unknown) {
     logger.error({ err }, 'Update email category controller error');
@@ -117,7 +121,7 @@ export async function deleteEmail(req: AuthenticatedRequest, res: Response): Pro
       return;
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await emailsService.deleteEmail(id);
+    await emailsService.deleteEmail(id, req.user.id);
     res.json({ success: true, message: 'Email deleted successfully' });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to delete email' });

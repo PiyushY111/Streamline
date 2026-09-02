@@ -1,50 +1,63 @@
 import { db } from '../db/index.js';
 import { events, calendars, connectedAccounts } from '../db/schema/index.js';
-import { eq, inArray, gte, lte, and, desc } from 'drizzle-orm';
+import { eq, inArray, gte, lte, and, desc, ne } from 'drizzle-orm';
 
 export class EventsRepository {
+  private async getUserAccountIds(userId: string): Promise<string[]> {
+    const userAccounts = await db
+      .select({ id: connectedAccounts.id })
+      .from(connectedAccounts)
+      .where(eq(connectedAccounts.userId, userId));
+    return userAccounts.map((a) => a.id);
+  }
+
   async listUserEvents(userId: string, startDate?: Date, endDate?: Date) {
-    const userAccounts = await db.select({
-      id: connectedAccounts.id,
-      label: connectedAccounts.label,
-      email: connectedAccounts.email,
-      color: connectedAccounts.color,
-    })
+    const userAccounts = await db
+      .select({
+        id: connectedAccounts.id,
+        label: connectedAccounts.label,
+        email: connectedAccounts.email,
+        color: connectedAccounts.color,
+      })
       .from(connectedAccounts)
       .where(eq(connectedAccounts.userId, userId));
 
     if (userAccounts.length === 0) return [];
 
     const accountIds = userAccounts.map((a: { id: string }) => a.id);
-    const conditions = [inArray(events.accountId, accountIds)];
+    const conditions = [
+      inArray(events.accountId, accountIds),
+      ne(events.status, 'cancelled'),
+    ];
 
     if (startDate) conditions.push(gte(events.startTime, startDate));
     if (endDate) conditions.push(lte(events.endTime, endDate));
 
-    const eventRows = await db.select()
+    const eventRows = await db
+      .select()
       .from(events)
       .where(and(...conditions))
       .orderBy(desc(events.startTime));
 
-    const accountMap = new Map(userAccounts.map(a => [a.id, a]));
+    const accountMap = new Map(userAccounts.map((a) => [a.id, a]));
 
     return eventRows.map((e, _, arr) => {
       const acc = accountMap.get(e.accountId);
       const eStart = new Date(e.startTime).getTime();
       const eEnd = new Date(e.endTime).getTime();
 
-      const isAllDay = (eEnd - eStart) >= 24 * 60 * 60 * 1000;
+      const isAllDay = eEnd - eStart >= 24 * 60 * 60 * 1000;
       let conflicts: typeof arr = [];
 
-      if (!isAllDay) {
+      if (!isAllDay && !isNaN(eStart) && !isNaN(eEnd)) {
         conflicts = arr.filter((other) => {
           if (other.id === e.id) return false;
           const oStart = new Date(other.startTime).getTime();
           const oEnd = new Date(other.endTime).getTime();
-          const otherAllDay = (oEnd - oStart) >= 24 * 60 * 60 * 1000;
-          if (otherAllDay) return false;
+          const otherAllDay = oEnd - oStart >= 24 * 60 * 60 * 1000;
+          if (otherAllDay || isNaN(oStart) || isNaN(oEnd)) return false;
 
-          return (eStart < oEnd && eEnd > oStart);
+          return eStart < oEnd && eEnd > oStart;
         });
       }
 
@@ -59,13 +72,9 @@ export class EventsRepository {
   }
 
   async listUserCalendars(userId: string) {
-    const userAccounts = await db.select({ id: connectedAccounts.id })
-      .from(connectedAccounts)
-      .where(eq(connectedAccounts.userId, userId));
+    const accountIds = await this.getUserAccountIds(userId);
+    if (accountIds.length === 0) return [];
 
-    if (userAccounts.length === 0) return [];
-
-    const accountIds = userAccounts.map((a: { id: string }) => a.id);
     return db.select().from(calendars).where(inArray(calendars.accountId, accountIds));
   }
 
@@ -73,16 +82,20 @@ export class EventsRepository {
     const [existing] = await db.select().from(calendars).where(eq(calendars.accountId, accountId)).limit(1);
     if (existing) return existing;
 
-    const [created] = await db.insert(calendars).values({
-      accountId,
-      externalCalendarId: 'primary',
-      name: 'Primary Calendar',
-      isPrimary: true,
-    }).returning();
+    const [created] = await db
+      .insert(calendars)
+      .values({
+        accountId,
+        externalCalendarId: 'primary',
+        name: 'Primary Calendar',
+        isPrimary: true,
+      })
+      .returning();
     return created;
   }
 
   async create(data: {
+    userId: string;
     calendarId: string;
     accountId: string;
     externalEventId: string;
@@ -93,30 +106,48 @@ export class EventsRepository {
     endTime: Date;
     timezone?: string;
   }) {
-    const [newEvent] = await db.insert(events).values({
-      calendarId: data.calendarId,
-      accountId: data.accountId,
-      externalEventId: data.externalEventId,
-      title: data.title,
-      description: data.description,
-      location: data.location,
-      startTime: data.startTime,
-      endTime: data.endTime,
-      timezone: data.timezone,
-    }).returning();
+    // Verify account belongs to user
+    const accountIds = await this.getUserAccountIds(data.userId);
+    if (!accountIds.includes(data.accountId)) {
+      throw new Error('Account does not belong to user.');
+    }
+
+    const [newEvent] = await db
+      .insert(events)
+      .values({
+        calendarId: data.calendarId,
+        accountId: data.accountId,
+        externalEventId: data.externalEventId,
+        title: data.title,
+        description: data.description,
+        location: data.location,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        timezone: data.timezone,
+      })
+      .returning();
     return newEvent;
   }
 
-  async update(id: string, data: Partial<{ title: string; description: string; startTime: Date; endTime: Date }>) {
-    const [updated] = await db.update(events)
+  async update(id: string, userId: string, data: Partial<{ title: string; description: string; startTime: Date; endTime: Date; location: string }>) {
+    const accountIds = await this.getUserAccountIds(userId);
+    if (accountIds.length === 0) return null;
+
+    const [updated] = await db
+      .update(events)
       .set({ ...data, updatedAt: new Date() })
-      .where(eq(events.id, id))
+      .where(and(eq(events.id, id), inArray(events.accountId, accountIds)))
       .returning();
-    return updated;
+    return updated || null;
   }
 
-  async delete(id: string) {
-    return db.delete(events).where(eq(events.id, id));
+  async delete(id: string, userId: string) {
+    const accountIds = await this.getUserAccountIds(userId);
+    if (accountIds.length === 0) return { rowCount: 0 };
+
+    return db
+      .delete(events)
+      .where(and(eq(events.id, id), inArray(events.accountId, accountIds)));
   }
 }
 

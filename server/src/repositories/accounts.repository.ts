@@ -12,6 +12,16 @@ export class AccountsRepository {
     return account || null;
   }
 
+  async findByIdAndUserId(id: string, userId: string) {
+    const [account] = await db.select().from(connectedAccounts).where(
+      and(
+        eq(connectedAccounts.id, id),
+        eq(connectedAccounts.userId, userId)
+      )
+    ).limit(1);
+    return account || null;
+  }
+
   async findByUserAndProviderAccountId(userId: string, providerAccountId: string) {
     const [account] = await db.select().from(connectedAccounts).where(
       and(
@@ -41,6 +51,7 @@ export class AccountsRepository {
           accessToken: data.accessToken,
           refreshToken: data.refreshToken,
           tokenExpiresAt: data.tokenExpiresAt,
+          status: 'active',
           updatedAt: new Date(),
         })
         .where(eq(connectedAccounts.id, existing.id))
@@ -59,6 +70,7 @@ export class AccountsRepository {
       tokenExpiresAt: data.tokenExpiresAt,
       scopes: data.scopes,
       avatar: data.avatar,
+      status: 'active',
     }).returning();
     return inserted;
   }
@@ -80,6 +92,17 @@ export class AccountsRepository {
       .returning();
 
     return updated || null;
+  }
+
+  async updateAccountStatus(id: string, status: 'active' | 'error' | 'disconnected', error?: string) {
+    const [updated] = await db.update(connectedAccounts)
+      .set({
+        status,
+        updatedAt: new Date(),
+      })
+      .where(eq(connectedAccounts.id, id))
+      .returning();
+    return updated;
   }
 }
 
