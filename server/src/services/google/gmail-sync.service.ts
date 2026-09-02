@@ -1,12 +1,13 @@
 import { google } from 'googleapis';
 import { db } from '../../db/index.js';
-import { emails, emailThreads, connectedAccounts } from '../../db/schema/index.js';
-import { eq, and } from 'drizzle-orm';
+import { emails, emailThreads, connectedAccounts, syncStates } from '../../db/schema/index.js';
+import { eq, and, inArray } from 'drizzle-orm';
 import { logger } from '../../utils/logger.js';
 import { createOAuth2Client } from '../../utils/google-oauth.js';
 import { decrypt, encrypt } from '../../utils/encryption.js';
 import { emailsRepository } from '../../repositories/emails.repository.js';
 import { delCache } from '../cache.service.js';
+import { auditService } from '../audit.service.js';
 
 function decodeBase64(data: string): string {
   try {
@@ -91,13 +92,36 @@ export async function getGmailClientForAccount(accountId: string) {
           .set({
             accessToken: newEncryptedAccess,
             tokenExpiresAt: newExpiresAt,
+            status: 'active',
             updatedAt: new Date(),
           })
           .where(eq(connectedAccounts.id, accountId));
         logger.info({ accountId }, 'Google OAuth access token refreshed and updated successfully');
       }
-    } catch (refreshErr) {
+    } catch (refreshErr: any) {
       logger.error({ refreshErr, accountId }, 'Failed to refresh Google OAuth token');
+      const errString = String(refreshErr?.message || refreshErr || '');
+      if (
+        errString.includes('invalid_grant') ||
+        errString.includes('revoked') ||
+        refreshErr?.status === 400 ||
+        refreshErr?.status === 401
+      ) {
+        logger.warn({ accountId }, 'Detected revoked/invalid Google OAuth grant. Flagging account status=error');
+        await db.update(connectedAccounts)
+          .set({ status: 'error', updatedAt: new Date() })
+          .where(eq(connectedAccounts.id, accountId));
+
+        await db.update(syncStates)
+          .set({ status: 'error', lastError: 'OAuth token revoked or expired. Reconnection required.' })
+          .where(eq(syncStates.accountId, accountId));
+
+        await auditService.logAction(account.userId, 'account.token_revocation_error', {
+          accountId,
+          email: account.email,
+          error: errString,
+        });
+      }
     }
   }
 
@@ -138,121 +162,84 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
   for (let i = 0; i < allMessageMetas.length; i += batchSize) {
     const chunk = allMessageMetas.slice(i, i + batchSize);
     const fullMessages = await Promise.all(
-      chunk.map((m) => gmail.users.messages.get({ userId: 'me', id: m.id!, format: 'full' }))
+      chunk.map(async (meta: any) => {
+        try {
+          const res = await gmail.users.messages.get({
+            userId: 'me',
+            id: meta.id,
+            format: 'full',
+          });
+          return res.data;
+        } catch (e) {
+          return null;
+        }
+      })
     );
 
-    for (const msgRes of fullMessages) {
-    const msg = msgRes.data;
-    if (!msg.id || !msg.threadId) continue;
+    for (const msg of fullMessages) {
+      if (!msg || !msg.id) continue;
 
-    const headers = msg.payload?.headers || [];
-    const getHeader = (name: string) => headers.find(h => h.name?.toLowerCase() === name.toLowerCase())?.value || '';
+      const headers = msg.payload?.headers || [];
+      const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
-    const subject = getHeader('Subject') || '(No Subject)';
-    const sender = getHeader('From') || 'Unknown Sender';
-    const recipients = getHeader('To') || '';
-    const dateStr = getHeader('Date');
-    const receivedAt = dateStr ? new Date(dateStr) : new Date();
+      const subject = getHeader('subject') || '(No Subject)';
+      const from = getHeader('from') || 'Unknown Sender';
+      const to = getHeader('to') || '';
+      const cc = getHeader('cc') || undefined;
+      const bcc = getHeader('bcc') || undefined;
+      const dateHeader = getHeader('date');
+      const receivedAt = dateHeader ? new Date(dateHeader) : new Date(parseInt(msg.internalDate || `${Date.now()}`, 10));
 
-    const { bodyText, bodyHtml } = extractEmailBodies(msg.payload);
-    const attachmentList = extractAttachments(msg.payload);
-    const labelIds = msg.labelIds || [];
+      const labelIds: string[] = msg.labelIds || [];
+      const isRead = !labelIds.includes('UNREAD');
+      const isStarred = labelIds.includes('STARRED');
+      const isImportant = labelIds.includes('IMPORTANT');
 
-    const isStarred = labelIds.includes('STARRED');
-    const isImportant = labelIds.includes('IMPORTANT');
-    const isRead = !labelIds.includes('UNREAD');
+      let folder = 'inbox';
+      if (labelIds.includes('TRASH')) folder = 'trash';
+      else if (labelIds.includes('SPAM')) folder = 'spam';
+      else if (labelIds.includes('SENT')) folder = 'sent';
+      else if (labelIds.includes('DRAFT')) folder = 'drafts';
 
-    let folder = 'inbox';
-    if (labelIds.includes('TRASH')) folder = 'trash';
-    else if (labelIds.includes('SENT')) folder = 'sent';
-    else if (labelIds.includes('DRAFT')) folder = 'drafts';
+      let category = 'primary';
+      if (labelIds.includes('CATEGORY_PROMOTIONS')) category = 'promotions';
+      else if (labelIds.includes('CATEGORY_SOCIAL')) category = 'social';
+      else if (labelIds.includes('CATEGORY_UPDATES')) category = 'updates';
 
-    let category = 'primary';
-    if (labelIds.includes('CATEGORY_PROMOTIONS')) {
-      category = 'promotions';
-    } else if (labelIds.includes('CATEGORY_SOCIAL')) {
-      category = 'social';
-    } else if (labelIds.includes('CATEGORY_UPDATES') || labelIds.includes('CATEGORY_FORUMS')) {
-      category = 'updates';
-    } else if (labelIds.includes('CATEGORY_PERSONAL')) {
-      category = 'primary';
-    } else {
-      const senderLower = sender.toLowerCase();
-      const subjectLower = subject.toLowerCase();
-      if (
-        senderLower.includes('no-reply') ||
-        senderLower.includes('noreply') ||
-        senderLower.includes('newsletter') ||
-        senderLower.includes('marketing') ||
-        subjectLower.includes('off') ||
-        subjectLower.includes('sale') ||
-        subjectLower.includes('discount') ||
-        subjectLower.includes('deal') ||
-        subjectLower.includes('subscription')
-      ) {
-        category = 'promotions';
-      } else if (
-        senderLower.includes('linkedin') ||
-        senderLower.includes('twitter') ||
-        senderLower.includes('facebook') ||
-        senderLower.includes('instagram') ||
-        senderLower.includes('github') ||
-        senderLower.includes('youtube')
-      ) {
-        category = 'social';
-      } else if (
-        senderLower.includes('google') ||
-        senderLower.includes('security') ||
-        senderLower.includes('alert') ||
-        senderLower.includes('notification') ||
-        senderLower.includes('receipt') ||
-        senderLower.includes('invoice') ||
-        senderLower.includes('billing') ||
-        subjectLower.includes('verify') ||
-        subjectLower.includes('confirm')
-      ) {
-        category = 'updates';
+      const { bodyText, bodyHtml } = extractEmailBodies(msg.payload);
+      const attachments = extractAttachments(msg.payload);
+
+      const externalThreadId = msg.threadId || msg.id;
+
+      let [thread] = await db
+        .select()
+        .from(emailThreads)
+        .where(and(eq(emailThreads.accountId, accountId), eq(emailThreads.externalThreadId, externalThreadId)))
+        .limit(1);
+
+      if (!thread) {
+        [thread] = await db
+          .insert(emailThreads)
+          .values({
+            accountId,
+            externalThreadId,
+            subject,
+            snippet: msg.snippet || bodyText.substring(0, 100),
+            lastMessageAt: receivedAt,
+            isStarred,
+            isImportant,
+          })
+          .returning();
       }
-    }
 
-    let threadDbId: string;
-    const [existingThread] = await db.select().from(emailThreads)
-      .where(and(eq(emailThreads.accountId, accountId), eq(emailThreads.externalThreadId, msg.threadId))).limit(1);
-
-    if (existingThread) {
-      threadDbId = existingThread.id;
-    } else {
-      const [newThread] = await db.insert(emailThreads).values({
-        accountId,
-        externalThreadId: msg.threadId,
-        subject,
-        snippet: msg.snippet || '',
-        lastMessageAt: receivedAt,
-        isStarred,
-        isImportant,
-      }).returning();
-      threadDbId = newThread.id;
-    }
-
-    const [existingEmail] = await db.select().from(emails)
-      .where(and(eq(emails.accountId, accountId), eq(emails.externalMessageId, msg.id))).limit(1);
-
-    if (existingEmail) {
-      await db.update(emails).set({
-        isStarred,
-        isRead,
-        isImportant,
-        folder,
-        category,
-        updatedAt: new Date(),
-      }).where(eq(emails.id, existingEmail.id));
-    } else {
       await db.insert(emails).values({
-        threadId: threadDbId,
+        threadId: thread.id,
         accountId,
         externalMessageId: msg.id,
-        sender,
-        recipients,
+        sender: from,
+        recipients: to,
+        cc,
+        bcc,
         subject,
         bodyText,
         bodyHtml,
@@ -262,38 +249,28 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
         isRead,
         isStarred,
         isImportant,
-        attachments: attachmentList,
-      });
-    }
+        attachments,
+      }).onConflictDoNothing();
 
-    syncedCount++;
+      syncedCount++;
     }
   }
 
-  if (syncedCount > 0) {
-    await delCache('emails:*');
-  }
-
-  logger.info({ accountId, syncedCount }, 'Gmail messages sync completed');
+  logger.info({ accountId, syncedCount }, 'Gmail batch sync completed');
   return syncedCount;
 }
 
-export async function syncGmailMarkAsRead(emailId: string, isRead: boolean) {
-  const [email] = await db.select().from(emails).where(eq(emails.id, emailId)).limit(1);
-  if (!email) return null;
+export async function syncGmailMarkAsRead(emailId: string, userId: string, isRead: boolean) {
+  const updated = await emailsRepository.markAsRead(emailId, userId, isRead);
+  if (!updated) return null;
 
-  const [updated] = await db.update(emails)
-    .set({ isRead, updatedAt: new Date() })
-    .where(eq(emails.id, emailId))
-    .returning();
-
-  if (email.accountId && email.externalMessageId) {
+  if (updated.accountId && updated.externalMessageId) {
     try {
-      const clientData = await getGmailClientForAccount(email.accountId);
+      const clientData = await getGmailClientForAccount(updated.accountId);
       if (clientData) {
         await clientData.gmail.users.messages.modify({
           userId: 'me',
-          id: email.externalMessageId,
+          id: updated.externalMessageId,
           requestBody: {
             addLabelIds: isRead ? [] : ['UNREAD'],
             removeLabelIds: isRead ? ['UNREAD'] : [],
@@ -309,22 +286,17 @@ export async function syncGmailMarkAsRead(emailId: string, isRead: boolean) {
   return updated;
 }
 
-export async function syncGmailToggleStar(emailId: string, isStarred: boolean) {
-  const [email] = await db.select().from(emails).where(eq(emails.id, emailId)).limit(1);
-  if (!email) return null;
+export async function syncGmailToggleStar(emailId: string, userId: string, isStarred: boolean) {
+  const updated = await emailsRepository.toggleStar(emailId, userId, isStarred);
+  if (!updated) return null;
 
-  const [updated] = await db.update(emails)
-    .set({ isStarred, updatedAt: new Date() })
-    .where(eq(emails.id, emailId))
-    .returning();
-
-  if (email.accountId && email.externalMessageId) {
+  if (updated.accountId && updated.externalMessageId) {
     try {
-      const clientData = await getGmailClientForAccount(email.accountId);
+      const clientData = await getGmailClientForAccount(updated.accountId);
       if (clientData) {
         await clientData.gmail.users.messages.modify({
           userId: 'me',
-          id: email.externalMessageId,
+          id: updated.externalMessageId,
           requestBody: {
             addLabelIds: isStarred ? ['STARRED'] : [],
             removeLabelIds: isStarred ? [] : ['STARRED'],
@@ -340,18 +312,13 @@ export async function syncGmailToggleStar(emailId: string, isStarred: boolean) {
   return updated;
 }
 
-export async function syncGmailUpdateCategory(emailId: string, category: string) {
-  const [email] = await db.select().from(emails).where(eq(emails.id, emailId)).limit(1);
-  if (!email) return null;
+export async function syncGmailUpdateCategory(emailId: string, userId: string, category: string) {
+  const updated = await emailsRepository.updateCategory(emailId, userId, category);
+  if (!updated) return null;
 
-  const [updated] = await db.update(emails)
-    .set({ category, updatedAt: new Date() })
-    .where(eq(emails.id, emailId))
-    .returning();
-
-  if (email.accountId && email.externalMessageId) {
+  if (updated.accountId && updated.externalMessageId) {
     try {
-      const clientData = await getGmailClientForAccount(email.accountId);
+      const clientData = await getGmailClientForAccount(updated.accountId);
       if (clientData) {
         const categoryLabelMap: Record<string, string> = {
           promotions: 'CATEGORY_PROMOTIONS',
@@ -361,12 +328,12 @@ export async function syncGmailUpdateCategory(emailId: string, category: string)
         };
 
         const addLabel = categoryLabelMap[category];
-        const removeLabels = Object.values(categoryLabelMap).filter(l => l !== addLabel);
+        const removeLabels = Object.values(categoryLabelMap).filter((l) => l !== addLabel);
 
         if (addLabel) {
           await clientData.gmail.users.messages.modify({
             userId: 'me',
-            id: email.externalMessageId,
+            id: updated.externalMessageId,
             requestBody: {
               addLabelIds: [addLabel],
               removeLabelIds: removeLabels,
@@ -383,8 +350,8 @@ export async function syncGmailUpdateCategory(emailId: string, category: string)
   return updated;
 }
 
-export async function syncGmailDeleteEmail(emailId: string) {
-  const [email] = await db.select().from(emails).where(eq(emails.id, emailId)).limit(1);
+export async function syncGmailDeleteEmail(emailId: string, userId: string) {
+  const email = await emailsRepository.findById(emailId, userId);
   if (email && email.accountId && email.externalMessageId) {
     try {
       const clientData = await getGmailClientForAccount(email.accountId);
@@ -400,13 +367,17 @@ export async function syncGmailDeleteEmail(emailId: string) {
     }
   }
 
-  return db.delete(emails).where(eq(emails.id, emailId));
+  return emailsRepository.deleteEmail(emailId, userId);
 }
 
-export async function syncGmailSendEmail(userId: string, data: { to: string; subject: string; body: string; accountId?: string }) {
+export async function syncGmailSendEmail(
+  userId: string,
+  data: { to: string; subject: string; body: string; accountId?: string }
+) {
   let accountId = data.accountId;
   if (!accountId) {
-    const [acc] = await db.select({ id: connectedAccounts.id })
+    const [acc] = await db
+      .select({ id: connectedAccounts.id })
       .from(connectedAccounts)
       .where(eq(connectedAccounts.userId, userId))
       .limit(1);
@@ -415,6 +386,17 @@ export async function syncGmailSendEmail(userId: string, data: { to: string; sub
 
   if (!accountId) {
     throw new Error('No connected Google account found. Please connect an account first.');
+  }
+
+  // Verify account belongs to requesting user
+  const [userAcc] = await db
+    .select({ id: connectedAccounts.id })
+    .from(connectedAccounts)
+    .where(and(eq(connectedAccounts.id, accountId), eq(connectedAccounts.userId, userId)))
+    .limit(1);
+
+  if (!userAcc) {
+    throw new Error('Target connected account does not belong to the authenticated user.');
   }
 
   const clientData = await getGmailClientForAccount(accountId);
@@ -446,7 +428,7 @@ export async function syncGmailSendEmail(userId: string, data: { to: string; sub
     }
   }
 
-  return emailsRepository.createSentEmail({
+  const sent = await emailsRepository.createSentEmail({
     userId,
     to: data.to,
     subject: data.subject,
@@ -454,5 +436,13 @@ export async function syncGmailSendEmail(userId: string, data: { to: string; sub
     accountId,
     externalMessageId: extMessageId,
   });
-}
 
+  await auditService.logAction(userId, 'email.sent', {
+    to: data.to,
+    subject: data.subject,
+    accountId,
+    messageId: extMessageId,
+  });
+
+  return sent;
+}
