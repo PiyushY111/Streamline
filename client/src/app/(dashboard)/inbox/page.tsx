@@ -46,7 +46,10 @@ import {
   ShieldAlert,
   FolderInput,
   Settings as SettingsIcon,
+  Flame,
+  Sparkles,
 } from 'lucide-react';
+
 import {
   fetchEmails,
   fetchConnectedAccounts,
@@ -60,6 +63,8 @@ import {
   EmailData,
   AccountData,
 } from '@/lib/api';
+import { safeFetch } from '@/lib/api/client';
+
 import { SanitizedEmailBody } from '@/components/inbox/thread/SanitizedEmailBody';
 import { formatEmailDate } from '@/lib/utils';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
@@ -72,8 +77,10 @@ import { ConfidentialModeModal, ConfidentialModeConfig } from '@/components/inbo
 import { SenderContactCard } from '@/components/inbox/SenderContactCard';
 import { AttachmentsView } from '@/components/inbox/AttachmentsView';
 import { GmailSettingsModal, GmailAppSettings } from '@/components/inbox/GmailSettingsModal';
+import { AiReplyDrafterModal } from '@/components/inbox/AiReplyDrafterModal';
 
 function InboxContent() {
+
   const searchParams = useSearchParams();
   const urlEmailId = searchParams.get('id');
 
@@ -82,8 +89,9 @@ function InboxContent() {
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [activeFolder, setActiveFolder] = useState<'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'>('inbox');
-  const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedAccountFilter, setSelectedAccountFilter] = useState<string | 'all'>('all');
+
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(urlEmailId);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmailIds, setSelectedEmailIds] = useState<string[]>([]);
@@ -99,6 +107,10 @@ function InboxContent() {
   const [isSnoozeModalOpen, setIsSnoozeModalOpen] = useState(false);
   const [snoozeTargetEmailId, setSnoozeTargetEmailId] = useState<string | null>(null);
   const [snoozedMetaMap, setSnoozedMetaMap] = useState<Record<string, string>>({});
+  const [isAiDraftModalOpen, setIsAiDraftModalOpen] = useState(false);
+  const [isAutoLabeling, setIsAutoLabeling] = useState(false);
+
+
 
   const [customLabels, setCustomLabels] = useState<CustomLabel[]>([
     { id: 'lbl-1', name: 'Work', color: '#3b82f6' },
@@ -267,20 +279,32 @@ function InboxContent() {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Automatically fetch full HTML body for selected email if missing
+  // Automatically fetch full HTML body for all messages in current thread if missing
   useEffect(() => {
     if (!selectedEmailId) return;
     const target = emails.find((e) => e.id === selectedEmailId);
-    if (target && !target.bodyHtml && !target.bodyText) {
-      fetchEmailByIdApi(selectedEmailId).then((full) => {
-        if (full) {
-          setEmails((prev) =>
-            prev.map((e) => (e.id === selectedEmailId ? { ...e, ...full } : e))
-          );
-        }
-      }).catch((err) => console.warn('Failed to auto-fetch full email details:', err));
-    }
+    if (!target) return;
+
+    // Find all messages in the selected thread that lack full body
+    const threadMsgsToFetch = emails.filter(
+      (e) => e.threadId === target.threadId && !e.bodyHtml && !e.bodyText
+    );
+
+    if (threadMsgsToFetch.length === 0) return;
+
+    threadMsgsToFetch.forEach((msg) => {
+      fetchEmailByIdApi(msg.id)
+        .then((full) => {
+          if (full) {
+            setEmails((prev) =>
+              prev.map((e) => (e.id === msg.id ? { ...e, ...full } : e))
+            );
+          }
+        })
+        .catch((err) => console.warn('Failed to auto-fetch full email details:', err));
+    });
   }, [selectedEmailId, emails]);
+
 
   // Sync selected email and thread view when URL query 'id' changes or on initial load
   useEffect(() => {
@@ -294,6 +318,13 @@ function InboxContent() {
       setIsReadingThread(false);
     }
   }, [urlEmailId, emails, viewMode]);
+
+  // Reset modal state whenever user switches emails
+  useEffect(() => {
+    setIsAiDraftModalOpen(false);
+    setIsReplying(false);
+  }, [selectedEmailId]);
+
 
   // Handle browser Back / Forward popstate history buttons
   useEffect(() => {
@@ -328,53 +359,53 @@ function InboxContent() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const getEmailCategory = (email: EmailData): 'promotions' | 'social' | 'updates' | 'primary' => {
+  const getEmailCategory = (email: EmailData): string => {
+    if (email.aiPriority) {
+      if (email.aiPriority === 'p1_urgent') return 'p1_urgent';
+      if (email.aiPriority === 'p2_important') return 'p2_important';
+      if (email.aiPriority === 'p3_updates') return 'p3_updates';
+      if (email.aiPriority === 'p4_newsletter') return 'p4_newsletter';
+      if (email.aiPriority === 'p5_low') return 'p4_newsletter';
+    }
+
     const cat = (email.category || '').toLowerCase();
-    if (cat === 'promotions') return 'promotions';
-    if (cat === 'social') return 'social';
-    if (cat === 'updates') return 'updates';
+    if (cat === 'promotions') return 'p4_newsletter';
+    if (cat === 'social') return 'p3_updates';
+    if (cat === 'updates') return 'p3_updates';
 
     const senderLower = email.sender.toLowerCase();
     const subjectLower = email.subject.toLowerCase();
 
     if (
       senderLower.includes('newsletter') ||
-      senderLower.includes('marketing') ||
-      subjectLower.includes('offer') ||
-      subjectLower.includes('sale') ||
-      subjectLower.includes('discount') ||
-      subjectLower.includes('deal') ||
-      subjectLower.includes('subscription')
+      senderLower.includes('substack') ||
+      senderLower.includes('digest') ||
+      senderLower.includes('marketing')
     ) {
-      return 'promotions';
+      return 'p4_newsletter';
     }
 
     if (
-      senderLower.includes('linkedin') ||
-      senderLower.includes('twitter') ||
-      senderLower.includes('facebook') ||
-      senderLower.includes('instagram') ||
-      senderLower.includes('github') ||
-      senderLower.includes('youtube')
-    ) {
-      return 'social';
-    }
-
-    if (
-      senderLower.includes('google') ||
-      senderLower.includes('security') ||
+      senderLower.includes('noreply') ||
       senderLower.includes('notification') ||
-      senderLower.includes('receipt') ||
-      senderLower.includes('invoice') ||
-      senderLower.includes('billing') ||
-      subjectLower.includes('verify') ||
-      subjectLower.includes('confirm')
+      subjectLower.includes('receipt') ||
+      subjectLower.includes('invoice') ||
+      subjectLower.includes('security')
     ) {
-      return 'updates';
+      return 'p3_updates';
     }
 
-    return 'primary';
+    if (
+      subjectLower.includes('urgent') ||
+      subjectLower.includes('action required') ||
+      subjectLower.includes('asap')
+    ) {
+      return 'p1_urgent';
+    }
+
+    return 'p2_important';
   };
+
 
   // Filter emails by active folder, category tab, account label, custom label, search query, and advanced filters
   const filteredEmails = emails.filter((email) => {
@@ -597,10 +628,38 @@ function InboxContent() {
     }
   };
 
+  const handleAutoLabelAll = async () => {
+    setIsAutoLabeling(true);
+    try {
+      const res = await safeFetch('/ai/triage/all', { method: 'POST' });
+      if (res.ok) {
+        await loadData(true);
+      }
+    } catch (err) {
+      console.warn('Auto-labeling error:', err);
+    } finally {
+      setIsAutoLabeling(false);
+    }
+  };
+
+  const handleLabelSingleEmail = async (emailId: string) => {
+    try {
+      const res = await safeFetch(`/ai/emails/${emailId}/triage`, { method: 'POST' });
+      if (res.ok) {
+        await loadData(true);
+      }
+    } catch (err) {
+      console.warn('Single email label error:', err);
+    }
+  };
+
+
   const handleSelectEmail = async (email: EmailData) => {
     setSelectedEmailId(email.id);
     setIsReadingThread(true);
     setIsReplying(false);
+    setIsAiDraftModalOpen(false);
+
 
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
@@ -1145,14 +1204,27 @@ function InboxContent() {
                         </span>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => loadData(true)}
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-                        title="Refresh inbox"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => loadData(true)}
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+                          title="Refresh inbox"
+                        >
+                          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+
+                        <button
+                          onClick={handleAutoLabelAll}
+                          disabled={isAutoLabeling}
+                          className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600/10 via-indigo-600/10 to-pink-600/10 hover:from-purple-600/20 hover:to-indigo-600/20 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-[11px] font-semibold transition-all shadow-2xs active:scale-95 disabled:opacity-60"
+                          title="Run Gemini AI Auto-Labeling on all synced emails"
+                        >
+                          <Sparkles className={`w-3.5 h-3.5 text-purple-600 dark:text-purple-400 ${isAutoLabeling ? 'animate-spin' : ''}`} />
+                          <span>{isAutoLabeling ? 'Auto-Labeling with Gemini...' : '✨ AI Auto-Label'}</span>
+                        </button>
+                      </div>
                     )}
+
                   </div>
 
                   {/* Pagination Controls */}
@@ -1186,11 +1258,12 @@ function InboxContent() {
                   <div className="flex items-center border-b border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc]/60 dark:bg-[#1a1b1e] shrink-0 overflow-x-auto">
                     {[
                       { id: 'all', label: 'All Mail', icon: Mail, color: 'border-slate-600 text-slate-600 dark:border-slate-300 dark:text-slate-300' },
-                      { id: 'primary', label: 'Primary', icon: InboxIcon, color: 'border-[#0b57d0] text-[#0b57d0] dark:border-purple-400 dark:text-purple-400' },
-                      { id: 'promotions', label: 'Promotions', icon: Tag, color: 'border-[#137333] text-[#137333] dark:border-emerald-400 dark:text-emerald-400' },
-                      { id: 'social', label: 'Social', icon: Users, color: 'border-[#1a73e8] text-[#1a73e8] dark:border-blue-400 dark:text-blue-400' },
-                      { id: 'updates', label: 'Updates', icon: AlertOctagon, color: 'border-[#b06000] text-[#b06000] dark:border-amber-400 dark:text-amber-400' },
+                      { id: 'p1_urgent', label: '🔥 Action Required', icon: Flame, color: 'border-red-500 text-red-600 dark:border-red-400 dark:text-red-400' },
+                      { id: 'p2_important', label: '💬 Direct', icon: InboxIcon, color: 'border-[#0b57d0] text-[#0b57d0] dark:border-purple-400 dark:text-purple-400' },
+                      { id: 'p3_updates', label: '🔔 Updates', icon: AlertOctagon, color: 'border-[#b06000] text-[#b06000] dark:border-amber-400 dark:text-amber-400' },
+                      { id: 'p4_newsletter', label: '📰 Subscriptions', icon: Tag, color: 'border-[#137333] text-[#137333] dark:border-emerald-400 dark:text-emerald-400' },
                     ].map((cat) => {
+
                       const Icon = cat.icon;
                       const isActive = activeCategory === cat.id;
                       const count = emails.filter((e) => {
@@ -1324,6 +1397,69 @@ function InboxContent() {
                             {email.accountName || email.accountEmail || 'Mailbox'}
                           </span>
 
+                          {/* Gemini AI Priority Badge */}
+                          {(() => {
+                            const priority = email.aiPriority || getEmailCategory(email);
+                            if (priority === 'p1_urgent') {
+                              return (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shrink-0 flex items-center space-x-1 shadow-2xs" title="Gemini AI: P1 Urgent / Action Required">
+                                  <Flame className="w-2.5 h-2.5 text-rose-500 shrink-0" />
+                                  <span>P1 Action</span>
+                                </span>
+                              );
+                            }
+                            if (priority === 'p2_important') {
+                              return (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0 shadow-2xs" title="Gemini AI: P2 Direct Conversation">
+                                  P2 Direct
+                                </span>
+                              );
+                            }
+                            if (priority === 'p3_updates') {
+                              return (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 shadow-2xs" title="Gemini AI: P3 Updates / Notifications">
+                                  P3 Updates
+                                </span>
+                              );
+                            }
+                            if (priority === 'p4_newsletter') {
+                              return (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0 shadow-2xs" title="Gemini AI: P4 Subscriptions / Newsletters">
+                                  P4 News
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+
+                          {/* Gemini AI Smart Topic Tag */}
+                          {(() => {
+                            const topic = email.aiNewsletterTopic || (() => {
+                              const s = `${email.sender} ${email.subject}`.toLowerCase();
+                              if (s.includes('nst') || s.includes('office') || s.includes('rishihood') || s.includes('exam') || s.includes('csai') || s.includes('registrar')) return '🎓 Academics';
+                              if (s.includes('dev club') || s.includes('devclub') || s.includes('bootcamp') || s.includes('hack')) return '💼 DevClub';
+                              if (s.includes('atlassian') || s.includes('github') || s.includes('ai') || s.includes('code') || s.includes('tech')) return '🚀 Tech & AI';
+                              if (s.includes('linkedin')) return '👥 Community';
+                              if (getEmailCategory(email) === 'p4_newsletter') return '📰 Newsletter';
+                              return null;
+                            })();
+
+                            if (!topic) return null;
+                            return (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shrink-0 max-w-[120px] truncate shadow-2xs" title={`Smart Topic: ${topic}`}>
+                                {topic}
+                              </span>
+                            );
+                          })()}
+
+                          {/* Gemini AI Action Items Detected */}
+                          {email.aiExtractedTasks && email.aiExtractedTasks.length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shrink-0 shadow-2xs" title={`${email.aiExtractedTasks.length} action item(s) detected`}>
+                              {email.aiExtractedTasks.length} Action{email.aiExtractedTasks.length > 1 ? 's' : ''}
+                            </span>
+                          )}
+
+
                           {/* Assigned Custom Labels */}
                           {assignedLabels.map((lblId) => {
                             const lbl = customLabels.find((l) => l.id === lblId);
@@ -1340,7 +1476,10 @@ function InboxContent() {
                           })}
 
                           {/* Subject + Snippet inline */}
-                          <div className="flex-1 min-w-0 flex items-center space-x-2 truncate text-xs">
+                          <div
+                            className="flex-1 min-w-0 flex items-center space-x-2 truncate text-xs"
+                            title={email.aiSummary ? `✨ Gemini Summary: ${email.aiSummary}` : undefined}
+                          >
                             <span className={`truncate ${!email.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-normal text-slate-800 dark:text-slate-200'}`}>
                               {email.subject}
                             </span>
@@ -1348,6 +1487,7 @@ function InboxContent() {
                               — {email.snippet}
                             </span>
                           </div>
+
 
                           {/* Attachment indicator */}
                           {hasAttachments && (
@@ -1540,6 +1680,110 @@ function InboxContent() {
                     {selectedEmail?.subject}
                   </h1>
 
+                  {/* Gemini AI Intelligence Card */}
+                  {selectedEmail && (selectedEmail.aiPriority || selectedEmail.aiSummary || (selectedEmail.aiExtractedTasks && selectedEmail.aiExtractedTasks.length > 0) || selectedEmail.aiNewsletterTopic) && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/8 via-indigo-500/5 to-pink-500/8 border border-purple-200/80 dark:border-purple-800/50 space-y-3 shadow-xs">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <div className="p-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                            Gemini Intelligence
+                          </span>
+
+                          {selectedEmail.aiPriority === 'p1_urgent' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 flex items-center space-x-1">
+                              <Flame className="w-3 h-3 text-rose-500" />
+                              <span>P1 Action Required</span>
+                            </span>
+                          )}
+                          {selectedEmail.aiPriority === 'p2_important' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                              💬 P2 Direct
+                            </span>
+                          )}
+                          {selectedEmail.aiPriority === 'p3_updates' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                              🔔 P3 Updates
+                            </span>
+                          )}
+                          {selectedEmail.aiPriority === 'p4_newsletter' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              📰 P4 Subscription
+                            </span>
+                          )}
+
+                          {selectedEmail.aiUrgencyScore !== undefined && selectedEmail.aiUrgencyScore !== null && (
+                            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              Urgency: {selectedEmail.aiUrgencyScore}/100
+                            </span>
+                          )}
+
+                          {selectedEmail.aiNewsletterTopic && (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
+                              {selectedEmail.aiNewsletterTopic}
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() => handleLabelSingleEmail(selectedEmail.id)}
+                          className="text-[11px] font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center space-x-1 transition-colors"
+                          title="Re-analyze email with Gemini AI"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Re-analyze</span>
+                        </button>
+                      </div>
+
+                      {selectedEmail.aiSummary && (
+                        <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white/70 dark:bg-slate-900/50 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
+                          <span className="font-bold text-slate-900 dark:text-white mr-1.5">Executive Summary:</span>
+                          {selectedEmail.aiSummary}
+                        </div>
+                      )}
+
+                      {selectedEmail.aiExtractedTasks && selectedEmail.aiExtractedTasks.length > 0 && (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Extracted Action Items ({selectedEmail.aiExtractedTasks.length}):
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {selectedEmail.aiExtractedTasks.map((t: any) => (
+                              <div
+                                key={t.id || t.title}
+                                className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs space-x-2 shadow-2xs"
+                              >
+                                <span className="truncate text-slate-800 dark:text-slate-200 font-medium">{t.title}</span>
+                                <button
+                                  onClick={async () => {
+                                    await safeFetch('/ai/tasks/convert', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        emailId: selectedEmail.id,
+                                        taskId: t.id,
+                                        title: t.title,
+                                        priority: t.priority,
+                                        dueDate: t.dueDate,
+                                      }),
+                                    });
+                                    loadData(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[10px] font-bold shrink-0 shadow-2xs transition-all active:scale-95"
+                                >
+                                  Accept Task
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+
                   {/* Chronological Messages Flow */}
                   <div className="space-y-6">
                     {currentThreadMessages.map((msg, index) => {
@@ -1597,15 +1841,17 @@ function InboxContent() {
                           <div className="pt-2 text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
                             {msg.bodyHtml || msg.bodyText ? (
                               <SanitizedEmailBody html={msg.bodyHtml} text={msg.bodyText} />
+                            ) : msg.snippet && msg.snippet !== '(No content snippet)' ? (
+                              <div className="whitespace-pre-wrap font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                                {msg.snippet}
+                              </div>
                             ) : (
-                              <div className="space-y-3 py-3 animate-pulse">
-                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-3/4" />
-                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-1/2" />
-                                <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-5/6" />
-                                <div className="h-20 bg-slate-100/60 dark:bg-slate-800/40 rounded-xl w-full" />
+                              <div className="text-xs text-slate-400 italic py-2">
+                                (No content in this message body)
                               </div>
                             )}
                           </div>
+
 
                           {/* Attachments */}
                           {attachmentsList.length > 0 && (
@@ -1673,6 +1919,14 @@ function InboxContent() {
                           <CornerUpRight className="w-4 h-4 text-slate-500" />
                           <span>Forward</span>
                         </button>
+
+                        <button
+                          onClick={() => setIsAiDraftModalOpen(true)}
+                          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-md shadow-purple-600/25 transition-all hover:scale-[1.02] active:scale-95"
+                        >
+                          <Sparkles className="w-4 h-4 text-purple-200" />
+                          <span>Draft with Gemini</span>
+                        </button>
                       </div>
 
                       <button
@@ -1684,6 +1938,7 @@ function InboxContent() {
                         <span className="hidden sm:inline text-[11px]">Templates</span>
                       </button>
                     </div>
+
                   ) : (
                     <div className="p-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl space-y-3 shadow-md">
                       <div className="flex items-center justify-between">
@@ -1751,7 +2006,17 @@ function InboxContent() {
                           >
                             <FileText className="w-4 h-4 text-[#0b57d0]" />
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsAiDraftModalOpen(true)}
+                            className="p-1.5 px-2.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg transition-colors flex items-center space-x-1"
+                            title="Draft with Gemini"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                            <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hidden sm:inline">AI Draft</span>
+                          </button>
                         </div>
+
                         <button
                           onClick={() => {
                             setIsReplying(false);
@@ -2153,7 +2418,34 @@ function InboxContent() {
           localStorage.setItem('gmail_custom_labels', JSON.stringify(updated));
         }}
       />
+
+      {/* Gemini AI Reply Drafter Modal */}
+      {selectedEmail && (
+        <AiReplyDrafterModal
+          isOpen={isAiDraftModalOpen}
+          onClose={() => setIsAiDraftModalOpen(false)}
+          threadId={selectedEmail.threadId || selectedEmail.id}
+          emailId={selectedEmail.id}
+          threadSubject={selectedEmail.subject}
+          emailContext={
+            currentThreadMessages.length > 0
+              ? currentThreadMessages
+                  .map(
+                    (m, idx) =>
+                      `[Message ${idx + 1} of ${currentThreadMessages.length}]\nFrom: ${m.sender}\nTo: ${m.recipients}\nDate: ${new Date(m.receivedAt).toLocaleString()}\nSubject: ${m.subject || ''}\nBody:\n${m.bodyText || m.snippet || ''}`
+                  )
+                  .join('\n\n------------------------\n\n')
+              : `From: ${selectedEmail.sender}\nTo: ${selectedEmail.recipients}\nSubject: ${selectedEmail.subject || ''}\nBody:\n${selectedEmail.bodyText || selectedEmail.snippet || ''}`
+          }
+          onInsertDraft={(draftText) => {
+            setIsReplying(true);
+            setReplyText((prev) => (prev ? `${prev}\n\n${draftText}` : draftText));
+          }}
+        />
+      )}
+
     </div>
+
   );
 }
 

@@ -11,8 +11,10 @@ import {
   Trash2,
 } from 'lucide-react';
 import { fetchTasks, createTaskApi, updateTaskApi, deleteTaskApi, TaskData } from '@/lib/api';
+import { AiTaskRadar } from '@/components/tasks/AiTaskRadar';
 
 export default function TasksPage() {
+
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'todo' | 'in_progress' | 'completed'>('all');
@@ -101,8 +103,12 @@ export default function TasksPage() {
         </button>
       </div>
 
+      {/* AI Task Radar */}
+      <AiTaskRadar />
+
       {/* Filter Tabs Bar */}
       <div className="flex items-center justify-between p-1.5 rounded-2xl clean-card">
+
         <div className="flex items-center space-x-1">
           {(['all', 'todo', 'in_progress', 'completed'] as const).map((tab) => (
             <button

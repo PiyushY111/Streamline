@@ -24,6 +24,8 @@ import {
   disconnectAccountApi,
   AccountData,
 } from '@/lib/api';
+import { AiSettingsSection } from '@/components/settings/AiSettingsSection';
+
 
 const COLOR_OPTIONS = [
   '#3b82f6', // Electric Blue
@@ -393,8 +395,12 @@ function SettingsContent() {
         )}
       </div>
 
+      {/* Gemini AI Engine Configuration Section */}
+      <AiSettingsSection />
+
       {/* Security & Privacy Guarantee Footer Card */}
       <div className="p-6 rounded-3xl clean-card dark:dark-glass border border-slate-200 dark:border-slate-800/80 space-y-3">
+
         <div className="flex items-center space-x-2 text-xs font-bold text-slate-900 dark:text-white">
           <Lock className="w-4 h-4 text-purple-500" />
           <span>Security & Data Encryption Standard</span>

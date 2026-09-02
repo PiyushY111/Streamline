@@ -13,7 +13,9 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeftOpen,
+  Sparkles,
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -27,6 +29,7 @@ const navItems: NavItem[] = [
   { name: 'Unified Inbox', href: '/inbox' },
   { name: 'Unified Agenda', href: '/calendar' },
   { name: 'Tasks & Actions', href: '/tasks' },
+  { name: 'Daily Digest', href: '/digest' },
   { name: 'Connected Accounts', href: '/settings' },
 ];
 
@@ -34,8 +37,10 @@ const iconsMap: Record<string, React.ElementType> = {
   '/inbox': Inbox,
   '/calendar': Calendar,
   '/tasks': CheckSquare,
+  '/digest': Sparkles,
   '/settings': Settings,
 };
+
 
 export function Sidebar() {
   const pathname = usePathname();

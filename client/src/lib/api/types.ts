@@ -30,7 +30,14 @@ export interface EmailData {
   folder?: string;
   category?: 'primary' | 'promotions' | 'social' | 'updates';
   attachments?: any[];
+  aiPriority?: 'p1_urgent' | 'p2_important' | 'p3_updates' | 'p4_newsletter' | 'p5_low';
+  aiUrgencyScore?: number;
+  aiSummary?: string;
+  aiNewsletterTopic?: string;
+  aiSentiment?: string;
+  aiExtractedTasks?: any[];
 }
+
 
 export interface EventData {
   id: string;
