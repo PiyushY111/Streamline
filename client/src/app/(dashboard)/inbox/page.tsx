@@ -60,6 +60,7 @@ import {
   EmailData,
   AccountData,
 } from '@/lib/api';
+import { SanitizedEmailBody } from '@/components/inbox/thread/SanitizedEmailBody';
 import { formatEmailDate } from '@/lib/utils';
 import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { AdvancedSearchModal, SearchFilterState } from '@/components/inbox/AdvancedSearchModal';
@@ -1594,19 +1595,8 @@ function InboxContent() {
 
                           {/* Email HTML / Plain Text Body */}
                           <div className="pt-2 text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
-                            {msg.bodyHtml && msg.bodyHtml.includes('<') ? (
-                              <iframe
-                                id={`iframe-${msg.id}`}
-                                title={`Email Body ${index}`}
-                                scrolling="no"
-                                srcDoc={`<!DOCTYPE html><html><head><base target="_blank"><style>html,body{margin:0;padding:0;font-family:system-ui,-apple-system,sans-serif;font-size:14px;color:#1e293b;line-height:1.6;background:transparent;} img{max-width:100%;height:auto;} a{color:#0b57d0;}</style></head><body><div id="content-root">${msg.bodyHtml}</div><script>function sendHeight(){var el=document.getElementById('content-root');if(el){window.parent.postMessage({frameId:'${msg.id}',height:el.offsetHeight},'*');}}window.addEventListener('load',sendHeight);setTimeout(sendHeight,100);setTimeout(sendHeight,500);</script></body></html>`}
-                                className="w-full border-0 bg-transparent overflow-hidden"
-                                style={{ height: iframeHeights[msg.id] ? `${iframeHeights[msg.id]}px` : '100px' }}
-                              />
-                            ) : msg.bodyText ? (
-                              <p className="whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                                {msg.bodyText}
-                              </p>
+                            {msg.bodyHtml || msg.bodyText ? (
+                              <SanitizedEmailBody html={msg.bodyHtml} text={msg.bodyText} />
                             ) : (
                               <div className="space-y-3 py-3 animate-pulse">
                                 <div className="h-3.5 bg-slate-200/80 dark:bg-slate-800 rounded-md w-3/4" />
