@@ -58,8 +58,9 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
     await auditService.logAction(userId, 'account.connected', {
       accountId: account.id,
       email: account.email,
-      provider: account.provider,
+      provider: 'google',
     });
+
 
     res.redirect(`${env.CLIENT_URL}/inbox?accountConnected=true`);
   } catch (err: unknown) {

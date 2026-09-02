@@ -30,7 +30,7 @@ export class OAuthService {
 
     const profile = userInfoRes.data;
     const encryptedAccess = encrypt(tokens.access_token!);
-    const encryptedRefresh = encrypt(tokens.refresh_token || tokens.access_token!);
+    const encryptedRefresh = tokens.refresh_token ? encrypt(tokens.refresh_token) : undefined;
     const expiresAt = new Date(tokens.expiry_date || Date.now() + 3600 * 1000);
 
     const account = await accountsRepository.upsertAccount({
@@ -45,6 +45,7 @@ export class OAuthService {
       scopes: tokens.scope || '',
       avatar: profile.picture,
     });
+
 
     // Trigger initial background sync asynchronously
     syncGoogleAccountData(account.id).catch(err => {

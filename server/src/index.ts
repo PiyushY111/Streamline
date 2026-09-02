@@ -80,8 +80,9 @@ async function bootstrap() {
   await ensureSchemaUpdated();
   const port = parseInt(env.PORT, 10) || 5001;
 
-  const server = app.listen(port, () => {
+  const server = app.listen(port, '0.0.0.0', () => {
     logger.info({ port, env: env.NODE_ENV }, `⚡ Streamline Backend API running on port ${port}`);
+
 
     startWorkers();
     startSyncScheduler();

@@ -5,6 +5,11 @@ import { generateCsrfToken } from '../middlewares/security.js';
 import { auditService } from '../services/audit.service.js';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { db } from '../db/index.js';
+import { connectedAccounts } from '../db/schema/index.js';
+import { accountSyncQueue } from '../queues/index.js';
+import { eq } from 'drizzle-orm';
+
 
 export async function register(req: Request, res: Response): Promise<void> {
   try {
@@ -72,7 +77,19 @@ export async function login(req: Request, res: Response): Promise<void> {
       ip: req.ip,
     });
 
+    // Auto-queue background sync for user connected accounts on login
+    db.select({ id: connectedAccounts.id })
+      .from(connectedAccounts)
+      .where(eq(connectedAccounts.userId, result.user.id))
+      .then((accounts) => {
+        for (const acc of accounts) {
+          accountSyncQueue.add('sync-account', { accountId: acc.id }, { jobId: `account-sync-${acc.id}` }).catch(() => {});
+        }
+      })
+      .catch(() => {});
+
     res.json({ ...result, csrfToken });
+
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Login failed';
     logger.error({ err }, 'Login controller error');

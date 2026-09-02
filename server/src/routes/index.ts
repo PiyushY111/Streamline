@@ -154,4 +154,9 @@ router.patch(
 );
 router.delete('/tasks/:id', authenticate, validateParams(taskIdParamSchema), deleteTask);
 
+// AI Engine Routes
+import aiRouter from './ai.routes.js';
+router.use('/ai', aiRouter);
+
 export default router;
+

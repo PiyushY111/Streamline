@@ -8,6 +8,8 @@ import { decrypt, encrypt } from '../../utils/encryption.js';
 import { emailsRepository } from '../../repositories/emails.repository.js';
 import { delCache } from '../cache.service.js';
 import { auditService } from '../audit.service.js';
+import { aiTriageQueue } from '../../queues/index.js';
+
 
 function decodeBase64(data: string): string {
   try {
@@ -158,6 +160,8 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
 
   const batchSize = 25;
   let syncedCount = 0;
+  const newEmailIds: string[] = [];
+
 
   for (let i = 0; i < allMessageMetas.length; i += batchSize) {
     const chunk = allMessageMetas.slice(i, i + batchSize);
@@ -232,7 +236,7 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
           .returning();
       }
 
-      await db.insert(emails).values({
+      const [insertedEmail] = await db.insert(emails).values({
         threadId: thread.id,
         accountId,
         externalMessageId: msg.id,
@@ -250,14 +254,28 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
         isStarred,
         isImportant,
         attachments,
-      }).onConflictDoNothing();
+      }).onConflictDoNothing().returning({ id: emails.id });
+
+      if (insertedEmail) {
+        newEmailIds.push(insertedEmail.id);
+      }
 
       syncedCount++;
     }
   }
 
+  if (newEmailIds.length > 0) {
+    try {
+      await aiTriageQueue.add('triage-batch', { emailIds: newEmailIds, accountId });
+      logger.info({ accountId, count: newEmailIds.length }, 'Enqueued newly synced emails for AI triage');
+    } catch (err: any) {
+      logger.warn({ err: err.message }, 'Failed to enqueue emails to AI triage queue');
+    }
+  }
+
   logger.info({ accountId, syncedCount }, 'Gmail batch sync completed');
   return syncedCount;
+
 }
 
 export async function syncGmailMarkAsRead(emailId: string, userId: string, isRead: boolean) {
