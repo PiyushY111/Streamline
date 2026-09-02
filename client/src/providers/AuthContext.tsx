@@ -29,25 +29,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('streamline_token');
-    const savedUser = localStorage.getItem('streamline_user');
-
-    if (savedToken && savedUser) {
+    async function checkSession() {
       try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('streamline_token');
-        localStorage.removeItem('streamline_user');
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.user) {
+            setUser(data.user);
+            localStorage.setItem('streamline_user', JSON.stringify(data.user));
+          }
+        } else {
+          // Fallback to cached profile if available
+          const savedUser = localStorage.getItem('streamline_user');
+          if (savedUser) {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch {
+              localStorage.removeItem('streamline_user');
+            }
+          }
+        }
+      } catch {
+        const savedUser = localStorage.getItem('streamline_user');
+        if (savedUser) {
+          try {
+            setUser(JSON.parse(savedUser));
+          } catch {
+            localStorage.removeItem('streamline_user');
+          }
+        }
+      } finally {
+        setLoading(false);
       }
     }
-    setLoading(false);
+
+    checkSession();
   }, []);
 
   const login = async (email: string, password: string) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
 
@@ -57,8 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setUser(data.user);
-    setToken(data.token);
-    localStorage.setItem('streamline_token', data.token);
+    if (data.token) {
+      setToken(data.token);
+      localStorage.setItem('streamline_token', data.token);
+    }
     localStorage.setItem('streamline_user', JSON.stringify(data.user));
     router.push('/inbox');
   };
@@ -67,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password, name }),
     });
 
@@ -76,15 +102,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setUser(data.user);
-    setToken(data.token);
-    localStorage.setItem('streamline_token', data.token);
+    if (data.token) {
+      setToken(data.token);
+      localStorage.setItem('streamline_token', data.token);
+    }
     localStorage.setItem('streamline_user', JSON.stringify(data.user));
     router.push('/inbox');
   };
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {
       // Ignore
     }
