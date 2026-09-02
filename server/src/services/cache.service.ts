@@ -7,8 +7,8 @@ export async function getCache<T>(key: string): Promise<T | null> {
     if (cached) {
       return JSON.parse(cached) as T;
     }
-  } catch (err) {
-    logger.warn({ key, err }, 'Redis getCache warning');
+  } catch (err: any) {
+    logger.warn({ key, err: err?.message || 'Cache read failed' }, 'Redis getCache warning');
   }
   return null;
 }
@@ -17,8 +17,8 @@ export async function setCache(key: string, value: any, ttlSeconds: number = 30)
   try {
     const data = JSON.stringify(value);
     await redisConnection.setex(key, ttlSeconds, data);
-  } catch (err) {
-    logger.warn({ key, err }, 'Redis setCache warning');
+  } catch (err: any) {
+    logger.warn({ key, err: err?.message || 'Cache write failed' }, 'Redis setCache warning');
   }
 }
 
@@ -28,7 +28,7 @@ export async function delCache(keyPattern: string): Promise<void> {
     if (keys.length > 0) {
       await redisConnection.del(...keys);
     }
-  } catch (err) {
-    logger.warn({ keyPattern, err }, 'Redis delCache warning');
+  } catch (err: any) {
+    logger.warn({ keyPattern, err: err?.message || 'Cache delete failed' }, 'Redis delCache warning');
   }
 }
