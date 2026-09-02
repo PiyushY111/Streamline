@@ -4,6 +4,7 @@ import { oauthService } from '../services/oauth.service.js';
 import { getAuthUrl } from '../utils/google-oauth.js';
 import { env } from '../config/env.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
+import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
 
 export async function connectGoogle(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -52,7 +53,14 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-    await oauthService.handleGoogleCallback(code, userId);
+    const account = await oauthService.handleGoogleCallback(code, userId);
+
+    await auditService.logAction(userId, 'account.connected', {
+      accountId: account.id,
+      email: account.email,
+      provider: account.provider,
+    });
+
     res.redirect(`${env.CLIENT_URL}/inbox?accountConnected=true`);
   } catch (err: unknown) {
     logger.error({ err }, 'Google callback error');
@@ -86,6 +94,13 @@ export async function updateAccount(req: AuthenticatedRequest, res: Response): P
       res.status(404).json({ error: 'Account not found' });
       return;
     }
+
+    await auditService.logAction(req.user.id, 'account.updated', {
+      accountId: id,
+      label,
+      color,
+    });
+
     res.json({ success: true, account: updated });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to update account' });
@@ -100,6 +115,11 @@ export async function disconnectAccount(req: AuthenticatedRequest, res: Response
     }
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     await oauthService.disconnectAccount(id, req.user.id);
+
+    await auditService.logAction(req.user.id, 'account.disconnected', {
+      accountId: id,
+    });
+
     res.json({ success: true, message: 'Account disconnected successfully' });
   } catch (err: unknown) {
     res.status(500).json({ error: 'Failed to disconnect account' });

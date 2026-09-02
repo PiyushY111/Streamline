@@ -4,6 +4,7 @@ import { db } from '../db/index.js';
 import { connectedAccounts } from '../db/schema/index.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
 import { accountSyncQueue } from '../queues/index.js';
+import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
 
 export async function triggerManualSync(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -37,6 +38,10 @@ export async function triggerManualSync(req: AuthenticatedRequest, res: Response
         { jobId }
       );
     }
+
+    await auditService.logAction(userId, 'sync.manual_triggered', {
+      accountsQueued: userAccounts.length,
+    });
 
     res.status(202).json({ success: true, message: 'Sync queued successfully', accountsQueued: userAccounts.length });
   } catch (err: unknown) {
