@@ -13,10 +13,11 @@ export class AuditService {
         action,
         meta: meta || {},
       });
-      logger.info({ userId, action, meta }, '🔒 Audit log recorded');
+      logger.info({ userId, action }, '🔒 Audit log recorded');
     } catch (err) {
       logger.error({ err, userId, action }, 'Failed to record audit log');
     }
+
   }
 }
 
