@@ -16,6 +16,7 @@ import {
   Sparkles,
   Bot,
   Brain,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -34,6 +35,7 @@ const navItems: NavItem[] = [
   { name: 'Tasks & Actions', href: '/tasks' },
   { name: 'Daily Digest', href: '/digest' },
   { name: 'Memory Vault', href: '/memory' },
+  { name: 'AI Security', href: '/security' },
   { name: 'Connected Accounts', href: '/settings' },
 ];
 
@@ -43,6 +45,7 @@ const iconsMap: Record<string, React.ElementType> = {
   '/tasks': CheckSquare,
   '/digest': Sparkles,
   '/memory': Brain,
+  '/security': ShieldCheck,
   '/settings': Settings,
 };
 
@@ -157,6 +160,18 @@ export function Sidebar() {
                   )}
                 >
                   RAG
+                </span>
+              )}
+              {!isCollapsed && item.href === '/security' && (
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors',
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  )}
+                >
+                  Shield
                 </span>
               )}
             </Link>

@@ -143,6 +143,23 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
         </div>
       </div>
 
+      {/* Untrusted Content Origin Shield Alert */}
+      {preview?._securityNotice && (
+        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start space-x-2.5 text-xs animate-in fade-in duration-150">
+          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="space-y-0.5 flex-1 min-w-0">
+            <div className="flex items-center space-x-1.5 font-bold text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
+              <span>Shield Alert: Untrusted Inbound Trigger</span>
+            </div>
+            <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
+              This action proposal was prompted after ingesting external content from{' '}
+              <strong className="text-amber-700 dark:text-amber-300 font-semibold">{preview._securityNotice.sourceSender}</strong>.
+              Verify all parameters before confirming.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* AI Reasoning */}
       {action.reasoning && (
         <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300">
