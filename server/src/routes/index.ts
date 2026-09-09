@@ -212,6 +212,46 @@ router.get('/planner/presets', authenticate, getWeightPresets);
 import aiRouter from './ai.routes.js';
 router.use('/ai', aiRouter);
 
+// Agent Assistant & Human-in-the-Loop Routes (Stage 2)
+import {
+  chat,
+  chatStream,
+  listPendingActions,
+  approveAction,
+  rejectAction,
+  listSessions,
+  getSessionMessages,
+} from '../controllers/agent.controller.js';
+import {
+  agentChatSchema,
+  pendingActionIdParamSchema,
+  sessionIdParamSchema,
+} from '../schemas/index.js';
+
+router.post('/agent/chat', authenticate, validateBody(agentChatSchema), chat);
+router.post('/agent/chat/stream', authenticate, validateBody(agentChatSchema), chatStream);
+router.get('/agent/actions/pending', authenticate, listPendingActions);
+router.post(
+  '/agent/actions/:id/approve',
+  authenticate,
+  validateParams(pendingActionIdParamSchema),
+  approveAction
+);
+router.post(
+  '/agent/actions/:id/reject',
+  authenticate,
+  validateParams(pendingActionIdParamSchema),
+  rejectAction
+);
+router.get('/agent/sessions', authenticate, listSessions);
+router.get(
+  '/agent/sessions/:id/messages',
+  authenticate,
+  validateParams(sessionIdParamSchema),
+  getSessionMessages
+);
+
 export default router;
+
 
 

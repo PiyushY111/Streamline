@@ -133,6 +133,21 @@ export const projectIdParamSchema = z.object({
   id: z.string().uuid('Invalid project ID format'),
 });
 
+// Agent Schemas (Stage 2)
+export const agentChatSchema = z.object({
+  sessionId: z.string().uuid('Invalid session ID format').optional(),
+  message: z.string().min(1, 'Message cannot be empty'),
+});
+
+export const pendingActionIdParamSchema = z.object({
+  id: z.string().uuid('Invalid pending action ID format'),
+});
+
+export const sessionIdParamSchema = z.object({
+  id: z.string().uuid('Invalid session ID format'),
+});
+
 export * from './ai.schema.js';
+
 
 
