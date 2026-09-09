@@ -3,8 +3,8 @@ import type { ToolDefinition } from './types.js';
 
 const createCalendarEventSchema = z.object({
   title: z.string().min(1, 'Event title is required'),
-  startTime: z.string().min(1, 'Start time in ISO format is required'),
-  endTime: z.string().min(1, 'End time in ISO format is required'),
+  startTime: z.string().refine((val) => !isNaN(Date.parse(val)), 'Start time must be a valid ISO datetime'),
+  endTime: z.string().refine((val) => !isNaN(Date.parse(val)), 'End time must be a valid ISO datetime'),
   description: z.string().optional(),
   location: z.string().optional(),
 });

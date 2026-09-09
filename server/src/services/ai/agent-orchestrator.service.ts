@@ -207,6 +207,16 @@ export class AgentOrchestratorService {
       }
     }
 
+    if (!finalText) {
+      finalText = 'I reached the maximum allowed tool iterations for this turn. Here is the progress so far.';
+      await db.insert(agentMessages).values({
+        sessionId,
+        role: 'model',
+        content: finalText,
+      });
+      options.onStreamEvent?.({ type: 'text_chunk', chunk: finalText });
+    }
+
     const finalResult: AgentTurnResult = {
       text: finalText,
       pendingActions: pendingActionsThisTurn,

@@ -1,14 +1,22 @@
 import { runPriorityEval } from './priority.eval.js';
+import { runToolSelectionEval } from './tool-selection.eval.js';
+import type { EvalReport } from './types.js';
 
 async function main() {
   console.log('🧪 Running Streamline AI Evaluation Harness...\n');
   const reports: EvalReport[] = [];
 
   // Suite 1: Deterministic Priority Engine Scenarios (Stage 1)
-  console.log('📦 [Suite: Deterministic Priority Engine]');
+  console.log('📦 [Suite 1: Deterministic Priority Engine]');
   const priorityReport = await runPriorityEval();
   reports.push(priorityReport);
   console.log(`  Passed: ${priorityReport.passed}/${priorityReport.total} scenarios\n`);
+
+  // Suite 2: Agent Tool-Calling & Dual-Boundary Policy Engine (Stage 2)
+  console.log('📦 [Suite 2: Agent Tool-Calling & Policy Engine]');
+  const toolReport = await runToolSelectionEval();
+  reports.push(toolReport);
+  console.log(`  Passed: ${toolReport.passed}/${toolReport.total} scenarios\n`);
 
 
   // Overall summary
