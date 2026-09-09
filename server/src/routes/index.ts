@@ -226,6 +226,8 @@ import {
   searchUserMemories,
   deleteUserMemory,
   getProviderInfo,
+  getSecurityStatus,
+  simulateInjection,
 } from '../controllers/agent.controller.js';
 import {
   agentChatSchema,
@@ -262,6 +264,10 @@ router.post('/agent/memories', authenticate, createUserMemory);
 router.get('/agent/memories/search', authenticate, searchUserMemories);
 router.delete('/agent/memories/:id', authenticate, deleteUserMemory);
 router.get('/agent/provider', authenticate, getProviderInfo);
+
+// Prompt-Injection Defense & Security Routes (Stage 4)
+router.get('/agent/security/status', authenticate, getSecurityStatus);
+router.post('/agent/security/simulate-injection', authenticate, simulateInjection);
 
 export default router;
 
