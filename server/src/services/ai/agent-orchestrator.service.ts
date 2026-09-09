@@ -103,6 +103,7 @@ export class AgentOrchestratorService {
 
     const pendingActionsThisTurn: string[] = [];
     let finalText = '';
+    let untrustedContentContext: { source: string; sender?: string } | null = null;
 
     const tools = getAiToolDeclarations();
 
@@ -180,6 +181,15 @@ export class AgentOrchestratorService {
         });
 
         if (outcome.kind === 'executed') {
+          // Track untrusted external content ingestion
+          if (tc.name === 'get_email' && outcome.result) {
+            const emailData = outcome.result as any;
+            untrustedContentContext = {
+              source: 'email',
+              sender: emailData.sender || 'Unknown Sender',
+            };
+          }
+
           options.onStreamEvent?.({
             type: 'tool_executed',
             toolName: tc.name,
@@ -195,11 +205,30 @@ export class AgentOrchestratorService {
         } else if (outcome.kind === 'pending') {
           pendingActionsThisTurn.push(outcome.pendingActionId);
 
+          let impactPreview = outcome.impactPreview;
+          if (untrustedContentContext) {
+            impactPreview = {
+              ...outcome.impactPreview,
+              _securityNotice: {
+                untrustedContentTriggered: true,
+                source: untrustedContentContext.source,
+                sourceSender: untrustedContentContext.sender || 'External Sender',
+                threatWarning:
+                  'This action proposal was prompted after reading untrusted external email content. Review carefully before approving.',
+              },
+            };
+
+            await db
+              .update(pendingActions)
+              .set({ impactPreview })
+              .where(eq(pendingActions.id, outcome.pendingActionId));
+          }
+
           options.onStreamEvent?.({
             type: 'action_queued',
             toolName: tc.name,
             pendingActionId: outcome.pendingActionId,
-            impactPreview: outcome.impactPreview,
+            impactPreview,
           });
 
           await db.insert(agentMessages).values({
@@ -209,7 +238,7 @@ export class AgentOrchestratorService {
             toolResult: {
               status: 'queued_for_human_approval',
               pendingActionId: outcome.pendingActionId,
-              impactPreview: outcome.impactPreview,
+              impactPreview,
               message: 'Action queued for human approval. Inform the user and await their confirmation.',
             },
           });
