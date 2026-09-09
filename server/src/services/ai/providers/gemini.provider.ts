@@ -142,23 +142,35 @@ export class GeminiProvider implements AiProvider {
       throw new Error('Gemini client not available (missing GEMINI_API_KEY)');
     }
 
-    const model = options?.model || 'text-embedding-004';
-    try {
-      const response = await client.models.embedContent({
-        model,
-        contents: text,
-      });
+    const targetDims = options?.dimensions || 768;
+    const modelCandidates = [
+      options?.model || 'gemini-embedding-001',
+      'gemini-embedding-2',
+      'text-embedding-004',
+    ];
 
-      const resAny = response as any;
-      const values: number[] = resAny.embedding?.values || resAny.embeddings?.[0]?.values || [];
-      if (!values || values.length === 0) {
-        throw new Error('No embedding vector values returned from Gemini');
+    let lastError: any = null;
+    for (const model of modelCandidates) {
+      try {
+        const response: any = await client.models.embedContent({
+          model,
+          contents: text,
+          config: {
+            outputDimensionality: targetDims,
+          },
+        });
+
+        const values: number[] = response.embedding?.values || response.embeddings?.[0]?.values || [];
+        if (values && values.length > 0) {
+          return values.length > targetDims ? values.slice(0, targetDims) : values;
+        }
+      } catch (err: any) {
+        lastError = err;
       }
-      return values;
-    } catch (err: any) {
-      logger.error({ err: err.message, model }, 'Failed to generate vector embedding with Gemini');
-      throw err;
     }
+
+    logger.error({ err: lastError?.message }, 'Failed to generate vector embedding with Gemini');
+    throw lastError || new Error('No embedding vector values returned from Gemini');
   }
 
   async chatWithTools(options: {

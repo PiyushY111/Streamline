@@ -21,8 +21,8 @@ interface ToolSelectionScenarioExpected {
 }
 
 export async function runToolSelectionEval() {
-  const userId = 'eval-user-uuid-1';
-  const sessionId = 'eval-session-uuid-1';
+  const userId = '00000000-0000-0000-0000-000000000001';
+  const sessionId = '00000000-0000-0000-0000-000000000002';
 
   // Setup mock database and repository layers for deterministic zero-cost evaluation
   if (!db.insert.bind) {
