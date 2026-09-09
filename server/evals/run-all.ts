@@ -1,6 +1,7 @@
 import { runPriorityEval } from './priority.eval.js';
 import { runToolSelectionEval } from './tool-selection.eval.js';
 import { runRetrievalEvals } from './retrieval-precision.eval.js';
+import { runInjectionResistanceEvals } from './injection-resistance.eval.js';
 import type { EvalReport } from './types.js';
 
 async function main() {
@@ -24,6 +25,12 @@ async function main() {
   const retrievalReport = await runRetrievalEvals();
   reports.push(retrievalReport);
   console.log(`  Passed: ${retrievalReport.passed}/${retrievalReport.total} scenarios\n`);
+
+  // Suite 4: Prompt-Injection Defense & Policy Boundary Integrity (Stage 4)
+  console.log('📦 [Suite 4: Prompt-Injection Defense & Policy Boundary]');
+  const injectionReport = await runInjectionResistanceEvals();
+  reports.push(injectionReport);
+  console.log(`  Passed: ${injectionReport.passed}/${injectionReport.total} scenarios\n`);
 
 
   // Overall summary

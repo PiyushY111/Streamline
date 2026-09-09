@@ -8,9 +8,18 @@ import type {
 
 export class MockAiProvider implements AiProvider {
   readonly name = 'mock';
+  private customMockResponses?: import('../types.js').AiChatTurnResponse[];
 
   isAvailable(): boolean {
     return true;
+  }
+
+  setMockResponses(responses: import('../types.js').AiChatTurnResponse[]) {
+    this.customMockResponses = [...responses];
+  }
+
+  clearMockResponses() {
+    this.customMockResponses = undefined;
   }
 
   async generateText(options: AiGenerateTextOptions): Promise<string> {
@@ -51,6 +60,10 @@ export class MockAiProvider implements AiProvider {
     temperature?: number;
     models?: string[];
   }): Promise<import('../types.js').AiChatTurnResponse> {
+    if (this.customMockResponses && this.customMockResponses.length > 0) {
+      return this.customMockResponses.shift()!;
+    }
+
     const lastMsg = options.messages[options.messages.length - 1];
 
     if (lastMsg?.role === 'tool') {
