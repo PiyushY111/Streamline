@@ -189,4 +189,101 @@ export class OpenAiCompatibleProvider implements AiProvider {
     const data: any = await response.json();
     return data.data?.[0]?.embedding || [];
   }
+
+  async chatWithTools(options: {
+    messages: import('../types.js').AiChatMessage[];
+    systemInstruction?: string;
+    tools?: import('../types.js').AiToolDefinition[];
+    temperature?: number;
+    models?: string[];
+  }): Promise<import('../types.js').AiChatTurnResponse> {
+    const model = options.models?.[0] || this.defaultModel;
+    const messages: any[] = [];
+
+    if (options.systemInstruction) {
+      messages.push({ role: 'system', content: options.systemInstruction });
+    }
+
+    for (const m of options.messages) {
+      if (m.role === 'user') {
+        messages.push({ role: 'user', content: m.content || '' });
+      } else if (m.role === 'model') {
+        const msgObj: any = { role: 'assistant', content: m.content || null };
+        if (m.toolCalls && m.toolCalls.length > 0) {
+          msgObj.tool_calls = m.toolCalls.map((tc, idx) => ({
+            id: tc.id || `call_${idx}_${Date.now()}`,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.args || {}),
+            },
+          }));
+        }
+        messages.push(msgObj);
+      } else if (m.role === 'tool') {
+        messages.push({
+          role: 'tool',
+          tool_call_id: m.toolCalls?.[0]?.id || `call_${m.toolName || 'tool'}`,
+          content: typeof m.toolResult === 'string' ? m.toolResult : JSON.stringify(m.toolResult || {}),
+        });
+      }
+    }
+
+    const payload: any = {
+      model,
+      messages,
+      temperature: options.temperature ?? 0.2,
+    };
+
+    if (options.tools && options.tools.length > 0) {
+      payload.tools = options.tools.map((t) => ({
+        type: 'function',
+        function: {
+          name: t.name,
+          description: t.description,
+          parameters: t.parameters,
+        },
+      }));
+    }
+
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenAI-compatible chatWithTools failed (${response.status}): ${errText}`);
+    }
+
+    const data: any = await response.json();
+    const msg = data.choices?.[0]?.message;
+
+    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }> = [];
+    if (msg?.tool_calls && Array.isArray(msg.tool_calls)) {
+      for (const tc of msg.tool_calls) {
+        let parsedArgs = {};
+        try {
+          parsedArgs = JSON.parse(tc.function?.arguments || '{}');
+        } catch {
+          parsedArgs = {};
+        }
+        toolCalls.push({
+          id: tc.id,
+          name: tc.function?.name,
+          args: parsedArgs,
+        });
+      }
+    }
+
+    return {
+      text: msg?.content || undefined,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    };
+  }
 }
+

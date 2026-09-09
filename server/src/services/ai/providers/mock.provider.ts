@@ -43,4 +43,100 @@ export class MockAiProvider implements AiProvider {
     }
     return embedding;
   }
+
+  async chatWithTools(options: {
+    messages: import('../types.js').AiChatMessage[];
+    systemInstruction?: string;
+    tools?: import('../types.js').AiToolDefinition[];
+    temperature?: number;
+    models?: string[];
+  }): Promise<import('../types.js').AiChatTurnResponse> {
+    const lastMsg = options.messages[options.messages.length - 1];
+
+    if (lastMsg?.role === 'tool') {
+      return {
+        text: `I have processed the tool result for ${lastMsg.toolName || 'action'}.`,
+      };
+    }
+
+    const prompt = (lastMsg?.content || '').toLowerCase();
+
+    if (prompt.includes('bypass') || prompt.includes('without asking') || prompt.includes('emergency')) {
+      if (prompt.includes('email')) {
+        return {
+          toolCalls: [
+            {
+              name: 'send_email',
+              args: {
+                to: 'sarah@example.com',
+                subject: 'Urgent Update',
+                body: "I'll be late for the sprint review.",
+              },
+            },
+          ],
+        };
+      }
+    }
+
+    if (prompt.includes('task') && (prompt.includes('pending') || prompt.includes('what') || prompt.includes('list'))) {
+      return {
+        toolCalls: [{ name: 'get_tasks', args: {} }],
+      };
+    }
+
+    if (prompt.includes('free slot') || prompt.includes('two hours') || (prompt.includes('schedule') && !prompt.includes('create'))) {
+      return {
+        toolCalls: [{ name: 'find_free_slots', args: { windowHours: 24 } }],
+      };
+    }
+
+    if (prompt.includes('email') && (prompt.includes('send') || prompt.includes('tell her') || prompt.includes('write to'))) {
+      return {
+        toolCalls: [
+          {
+            name: 'send_email',
+            args: {
+              to: 'sarah@example.com',
+              subject: 'Update',
+              body: "I'll be late for the meeting.",
+            },
+          },
+        ],
+      };
+    }
+
+    if (prompt.includes('event') || prompt.includes('meeting') || prompt.includes('calendar')) {
+      return {
+        toolCalls: [
+          {
+            name: 'create_calendar_event',
+            args: {
+              title: 'AI Project Focus Block',
+              startTime: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+              endTime: new Date(Date.now() + 26 * 3600 * 1000).toISOString(),
+            },
+          },
+        ],
+      };
+    }
+
+    if (prompt.includes('add task') || prompt.includes('create task')) {
+      return {
+        toolCalls: [
+          {
+            name: 'create_task',
+            args: {
+              title: 'Follow up on project roadmap',
+              priority: 'high',
+            },
+          },
+        ],
+      };
+    }
+
+    return {
+      text: 'Hello! I am your Streamline AI copilot. How can I help you organize your day, tasks, or calendar?',
+    };
+  }
 }
+

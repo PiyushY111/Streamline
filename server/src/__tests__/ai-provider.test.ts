@@ -54,6 +54,7 @@ describe('Provider-Agnostic AI Architecture', () => {
         return 'chunk-1 chunk-2';
       },
       generateEmbedding: async () => [0.1, 0.2, 0.3],
+      chatWithTools: async () => ({ text: 'Custom Claude tool response' }),
     };
 
     setAiProvider(customTestProvider);

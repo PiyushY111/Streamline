@@ -25,6 +25,37 @@ export interface AiEmbeddingOptions {
   dimensions?: number;
 }
 
+export interface AiToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'model' | 'tool';
+  content?: string | null;
+  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  toolName?: string;
+  toolResult?: unknown;
+}
+
+export interface AiChatTurnOptions {
+  messages: AiChatMessage[];
+  systemInstruction?: string;
+  tools?: AiToolDefinition[];
+  temperature?: number;
+  models?: string[];
+}
+
+export interface AiChatTurnResponse {
+  text?: string;
+  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+}
+
 export interface AiProvider {
   readonly name: string;
 
@@ -52,4 +83,10 @@ export interface AiProvider {
    * High-dimensional vector embedding generation for semantic memory and similarity search.
    */
   generateEmbedding(text: string, options?: AiEmbeddingOptions): Promise<number[]>;
+
+  /**
+   * Multi-turn chat with native tool/function calling across any provider.
+   */
+  chatWithTools(options: AiChatTurnOptions): Promise<AiChatTurnResponse>;
 }
+

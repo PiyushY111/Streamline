@@ -160,4 +160,95 @@ export class GeminiProvider implements AiProvider {
       throw err;
     }
   }
+
+  async chatWithTools(options: {
+    messages: import('../types.js').AiChatMessage[];
+    systemInstruction?: string;
+    tools?: import('../types.js').AiToolDefinition[];
+    temperature?: number;
+    models?: string[];
+  }): Promise<import('../types.js').AiChatTurnResponse> {
+    const client = getGeminiClient();
+    if (!client) {
+      throw new Error('Gemini client not available (missing GEMINI_API_KEY)');
+    }
+
+    const candidateModels = options.models || [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS];
+
+    const contents = options.messages.map((m) => {
+      if (m.role === 'user') {
+        return { role: 'user', parts: [{ text: m.content || '' }] };
+      }
+      if (m.role === 'model') {
+        const parts: any[] = [];
+        if (m.content) parts.push({ text: m.content });
+        if (m.toolCalls && m.toolCalls.length > 0) {
+          for (const tc of m.toolCalls) {
+            parts.push({
+              functionCall: {
+                name: tc.name,
+                args: tc.args || {},
+              },
+            });
+          }
+        }
+        return { role: 'model', parts: parts.length > 0 ? parts : [{ text: '' }] };
+      }
+      if (m.role === 'tool') {
+        return {
+          role: 'user',
+          parts: [
+            {
+              functionResponse: {
+                name: m.toolName || 'tool',
+                response: { output: m.toolResult },
+              },
+            },
+          ],
+        };
+      }
+      return { role: 'user', parts: [{ text: m.content || '' }] };
+    });
+
+    const config: any = {
+      temperature: options.temperature ?? 0.2,
+    };
+
+    if (options.systemInstruction) {
+      config.systemInstruction = options.systemInstruction;
+    }
+
+    if (options.tools && options.tools.length > 0) {
+      config.tools = [
+        {
+          functionDeclarations: options.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          })),
+        },
+      ];
+    }
+
+    const response = await generateContentWithFallback(client, candidateModels, {
+      contents,
+      config,
+    });
+
+    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }> = [];
+    if (response.functionCalls && response.functionCalls.length > 0) {
+      for (const fc of response.functionCalls) {
+        toolCalls.push({
+          name: fc.name,
+          args: (fc.args as Record<string, unknown>) || {},
+        });
+      }
+    }
+
+    return {
+      text: response.text || undefined,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    };
+  }
 }
+
