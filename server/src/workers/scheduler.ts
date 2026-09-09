@@ -4,11 +4,17 @@ import { connectedAccounts } from '../db/schema/index.js';
 import { accountSyncQueue } from '../queues/index.js';
 import { logger } from '../utils/logger.js';
 
+let syncIntervalHandle: NodeJS.Timeout | null = null;
+
 export function startSyncScheduler() {
   logger.info('⏰ Initializing 2-Minute Background Sync Cron Scheduler...');
 
+  if (syncIntervalHandle) {
+    clearInterval(syncIntervalHandle);
+  }
+
   // Enqueue background sync jobs every 2 minutes (120,000 ms)
-  setInterval(async () => {
+  syncIntervalHandle = setInterval(async () => {
     try {
       const activeAccounts = await db
         .select()
@@ -40,3 +46,12 @@ export function startSyncScheduler() {
     }
   }, 2 * 60 * 1000);
 }
+
+export function stopSyncScheduler(): void {
+  if (syncIntervalHandle) {
+    clearInterval(syncIntervalHandle);
+    syncIntervalHandle = null;
+    logger.info('🛑 Background Sync Cron Scheduler stopped.');
+  }
+}
+

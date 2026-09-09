@@ -233,6 +233,7 @@ import {
   agentChatSchema,
   pendingActionIdParamSchema,
   sessionIdParamSchema,
+  memoryIdParamSchema,
 } from '../schemas/index.js';
 
 router.post('/agent/chat', authenticate, validateBody(agentChatSchema), chat);
@@ -262,8 +263,14 @@ router.get(
 router.get('/agent/memories', authenticate, listUserMemories);
 router.post('/agent/memories', authenticate, createUserMemory);
 router.get('/agent/memories/search', authenticate, searchUserMemories);
-router.delete('/agent/memories/:id', authenticate, deleteUserMemory);
+router.delete(
+  '/agent/memories/:id',
+  authenticate,
+  validateParams(memoryIdParamSchema),
+  deleteUserMemory
+);
 router.get('/agent/provider', authenticate, getProviderInfo);
+
 
 // Prompt-Injection Defense & Security Routes (Stage 4)
 router.get('/agent/security/status', authenticate, getSecurityStatus);

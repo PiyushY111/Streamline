@@ -2,13 +2,22 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../queues/index.js';
 import { syncGoogleAccountData } from '../services/google/google-sync.service.js';
 import { createAiTriageWorker } from './ai-triage.worker.js';
-import { createDailyDigestWorker, startDailyDigestScheduler } from './daily-digest.worker.js';
+import {
+  createDailyDigestWorker,
+  startDailyDigestScheduler,
+  stopDailyDigestScheduler,
+} from './daily-digest.worker.js';
+import { stopSyncScheduler } from './scheduler.js';
 import { logger } from '../utils/logger.js';
+
+let accountSyncWorkerInstance: Worker | null = null;
+let aiTriageWorkerInstance: Worker | null = null;
+let dailyDigestWorkerInstance: Worker | null = null;
 
 export function startWorkers() {
   logger.info('🚀 Starting BullMQ account sync background worker...');
 
-  const accountSyncWorker = new Worker(
+  accountSyncWorkerInstance = new Worker(
     'account-sync-queue',
     async (job: Job) => {
       const { accountId } = job.data;
@@ -18,19 +27,44 @@ export function startWorkers() {
     { connection: redisConnection, concurrency: 2 }
   );
 
-  accountSyncWorker.on('completed', (job) => {
+  accountSyncWorkerInstance.on('completed', (job) => {
     logger.info({ jobId: job.id }, '✅ Account Sync Worker job completed');
   });
 
-  accountSyncWorker.on('failed', (job, err) => {
+  accountSyncWorkerInstance.on('failed', (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Account Sync Worker job failed');
   });
 
   // Start AI Triage and Daily Digest Workers
-  createAiTriageWorker();
-  createDailyDigestWorker();
+  aiTriageWorkerInstance = createAiTriageWorker();
+  dailyDigestWorkerInstance = createDailyDigestWorker();
   startDailyDigestScheduler();
 
   logger.info('✨ All BullMQ background workers and AI schedulers initialized and active!');
 }
+
+export async function stopWorkers(): Promise<void> {
+  logger.info('🛑 Stopping all background workers and cron schedulers...');
+  stopSyncScheduler();
+  stopDailyDigestScheduler();
+
+  const closePromises: Promise<any>[] = [];
+  if (accountSyncWorkerInstance) {
+    closePromises.push(accountSyncWorkerInstance.close());
+  }
+  if (aiTriageWorkerInstance) {
+    closePromises.push(aiTriageWorkerInstance.close());
+  }
+  if (dailyDigestWorkerInstance) {
+    closePromises.push(dailyDigestWorkerInstance.close());
+  }
+
+  await Promise.allSettled(closePromises);
+  accountSyncWorkerInstance = null;
+  aiTriageWorkerInstance = null;
+  dailyDigestWorkerInstance = null;
+
+  logger.info('✅ All BullMQ background workers and schedulers successfully stopped.');
+}
+
 

@@ -206,15 +206,15 @@ export default function SecurityGuardrailsPage() {
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-600/10 dark:bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* 3 Core Security Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 4 Core Security & Resource Invariant Metric Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Policy Boundary */}
-        <div className="p-6 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
+        <div className="p-5 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Lock className="w-5 h-5" />
             </div>
-            <span className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400">
+            <span className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">
               100% Gated
             </span>
           </div>
@@ -229,12 +229,12 @@ export default function SecurityGuardrailsPage() {
         </div>
 
         {/* Metric 2: Untrusted Ingestion Layer */}
-        <div className="p-6 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
+        <div className="p-5 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
               <Layers className="w-5 h-5" />
             </div>
-            <span className="text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
+            <span className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">
               Active Tagging
             </span>
           </div>
@@ -249,12 +249,12 @@ export default function SecurityGuardrailsPage() {
         </div>
 
         {/* Metric 3: Approval Fatigue Shield */}
-        <div className="p-6 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
+        <div className="p-5 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
           <div className="flex items-center justify-between">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400">
               <ShieldAlert className="w-5 h-5" />
             </div>
-            <span className="text-xl font-extrabold text-amber-600 dark:text-amber-400">
+            <span className="text-lg font-extrabold text-amber-600 dark:text-amber-400">
               Anti-Rubber Stamp
             </span>
           </div>
@@ -267,7 +267,28 @@ export default function SecurityGuardrailsPage() {
             </p>
           </div>
         </div>
+
+        {/* Metric 4: Zero Memory Leaks & Data Protection */}
+        <div className="p-5 rounded-3xl clean-card dark:dark-glass clean-card-hover border border-slate-200 dark:border-slate-800/80 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <span className="text-lg font-extrabold text-cyan-600 dark:text-cyan-400">
+              Zero-Leak
+            </span>
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+              Memory & Data Isolation
+            </h3>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              SSE streams auto-abort on disconnect, workers teardown on SIGTERM/SIGINT, and 100% of logs redact auth secrets.
+            </p>
+          </div>
+        </div>
       </div>
+
 
       {/* Interactive Red Team Threat Sandbox */}
       <div className="p-6 sm:p-8 rounded-3xl clean-card dark:dark-glass border border-slate-200 dark:border-slate-800/80 space-y-6 relative overflow-hidden">

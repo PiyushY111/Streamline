@@ -51,10 +51,15 @@ export function AiReplyDrafterModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   // Auto-reset modal state when opening, closing, or switching to another thread/email
   React.useEffect(() => {
     if (!isOpen) {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
       setGeneratedDraft('');
       setError(null);
       setCustomPrompt('');
@@ -62,12 +67,24 @@ export function AiReplyDrafterModal({
       setCopied(false);
       setSelectedTone('professional');
     }
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [isOpen, threadId, emailId]);
 
   if (!isOpen) return null;
 
-
   const handleGenerate = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const ac = new AbortController();
+    abortControllerRef.current = ac;
+
     setIsGenerating(true);
     setGeneratedDraft('');
     setError(null);
@@ -76,6 +93,7 @@ export function AiReplyDrafterModal({
       const response = await safeFetch('/ai/threads/draft-reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: ac.signal,
         body: JSON.stringify({
           threadId,
           emailId,
@@ -85,12 +103,10 @@ export function AiReplyDrafterModal({
         }),
       });
 
-
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.error || `Server responded with status ${response.status}`);
       }
-
 
       if (!response.body) {
         throw new Error('ReadableStream not supported by browser');
@@ -101,6 +117,7 @@ export function AiReplyDrafterModal({
       let accumulated = '';
 
       while (true) {
+        if (ac.signal.aborted) break;
         const { value, done } = await reader.read();
         if (done) break;
 
@@ -115,7 +132,7 @@ export function AiReplyDrafterModal({
             }
             try {
               const parsed = JSON.parse(dataStr);
-              if (parsed.text) {
+              if (parsed.text && !ac.signal.aborted) {
                 accumulated += parsed.text;
                 setGeneratedDraft(accumulated);
               }
@@ -129,11 +146,18 @@ export function AiReplyDrafterModal({
         }
       }
     } catch (err: any) {
+      if (err.name === 'AbortError' || ac.signal.aborted) {
+        return;
+      }
       setError(err.message || 'Error drafting reply');
     } finally {
-      setIsGenerating(false);
+      if (abortControllerRef.current === ac) {
+        setIsGenerating(false);
+        abortControllerRef.current = null;
+      }
     }
   };
+
 
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedDraft);

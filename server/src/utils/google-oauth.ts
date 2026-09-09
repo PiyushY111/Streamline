@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { logger } from './logger.js';
 
@@ -11,7 +12,18 @@ export function createOAuth2Client() {
   );
 }
 
+export function signOAuthState(userId: string): string {
+  const nonce = crypto.randomBytes(16).toString('hex');
+  return jwt.sign({ userId, nonce }, env.JWT_SECRET, { expiresIn: '15m' });
+}
+
+
+export function verifyOAuthState(stateToken: string): { userId: string } {
+  return jwt.verify(stateToken, env.JWT_SECRET) as { userId: string };
+}
+
 export function generateCodeVerifier(): string {
+
   return crypto.randomBytes(32).toString('base64url');
 }
 

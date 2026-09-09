@@ -146,6 +146,11 @@ export async function draftReply(req: Request, res: Response): Promise<void> {
     const userId = getUserId(req);
     const { threadId, emailId, tone, customPrompt, emailContext, replyType } = req.body;
 
+    const abortController = new AbortController();
+    req.on('close', () => {
+      abortController.abort();
+    });
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -161,7 +166,8 @@ export async function draftReply(req: Request, res: Response): Promise<void> {
         emailContext,
         replyType,
       },
-      res
+      res,
+      abortController.signal
     );
   } catch (err: any) {
     logger.error({ err: err.message }, 'Failed to stream reply draft');
@@ -170,6 +176,7 @@ export async function draftReply(req: Request, res: Response): Promise<void> {
     }
   }
 }
+
 
 export async function summarizeThread(req: Request, res: Response): Promise<void> {
   try {

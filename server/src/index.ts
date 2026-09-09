@@ -5,8 +5,9 @@ import { neon } from '@neondatabase/serverless';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import apiRouter from './routes/index.js';
-import { startWorkers } from './workers/index.js';
+import { startWorkers, stopWorkers } from './workers/index.js';
 import { startSyncScheduler } from './workers/scheduler.js';
+import { accountSyncQueue, aiTriageQueue, dailyDigestQueue, redisConnection } from './queues/index.js';
 import { securityHeaders } from './middlewares/security.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
 import { initDatabaseSchema } from './db/init-all.js';
@@ -87,18 +88,51 @@ async function bootstrap() {
   const server = app.listen(port, '0.0.0.0', () => {
     logger.info({ port, env: env.NODE_ENV }, `⚡ Streamline Backend API running on port ${port}`);
 
-
     startWorkers();
     startSyncScheduler();
   });
 
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received. Shutting down server gracefully...');
-    server.close(() => {
-      process.exit(0);
+  let isShuttingDown = false;
+
+  async function gracefulShutdown(signal: string) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    logger.info({ signal }, 'Graceful shutdown signal received. Releasing resources...');
+
+    // Force terminate after 5 seconds if graceful drain is stuck
+    const forceExitTimer = setTimeout(() => {
+      logger.error('Forced exit timeout reached (5000ms). Terminating process.');
+      process.exit(1);
+    }, 5000);
+    forceExitTimer.unref();
+
+    server.close(async () => {
+      logger.info('HTTP server closed to new connections.');
+      try {
+        await stopWorkers();
+        await Promise.allSettled([
+          accountSyncQueue.close(),
+          aiTriageQueue.close(),
+          dailyDigestQueue.close(),
+        ]);
+        if (redisConnection.status === 'ready' || redisConnection.status === 'connecting') {
+          await redisConnection.quit();
+          logger.info('Redis connection cleanly terminated.');
+        }
+      } catch (err: any) {
+        logger.error({ err: err?.message }, 'Error during graceful shutdown');
+      } finally {
+        clearTimeout(forceExitTimer);
+        logger.info('✨ Graceful shutdown completed cleanly. Exiting.');
+        process.exit(0);
+      }
     });
-  });
+  }
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
+
 
 bootstrap().catch((err) => {
   logger.error({ err }, 'Fatal error during server bootstrap');

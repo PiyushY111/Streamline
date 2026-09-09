@@ -147,7 +147,12 @@ export const sessionIdParamSchema = z.object({
   id: z.string().uuid('Invalid session ID format'),
 });
 
+export const memoryIdParamSchema = z.object({
+  id: z.string().uuid('Invalid memory ID format'),
+});
+
 export * from './ai.schema.js';
+
 
 
 

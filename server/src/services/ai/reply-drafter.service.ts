@@ -23,7 +23,11 @@ function isValidUuid(id?: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
-export async function streamDraftReply(options: DraftOptions, res: Response): Promise<void> {
+export async function streamDraftReply(
+  options: DraftOptions,
+  res: Response,
+  abortSignal?: AbortSignal
+): Promise<void> {
   const { threadId, emailId, userId, tone = 'professional', customPrompt, emailContext } = options;
   const targetId = threadId || emailId;
 
@@ -35,7 +39,7 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
 
   const userAccountEmail = userAccounts[0]?.email || 'me';
 
-  // 2. Fetch thread messages across all available strategies
+  // 2. Fetch thread messages across all available strategies with strict multi-tenant boundary
   let threadMessages: Array<{
     id: string;
     threadId: string;
@@ -62,7 +66,13 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
             receivedAt: emails.receivedAt,
           })
           .from(emails)
-          .where(or(eq(emails.threadId, targetId), eq(emails.id, targetId)))
+          .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
+          .where(
+            and(
+              eq(connectedAccounts.userId, userId),
+              or(eq(emails.threadId, targetId), eq(emails.id, targetId))
+            )
+          )
           .orderBy(asc(emails.receivedAt));
       }
 
@@ -103,7 +113,13 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
               receivedAt: emails.receivedAt,
             })
             .from(emails)
-            .where(eq(emails.threadId, actualThreadId))
+            .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
+            .where(
+              and(
+                eq(connectedAccounts.userId, userId),
+                eq(emails.threadId, actualThreadId)
+              )
+            )
             .orderBy(asc(emails.receivedAt));
         }
       }
@@ -111,6 +127,7 @@ export async function streamDraftReply(options: DraftOptions, res: Response): Pr
       logger.warn({ err: err.message, targetId }, 'Error during SQL thread resolution');
     }
   }
+
 
   // 3. Fallback: Context text from client if DB records empty
   let conversationHistory = '';
@@ -203,17 +220,30 @@ ${conversationHistory}
         models: candidateModels,
       },
       (chunk) => {
+        if (abortSignal?.aborted || res.writableEnded) {
+          return;
+        }
         res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
       }
     );
-    res.write('data: [DONE]\n\n');
-    res.end();
-    streamSucceeded = true;
+
+    if (!abortSignal?.aborted && !res.writableEnded) {
+      res.write('data: [DONE]\n\n');
+      res.end();
+      streamSucceeded = true;
+    }
   } catch (err: any) {
+    if (abortSignal?.aborted) {
+      logger.info({ userId }, 'Draft reply streaming aborted by client disconnect');
+      return;
+    }
     logger.error({ err: err.message, targetId }, 'Error streaming reply draft');
-    res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
-    res.end();
+    if (!res.writableEnded) {
+      res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
+      res.end();
+    }
   }
+
 
   // 5. Asynchronously Record Token Usage
   if (streamSucceeded && fullGeneratedDraft) {

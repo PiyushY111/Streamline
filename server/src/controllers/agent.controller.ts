@@ -63,32 +63,45 @@ export async function chatStream(req: AuthenticatedRequest, res: Response): Prom
       sessionId = newSession.id;
     }
 
+    const abortController = new AbortController();
+    req.on('close', () => {
+      abortController.abort();
+    });
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
     });
 
-    res.write(`event: session\ndata: ${JSON.stringify({ sessionId })}\n\n`);
+    if (!res.writableEnded) {
+      res.write(`event: session\ndata: ${JSON.stringify({ sessionId })}\n\n`);
+    }
 
     await agentOrchestratorService.runAgentTurn(req.user.id, sessionId, message.trim(), {
+      abortSignal: abortController.signal,
       onStreamEvent: (event) => {
-        res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+        if (!res.writableEnded && !abortController.signal.aborted) {
+          res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+        }
       },
     });
 
-    res.write('event: done\ndata: {}\n\n');
-    res.end();
+    if (!res.writableEnded && !abortController.signal.aborted) {
+      res.write('event: done\ndata: {}\n\n');
+      res.end();
+    }
   } catch (err: any) {
     logger.error({ err: err.message }, 'Agent chat stream error');
     if (!res.headersSent) {
       res.status(500).json({ error: err.message || 'Stream failed' });
-    } else {
+    } else if (!res.writableEnded) {
       res.write(`event: error\ndata: ${JSON.stringify({ error: err.message })}\n\n`);
       res.end();
     }
   }
 }
+
 
 export async function listPendingActions(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {

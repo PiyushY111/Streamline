@@ -278,8 +278,14 @@ function InboxContent() {
       }).catch(() => {});
     }, 15000);
 
-    return () => clearInterval(pollInterval);
+    return () => {
+      clearInterval(pollInterval);
+      if (undoTimerRef.current) {
+        clearInterval(undoTimerRef.current);
+      }
+    };
   }, []);
+
 
   // Automatically fetch full HTML body for all messages in current thread if missing
   useEffect(() => {

@@ -46,6 +46,7 @@ export class AgentOrchestratorService {
     options: {
       onStreamEvent?: (event: AgentStreamEvent) => void;
       models?: string[];
+      abortSignal?: AbortSignal;
     } = {}
   ): Promise<AgentTurnResult> {
     // 1. Enforce AI circuit breaker & cost guard
@@ -119,6 +120,10 @@ export class AgentOrchestratorService {
 
     // 5. Multi-turn execution loop (bounded by MAX_TOOL_TURNS)
     for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+      if (options.abortSignal?.aborted) {
+        logger.info({ userId, sessionId }, 'Agent turn aborted by client disconnect');
+        break;
+      }
       options.onStreamEvent?.({ type: 'turn_start', turn });
 
       // Reconstruct conversation history from database
@@ -159,11 +164,16 @@ export class AgentOrchestratorService {
 
       // Case B: Model proposed one or more tool calls
       for (const tc of response.toolCalls) {
+        if (options.abortSignal?.aborted) {
+          logger.info({ userId, sessionId }, 'Agent tool processing aborted by client disconnect');
+          break;
+        }
         options.onStreamEvent?.({
           type: 'tool_proposing',
           toolName: tc.name,
           args: tc.args,
         });
+
 
         // Pass through deterministic policy boundary
         const outcome = await enforcePolicy(userId, sessionId, {

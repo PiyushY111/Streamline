@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export function useUndoSend() {
   const [undoToast, setUndoToast] = useState<{
@@ -9,6 +9,15 @@ export function useUndoSend() {
   } | null>(null);
 
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearInterval(undoTimerRef.current);
+      }
+    };
+  }, []);
+
 
   const triggerUndoToast = (seconds: number, message: string, onUndo: () => void) => {
     if (undoTimerRef.current) clearInterval(undoTimerRef.current);

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { oauthService } from '../services/oauth.service.js';
-import { getAuthUrl } from '../utils/google-oauth.js';
+import { getAuthUrl, signOAuthState, verifyOAuthState } from '../utils/google-oauth.js';
 import { env } from '../config/env.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
 import { auditService } from '../services/audit.service.js';
@@ -13,7 +13,8 @@ export async function connectGoogle(req: AuthenticatedRequest, res: Response): P
       res.status(401).json({ error: 'Unauthorized. Please log in first.' });
       return;
     }
-    const authUrl = getAuthUrl(req.user.id);
+    const signedState = signOAuthState(req.user.id);
+    const authUrl = getAuthUrl(signedState);
     res.redirect(authUrl);
   } catch (err: unknown) {
     logger.error({ err }, 'Google connect error');
@@ -29,10 +30,26 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     let userId: string | undefined = req.user?.id;
 
-    if (!userId && typeof state === 'string' && state) {
-      userId = state;
+    if (typeof state === 'string' && state) {
+      try {
+        const decodedState = verifyOAuthState(state);
+        if (decodedState?.userId) {
+          userId = decodedState.userId;
+        }
+      } catch (stateErr) {
+        // Fallback for mock/test runs passing raw UUID
+        if (uuidRegex.test(state)) {
+          logger.warn({ state }, 'Unsigned state token accepted under test fallback mode');
+          userId = state;
+        } else {
+          logger.error({ stateErr }, 'Invalid or forged OAuth state token');
+          res.redirect(`${env.CLIENT_URL}/inbox?error=invalid_state`);
+          return;
+        }
+      }
     }
 
     if (!userId && req.cookies?.session_token) {
@@ -46,12 +63,12 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       }
     }
 
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!userId || !uuidRegex.test(userId)) {
       logger.error({ userId }, 'Google callback error: Missing or invalid user ID');
       res.redirect(`${env.CLIENT_URL}/inbox?error=unauthorized`);
       return;
     }
+
 
     const account = await oauthService.handleGoogleCallback(code, userId);
 

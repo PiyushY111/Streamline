@@ -94,7 +94,9 @@ export class AiCostGuardService {
       const startOfDay = new Date();
       startOfDay.setUTCHours(0, 0, 0, 0);
 
+
       const records = await db
+
         .select({
           totalTokens: sql<number>`COALESCE(SUM(${aiTokenUsage.totalTokens}), 0)`,
           totalCost: sql<string>`COALESCE(SUM(CAST(${aiTokenUsage.estimatedCostUsd} AS NUMERIC)), 0)`,

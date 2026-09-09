@@ -2,11 +2,18 @@ import { db } from '../db/index.js';
 import { auditLogs } from '../db/schema/index.js';
 import { logger } from '../utils/logger.js';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export class AuditService {
   /**
    * Records an immutable audit log entry in the database.
    */
   async logAction(userId: string, action: string, meta?: Record<string, any>): Promise<void> {
+    if (!userId || !UUID_REGEX.test(userId)) {
+      logger.debug({ userId, action }, 'Audit log skipped: userId is not a valid UUID');
+      return;
+    }
+
     try {
       await db.insert(auditLogs).values({
         userId,
@@ -17,8 +24,9 @@ export class AuditService {
     } catch (err) {
       logger.error({ err, userId, action }, 'Failed to record audit log');
     }
-
   }
 }
+
+
 
 export const auditService = new AuditService();

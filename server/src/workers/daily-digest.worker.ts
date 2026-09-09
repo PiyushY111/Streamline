@@ -28,11 +28,17 @@ export function createDailyDigestWorker() {
   return worker;
 }
 
+let dailyDigestIntervalHandle: NodeJS.Timeout | null = null;
+
 export function startDailyDigestScheduler() {
   logger.info('⏰ Initializing 5-Minute Daily Digest Cron Scheduler...');
 
+  if (dailyDigestIntervalHandle) {
+    clearInterval(dailyDigestIntervalHandle);
+  }
+
   // Check every 5 minutes if any user is due for their Daily Digest
-  setInterval(async () => {
+  dailyDigestIntervalHandle = setInterval(async () => {
     try {
       const allUsers = await db.select().from(users);
 
@@ -88,3 +94,12 @@ export function startDailyDigestScheduler() {
     }
   }, 5 * 60 * 1000);
 }
+
+export function stopDailyDigestScheduler(): void {
+  if (dailyDigestIntervalHandle) {
+    clearInterval(dailyDigestIntervalHandle);
+    dailyDigestIntervalHandle = null;
+    logger.info('🛑 Daily Digest Cron Scheduler stopped.');
+  }
+}
+
