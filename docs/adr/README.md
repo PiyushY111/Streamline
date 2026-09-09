@@ -16,3 +16,5 @@ Architecture Decision Records (ADRs) document significant architectural decision
 | [ADR-0006](./0006-pgvector-over-dedicated-vector-db.md) | pgvector on Neon over a Dedicated Vector Database | **Accepted** | 2026-09-09 |
 | [ADR-0007](./0007-scenario-based-eval-harness.md) | Scenario-Based Eval Harness over Ad-Hoc Manual Testing | **Accepted** | 2026-09-09 |
 | [ADR-0008](./0008-vercel-railway-deployment-topology.md) | Vercel + Railway Deployment Topology | **Accepted** | 2026-09-09 |
+| [ADR-0009](./0009-exponential-urgency-decay-and-dag-prioritization.md) | Exponential Urgency Decay and DAG Prioritization | **Accepted** | 2026-09-09 |
+

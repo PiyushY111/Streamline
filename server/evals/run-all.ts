@@ -1,20 +1,15 @@
-import { runSuite } from './runner.js';
-import type { EvalReport } from './types.js';
+import { runPriorityEval } from './priority.eval.js';
 
 async function main() {
   console.log('🧪 Running Streamline AI Evaluation Harness...\n');
   const reports: EvalReport[] = [];
 
-  // Suite 1: Priority Engine Scenarios (Smoke test in Stage 0, real priority logic in Stage 1)
-  console.log('📦 [Suite: Priority Engine]');
-  const priorityReport = await runSuite<{ a: number; b: number }, number>(
-    'priority-engine-eval',
-    'priority-scenarios.json',
-    async (input) => input.a + input.b,
-    (actual, expected) => actual === expected
-  );
+  // Suite 1: Deterministic Priority Engine Scenarios (Stage 1)
+  console.log('📦 [Suite: Deterministic Priority Engine]');
+  const priorityReport = await runPriorityEval();
   reports.push(priorityReport);
   console.log(`  Passed: ${priorityReport.passed}/${priorityReport.total} scenarios\n`);
+
 
   // Overall summary
   const totalScenarios = reports.reduce((sum, r) => sum + r.total, 0);

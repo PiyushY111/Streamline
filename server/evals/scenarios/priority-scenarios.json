@@ -1,12 +1,307 @@
 [
   {
-    "id": "smoke-test-1",
-    "description": "Placeholder smoke test scenario — to be expanded in Stage 1 with real priority scoring test cases",
+    "id": "overdue-vs-future",
+    "description": "Overdue task must score maximum urgency (1.0) and rank above task due in 3 days",
     "input": {
-      "a": 1,
-      "b": 2
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "future-task",
+          "title": "Future Task",
+          "importance": 0.5,
+          "hoursUntilDue": 72,
+          "estimatedMinutes": 30,
+          "dependencies": []
+        },
+        {
+          "id": "overdue-task",
+          "title": "Overdue Task",
+          "importance": 0.5,
+          "hoursUntilDue": -2,
+          "estimatedMinutes": 30,
+          "dependencies": []
+        }
+      ]
     },
-    "expected": 3,
-    "tags": ["placeholder", "smoke-test"]
+    "expected": {
+      "topTaskId": "overdue-task",
+      "overdueUrgency": 1.0
+    },
+    "tags": ["urgency", "exponential-decay", "benchmark"]
+  },
+  {
+    "id": "blocked-prerequisite-isolation",
+    "description": "Prerequisite task must unblock before dependent task; dependent task must be marked isBlocked",
+    "input": {
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "root-task",
+          "title": "Database Migration",
+          "importance": 0.7,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 45,
+          "dependencies": []
+        },
+        {
+          "id": "leaf-task",
+          "title": "Deploy API",
+          "importance": 0.9,
+          "hoursUntilDue": 4,
+          "estimatedMinutes": 15,
+          "dependencies": ["root-task"]
+        }
+      ]
+    },
+    "expected": {
+      "topActionableId": "root-task",
+      "blockedTaskIds": ["leaf-task"]
+    },
+    "tags": ["dag", "dependencies", "isolation"]
+  },
+  {
+    "id": "transitive-dag-unblock-boost",
+    "description": "Task unblocking multiple downstream tasks receives higher dependency impact leverage",
+    "input": {
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "blocker-hub",
+          "title": "API Spec Signoff",
+          "importance": 0.5,
+          "hoursUntilDue": 48,
+          "estimatedMinutes": 30,
+          "dependencies": []
+        },
+        {
+          "id": "island-task",
+          "title": "Isolated Design Tweak",
+          "importance": 0.5,
+          "hoursUntilDue": 48,
+          "estimatedMinutes": 30,
+          "dependencies": []
+        },
+        {
+          "id": "client-impl",
+          "title": "Client Code",
+          "importance": 0.5,
+          "hoursUntilDue": 72,
+          "estimatedMinutes": 60,
+          "dependencies": ["blocker-hub"]
+        },
+        {
+          "id": "docs-impl",
+          "title": "Docs Site",
+          "importance": 0.5,
+          "hoursUntilDue": 72,
+          "estimatedMinutes": 30,
+          "dependencies": ["blocker-hub"]
+        }
+      ]
+    },
+    "expected": {
+      "winnerId": "blocker-hub",
+      "loserId": "island-task"
+    },
+    "tags": ["dag", "leverage", "transitive"]
+  },
+  {
+    "id": "deadline-preset-sensitivity",
+    "description": "Deadline preset heavily weights impending due dates over raw importance",
+    "input": {
+      "preset": "deadline",
+      "tasks": [
+        {
+          "id": "impending-task",
+          "title": "Submit Form",
+          "importance": 0.2,
+          "hoursUntilDue": 1,
+          "estimatedMinutes": 15,
+          "dependencies": []
+        },
+        {
+          "id": "important-later-task",
+          "title": "Architect 2.0 System",
+          "importance": 0.95,
+          "hoursUntilDue": 120,
+          "estimatedMinutes": 120,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "topTaskId": "impending-task"
+    },
+    "tags": ["presets", "deadline"]
+  },
+  {
+    "id": "deep-work-preset-sensitivity",
+    "description": "Deep Work preset prioritizes high strategic importance and unblocking over small urgent chores",
+    "input": {
+      "preset": "deep_work",
+      "tasks": [
+        {
+          "id": "strategic-core",
+          "title": "Core Engine Architecture",
+          "importance": 0.95,
+          "hoursUntilDue": 48,
+          "estimatedMinutes": 90,
+          "dependencies": []
+        },
+        {
+          "id": "quick-chore",
+          "title": "Reply to vendor email",
+          "importance": 0.1,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 10,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "topTaskId": "strategic-core"
+    },
+    "tags": ["presets", "deep_work"]
+  },
+  {
+    "id": "quick-wins-preset-sensitivity",
+    "description": "Quick Wins preset favors tasks that fit snuggly into the available window",
+    "input": {
+      "preset": "quick_wins",
+      "availableMinutes": 30,
+      "tasks": [
+        {
+          "id": "snug-fit",
+          "title": "Quick Fix",
+          "importance": 0.5,
+          "hoursUntilDue": 48,
+          "estimatedMinutes": 25,
+          "dependencies": []
+        },
+        {
+          "id": "oversized-task",
+          "title": "Massive Overhaul",
+          "importance": 0.5,
+          "hoursUntilDue": 48,
+          "estimatedMinutes": 180,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "topTaskId": "snug-fit"
+    },
+    "tags": ["presets", "quick_wins", "context_fit"]
+  },
+  {
+    "id": "circular-dependency-graceful-handling",
+    "description": "Kahn algorithm detects cycles and prevents infinite loops without throwing",
+    "input": {
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "cycle-a",
+          "title": "Cycle Node A",
+          "importance": 0.5,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 30,
+          "dependencies": ["cycle-b"]
+        },
+        {
+          "id": "cycle-b",
+          "title": "Cycle Node B",
+          "importance": 0.5,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 30,
+          "dependencies": ["cycle-a"]
+        }
+      ]
+    },
+    "expected": {
+      "hasCycles": true
+    },
+    "tags": ["dag", "kahn", "cycle-detection"]
+  },
+  {
+    "id": "missing-deadline-graceful-fallback",
+    "description": "Task without due date gets 0.0 urgency but scores smoothly on other factors",
+    "input": {
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "backlog-item",
+          "title": "Someday / Maybe Project",
+          "importance": 0.8,
+          "hoursUntilDue": null,
+          "estimatedMinutes": 60,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "urgency": 0.0,
+      "minScore": 20
+    },
+    "tags": ["fallback", "missing-data"]
+  },
+  {
+    "id": "context-fit-exact-match",
+    "description": "Task whose estimated time exactly equals available time scores 1.0 context fit",
+    "input": {
+      "preset": "balanced",
+      "availableMinutes": 45,
+      "tasks": [
+        {
+          "id": "exact-fit",
+          "title": "45 min task",
+          "importance": 0.5,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 45,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "contextFit": 1.0
+    },
+    "tags": ["context-fit", "calendar"]
+  },
+  {
+    "id": "multi-tier-dag-ordering",
+    "description": "Multi-tier DAG resolves topological ordering cleanly",
+    "input": {
+      "preset": "balanced",
+      "tasks": [
+        {
+          "id": "tier-3",
+          "title": "Release v1.0",
+          "importance": 0.9,
+          "hoursUntilDue": 12,
+          "estimatedMinutes": 30,
+          "dependencies": ["tier-2"]
+        },
+        {
+          "id": "tier-2",
+          "title": "Run Integration Tests",
+          "importance": 0.8,
+          "hoursUntilDue": 24,
+          "estimatedMinutes": 30,
+          "dependencies": ["tier-1"]
+        },
+        {
+          "id": "tier-1",
+          "title": "Merge PRs",
+          "importance": 0.7,
+          "hoursUntilDue": 36,
+          "estimatedMinutes": 30,
+          "dependencies": []
+        }
+      ]
+    },
+    "expected": {
+      "topActionableId": "tier-1",
+      "blockedCount": 2
+    },
+    "tags": ["dag", "topological", "multi-tier"]
   }
 ]

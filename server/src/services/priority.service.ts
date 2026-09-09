@@ -58,9 +58,10 @@ export interface DependencyAnalysisResult {
 
 export interface PriorityContext {
   now: Date;
-  availableMinutes: number;
+  availableMinutes?: number;
   preset?: PriorityPreset;
   customWeights?: Partial<PriorityWeights>;
+  weights?: Partial<PriorityWeights>;
   allTasks: ScorableTask[];
   depAnalysis?: DependencyAnalysisResult;
 }
@@ -115,10 +116,14 @@ export function computeDeadlineProximity(
  * <= available: 1.0
  * > available: proportional penalty with partial credit for near-fits.
  */
-export function computeContextFit(estimatedMinutes: number | null, availableMinutes: number): number {
+export function computeContextFit(
+  estimatedMinutes?: number | null,
+  availableMinutes?: number | null
+): number {
+  if (availableMinutes === undefined || availableMinutes === null) return 1.0;
   if (availableMinutes <= 0) return 0;
   if (!estimatedMinutes || estimatedMinutes <= 0) return 0.75;
-  if (estimatedMinutes <= availableMinutes) return 1;
+  if (estimatedMinutes <= availableMinutes) return 1.0;
   const overBy = estimatedMinutes - availableMinutes;
   return Math.max(0, 1 - overBy / availableMinutes);
 }
@@ -230,7 +235,7 @@ export function scoreTask(task: ScorableTask, ctx: PriorityContext): ScoredTask 
   const baseWeights = PRESET_WEIGHTS[preset];
   const weights: PriorityWeights = {
     ...baseWeights,
-    ...(ctx.customWeights || {}),
+    ...(ctx.customWeights || ctx.weights || {}),
   };
 
   const depAnalysis = ctx.depAnalysis || analyzeDependencies(ctx.allTasks);
@@ -281,9 +286,9 @@ export function scoreTask(task: ScorableTask, ctx: PriorityContext): ScoredTask 
     reasoning.push('🚫 Blocked by prerequisite task');
   }
 
-  if (contextFit >= 1 && task.estimatedMinutes) {
+  if (ctx.availableMinutes && contextFit >= 1 && task.estimatedMinutes) {
     reasoning.push(`🎯 Fits your ${ctx.availableMinutes}m window`);
-  } else if (task.estimatedMinutes && task.estimatedMinutes > ctx.availableMinutes) {
+  } else if (ctx.availableMinutes && task.estimatedMinutes && task.estimatedMinutes > ctx.availableMinutes) {
     reasoning.push(`⏳ Exceeds current ${ctx.availableMinutes}m window`);
   }
 
