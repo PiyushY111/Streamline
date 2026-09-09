@@ -6,6 +6,7 @@ import { createTaskTool } from './create_task.js';
 import { sendEmailTool } from './send_email.js';
 import { searchMemoryTool } from './search_memory.js';
 import { saveMemoryTool } from './save_memory.js';
+import { getEmailTool } from './get_email.js';
 import type { ToolDefinition } from './types.js';
 import { AiToolDefinition } from '../../services/ai/types.js';
 
@@ -20,6 +21,7 @@ export const TOOL_REGISTRY: Record<string, ToolDefinition> = {
   send_email: sendEmailTool,
   search_memory: searchMemoryTool,
   save_memory: saveMemoryTool,
+  get_email: getEmailTool,
 };
 
 export function getAiToolDeclarations(): AiToolDefinition[] {

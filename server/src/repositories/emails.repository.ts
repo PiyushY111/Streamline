@@ -117,6 +117,10 @@ export class EmailsRepository {
     return email || null;
   }
 
+  async getEmailById(userId: string, emailId: string) {
+    return this.findById(emailId, userId);
+  }
+
   async markAsRead(id: string, userId: string, isRead: boolean = true) {
     const accountIds = await this.getUserAccountIds(userId);
     if (accountIds.length === 0) return null;
