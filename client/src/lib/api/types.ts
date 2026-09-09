@@ -183,4 +183,56 @@ export interface AiProviderInfoData {
   dimensions: number;
 }
 
+// Stage 4 Prompt-Injection Defense & Security Types
+export interface PendingActionSecurityNotice {
+  untrustedContentTriggered: boolean;
+  source: string;
+  sourceSender: string;
+  threatWarning: string;
+}
+
+export interface SecurityStatusData {
+  status: string;
+  policyEngine: string;
+  untrustedIngestion: string;
+  interceptionRate: string;
+  evalScenariosPassed: number;
+  totalEvalScenarios: number;
+  registeredTools: Array<{
+    name: string;
+    description: string;
+    permissionClass: 'read' | 'write' | 'send';
+  }>;
+  safetyInvariants: string[];
+}
+
+export interface InjectionSimulationResultData {
+  success: boolean;
+  attackType: string;
+  payloadSnippet: string;
+  pipeline: {
+    step1_ingestion: {
+      status: string;
+      marker: string;
+      description: string;
+    };
+    step2_anomalyDetection: {
+      status: string;
+      riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+      detectedVectors: string[];
+    };
+    step3_policyBoundary: {
+      status: string;
+      action: string;
+      directWritesExecuted: number;
+      policyGate: string;
+    };
+    step4_auditTrail: {
+      status: string;
+      tamperEvidentLog: string;
+    };
+  };
+  verdict: string;
+}
+
 

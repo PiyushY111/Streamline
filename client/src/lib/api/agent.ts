@@ -148,3 +148,29 @@ export async function fetchActiveAiProvider(): Promise<AiProviderInfoData | null
     return null;
   }
 }
+
+export async function fetchSecurityStatus(): Promise<import('./types').SecurityStatusData | null> {
+  try {
+    const res = await safeFetch('/agent/security/status', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function simulateInjectionAttack(
+  payload: string,
+  attackType?: string
+): Promise<import('./types').InjectionSimulationResultData> {
+  const res = await safeFetch('/agent/security/simulate-injection', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ payload, attackType }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to simulate injection containment');
+  }
+  return res.json();
+}
