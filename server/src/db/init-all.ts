@@ -177,7 +177,23 @@ export async function initDatabaseSchema() {
     );
   `;
 
-  // 9. Tasks table
+  // 9. Projects & Tasks tables (Stage 1)
+  await sql`
+    CREATE TABLE IF NOT EXISTS projects (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'active' NOT NULL,
+      color TEXT DEFAULT '#3b82f6' NOT NULL,
+      stack TEXT,
+      current_milestone TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS projects_user_idx ON projects (user_id, status);`;
+
   await sql`
     CREATE TABLE IF NOT EXISTS tasks (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -190,11 +206,20 @@ export async function initDatabaseSchema() {
       completed_at TIMESTAMP,
       source_email_id UUID REFERENCES emails(id) ON DELETE SET NULL,
       source_event_id UUID REFERENCES events(id) ON DELETE SET NULL,
+      project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+      importance REAL DEFAULT 0.5 NOT NULL,
+      estimated_minutes REAL,
+      dependencies JSONB DEFAULT '[]'::jsonb NOT NULL,
       created_at TIMESTAMP DEFAULT NOW() NOT NULL,
       updated_at TIMESTAMP DEFAULT NOW() NOT NULL
     );
   `;
   await sql`CREATE INDEX IF NOT EXISTS tasks_user_status_due_idx ON tasks (user_id, status, due_at);`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS project_id UUID REFERENCES projects(id) ON DELETE SET NULL;`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS importance REAL DEFAULT 0.5 NOT NULL;`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS estimated_minutes REAL;`;
+  await sql`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS dependencies JSONB DEFAULT '[]'::jsonb NOT NULL;`;
+  await sql`CREATE INDEX IF NOT EXISTS tasks_project_idx ON tasks (project_id);`;
 
   // 10. Audit Logs & Notifications & Sync States
   await sql`

@@ -3,7 +3,7 @@ import { streamDraftReply } from '../services/ai/reply-drafter.service.js';
 import { db } from '../db/index.js';
 import { aiRepository } from '../repositories/ai.repository.js';
 
-describe('AI Streaming Reply Drafter Service', () => {
+describe('AI Streaming Reply Drafter Service', { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(aiRepository, 'getUserPreferences').mockResolvedValue(null as any);

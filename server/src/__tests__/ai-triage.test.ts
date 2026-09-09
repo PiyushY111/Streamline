@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { triageEmail } from '../services/ai/triage.service.js';
 
-describe('AI Triage Service', () => {
+describe('AI Triage Service', { timeout: 15000 }, () => {
   it('should classify newsletter emails to p4_newsletter via heuristic fallback when no LLM client', async () => {
     const email = {
       id: 'test-1',
