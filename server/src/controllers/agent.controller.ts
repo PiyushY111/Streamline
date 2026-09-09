@@ -4,7 +4,8 @@ import { agentOrchestratorService } from '../services/ai/agent-orchestrator.serv
 import { executeApprovedAction, rejectAction as rejectPolicyAction } from '../agent/policy.js';
 import { db } from '../db/index.js';
 import { agentSessions } from '../db/schema/index.js';
-import { memoryService } from '../services/ai/memory.service.js';
+import { memoryService, MemoryType } from '../services/ai/memory.service.js';
+import { getAiProvider } from '../services/ai/ai.factory.js';
 import { logger } from '../utils/logger.js';
 
 export async function chat(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -197,5 +198,64 @@ export async function deleteUserMemory(req: AuthenticatedRequest, res: Response)
   } catch (err: any) {
     logger.error({ err: err.message }, 'Delete user memory error');
     res.status(500).json({ error: 'Failed to delete user memory' });
+  }
+}
+
+export async function createUserMemory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const { type, content } = req.body || {};
+    if (!content || typeof content !== 'string' || content.trim().length < 3) {
+      res.status(400).json({ error: 'Memory content must be at least 3 characters' });
+      return;
+    }
+    const resolvedType = (['preference', 'decision', 'project_fact'].includes(type) ? type : 'preference') as MemoryType;
+    const memory = await memoryService.saveMemory(req.user.id, resolvedType, content.trim(), 'manual_ui_entry');
+    if (!memory) {
+      res.status(500).json({ error: 'Failed to persist memory' });
+      return;
+    }
+    res.status(201).json({ success: true, memory });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Create user memory error');
+    res.status(500).json({ error: 'Failed to create user memory' });
+  }
+}
+
+export async function searchUserMemories(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const q = (req.query.q as string) || '';
+    const type = req.query.type as any;
+    const limit = req.query.limit ? Number(req.query.limit) : 5;
+
+    const results = await memoryService.searchMemory(req.user.id, q, {
+      type,
+      topK: limit,
+    });
+
+    res.json({ results });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Search user memories error');
+    res.status(500).json({ error: 'Failed to search memories' });
+  }
+}
+
+export async function getProviderInfo(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const provider = getAiProvider();
+    res.json({
+      provider: provider.name,
+      isAvailable: provider.isAvailable(),
+      dimensions: 768,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to get provider info' });
   }
 }

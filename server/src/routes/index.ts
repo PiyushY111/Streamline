@@ -222,7 +222,10 @@ import {
   listSessions,
   getSessionMessages,
   listUserMemories,
+  createUserMemory,
+  searchUserMemories,
   deleteUserMemory,
+  getProviderInfo,
 } from '../controllers/agent.controller.js';
 import {
   agentChatSchema,
@@ -255,7 +258,10 @@ router.get(
 
 // Semantic Memory & RAG Routes (Stage 3)
 router.get('/agent/memories', authenticate, listUserMemories);
+router.post('/agent/memories', authenticate, createUserMemory);
+router.get('/agent/memories/search', authenticate, searchUserMemories);
 router.delete('/agent/memories/:id', authenticate, deleteUserMemory);
+router.get('/agent/provider', authenticate, getProviderInfo);
 
 export default router;
 
