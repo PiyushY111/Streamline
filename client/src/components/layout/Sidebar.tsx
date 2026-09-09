@@ -15,6 +15,7 @@ import {
   PanelLeftOpen,
   Sparkles,
   Bot,
+  Brain,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -32,6 +33,7 @@ const navItems: NavItem[] = [
   { name: 'Unified Agenda', href: '/calendar' },
   { name: 'Tasks & Actions', href: '/tasks' },
   { name: 'Daily Digest', href: '/digest' },
+  { name: 'Memory Vault', href: '/memory' },
   { name: 'Connected Accounts', href: '/settings' },
 ];
 
@@ -40,6 +42,7 @@ const iconsMap: Record<string, React.ElementType> = {
   '/calendar': Calendar,
   '/tasks': CheckSquare,
   '/digest': Sparkles,
+  '/memory': Brain,
   '/settings': Settings,
 };
 
@@ -144,6 +147,18 @@ export function Sidebar() {
                 />
                 {!isCollapsed && <span className="truncate">{item.name}</span>}
               </div>
+              {!isCollapsed && item.href === '/memory' && (
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors',
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
+                  )}
+                >
+                  RAG
+                </span>
+              )}
             </Link>
           );
         })}
