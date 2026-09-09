@@ -167,4 +167,20 @@ export interface UserMemoryData {
   createdAt: string;
 }
 
+export interface MemorySearchResultData {
+  id: string;
+  type: 'preference' | 'decision' | 'project_fact';
+  content: string;
+  distance: number;
+  score: number;
+  sourceRef?: string | null;
+  createdAt: string;
+}
+
+export interface AiProviderInfoData {
+  provider: string;
+  isAvailable: boolean;
+  dimensions: number;
+}
+
 

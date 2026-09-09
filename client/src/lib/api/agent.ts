@@ -4,6 +4,8 @@ import {
   AgentSessionData,
   AgentMessageData,
   UserMemoryData,
+  MemorySearchResultData,
+  AiProviderInfoData,
 } from './types';
 
 export async function sendAgentMessage(
@@ -99,4 +101,50 @@ export async function deleteUserMemory(id: string): Promise<boolean> {
     method: 'DELETE',
   });
   return res.ok;
+}
+
+export async function createUserMemory(
+  type: 'preference' | 'decision' | 'project_fact',
+  content: string
+): Promise<{ success: boolean; memory: UserMemoryData }> {
+  const res = await safeFetch('/agent/memories', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, content }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to create memory');
+  }
+  return res.json();
+}
+
+export async function searchUserMemories(
+  query: string,
+  type?: string,
+  limit?: number
+): Promise<MemorySearchResultData[]> {
+  try {
+    const params = new URLSearchParams();
+    params.set('q', query);
+    if (type && type !== 'all') params.set('type', type);
+    if (limit) params.set('limit', String(limit));
+
+    const res = await safeFetch(`/agent/memories/search?${params.toString()}`, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results || [];
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function fetchActiveAiProvider(): Promise<AiProviderInfoData | null> {
+  try {
+    const res = await safeFetch('/agent/provider', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
 }
