@@ -4,6 +4,7 @@ import { eq, and } from 'drizzle-orm';
 import { TOOL_REGISTRY } from './tools/index.js';
 import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
+import { extractMemoryFromInteraction } from '../services/ai/memory-extraction.service.js';
 
 export interface ProposedToolCall {
   id?: string;
@@ -158,6 +159,16 @@ export async function executeApprovedAction(
       await auditService.logAction(userId, `agent.tool.executed.${action.toolName}`, {
         pendingActionId,
         toolName: action.toolName,
+      });
+
+      // 9. Fire-and-forget background memory extraction (decoupled from response latency)
+      setImmediate(() => {
+        extractMemoryFromInteraction(
+          userId,
+          `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
+          JSON.stringify(result),
+          `pending_action:${pendingActionId}`
+        ).catch((err) => logger.warn({ err: err.message }, 'Background memory extraction failed, non-fatal'));
       });
 
       return result;
