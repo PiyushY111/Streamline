@@ -78,9 +78,11 @@ import { SenderContactCard } from '@/components/inbox/SenderContactCard';
 import { AttachmentsView } from '@/components/inbox/AttachmentsView';
 import { GmailSettingsModal, GmailAppSettings } from '@/components/inbox/GmailSettingsModal';
 import { AiReplyDrafterModal } from '@/components/inbox/AiReplyDrafterModal';
+import { useCopilot } from '@/providers/CopilotContext';
+import { PendingActionsBanner } from '@/components/agent/PendingActionsBanner';
 
 function InboxContent() {
-
+  const { openCopilot, pendingCount } = useCopilot();
   const searchParams = useSearchParams();
   const urlEmailId = searchParams.get('id');
 
@@ -949,6 +951,24 @@ function InboxContent() {
             </button>
           </div>
 
+          {/* AI Copilot Trigger Button */}
+          <button
+            onClick={openCopilot}
+            className="relative flex items-center space-x-1.5 px-3 py-1.5 rounded-full border border-indigo-200 dark:border-indigo-800/80 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/50 dark:to-purple-950/50 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/60 dark:hover:to-purple-900/60 text-indigo-700 dark:text-indigo-300 text-xs font-semibold transition-all shadow-2xs group"
+            title="Open Streamline AI Copilot (⌘K)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform" />
+            <span className="hidden sm:inline font-bold">Copilot</span>
+            <kbd className="hidden md:inline-block px-1.5 py-0.2 text-[9px] font-mono bg-white/70 dark:bg-slate-800/70 border border-indigo-200/80 dark:border-indigo-700/60 rounded text-indigo-600 dark:text-indigo-300">
+              ⌘K
+            </kbd>
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse shadow-sm">
+                {pendingCount}
+              </span>
+            )}
+          </button>
+
           {/* Sync Button */}
           <button
             onClick={() => loadData(true)}
@@ -1300,6 +1320,11 @@ function InboxContent() {
                     })}
                   </div>
                 )}
+
+                {/* Staged AI Actions Awaiting Approval Banner */}
+                <div className="p-3 pb-0">
+                  <PendingActionsBanner onActionResolved={() => loadData(false)} />
+                </div>
 
                 {/* Email Table Rows */}
                 <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 min-h-0">

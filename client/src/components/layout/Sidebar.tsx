@@ -14,10 +14,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Sparkles,
+  Bot,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from './ThemeToggle';
+import { useCopilot } from '@/providers/CopilotContext';
 
 interface NavItem {
   name: string;
@@ -44,6 +46,7 @@ const iconsMap: Record<string, React.ElementType> = {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { openCopilot, pendingCount } = useCopilot();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -144,6 +147,39 @@ export function Sidebar() {
             </Link>
           );
         })}
+
+        {/* Quick Copilot Trigger Button */}
+        <div className="pt-2">
+          <button
+            onClick={openCopilot}
+            title="Open AI Copilot (⌘K)"
+            className={cn(
+              'relative w-full flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border border-indigo-200/80 dark:border-indigo-800/60 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/50 dark:hover:to-purple-900/50 text-indigo-700 dark:text-indigo-300 shadow-2xs',
+              isCollapsed ? 'justify-center px-0' : 'justify-between space-x-3'
+            )}
+          >
+            <div className={cn('flex items-center', !isCollapsed && 'space-x-3')}>
+              <Bot className="h-4 w-4 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform shrink-0" />
+              {!isCollapsed && <span className="font-semibold text-xs">AI Copilot</span>}
+            </div>
+            {!isCollapsed ? (
+              <div className="flex items-center space-x-1.5">
+                {pendingCount > 0 && (
+                  <span className="min-w-[16px] h-4 px-1 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center animate-pulse">
+                    {pendingCount}
+                  </span>
+                )}
+                <kbd className="px-1.5 py-0.5 text-[9px] font-mono bg-white/60 dark:bg-slate-800/60 border border-indigo-200/80 dark:border-indigo-700/50 rounded text-indigo-600 dark:text-indigo-300">
+                  ⌘K
+                </kbd>
+              </div>
+            ) : (
+              pendingCount > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900" />
+              )
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Sidebar Footer with Theme Toggle */}

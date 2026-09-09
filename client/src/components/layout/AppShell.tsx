@@ -4,6 +4,8 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { useCopilot } from '@/providers/CopilotContext';
+import { AgentCopilotDrawer } from '@/components/agent/AgentCopilotDrawer';
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -12,6 +14,7 @@ export interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const isFullBleed = pathname === '/inbox' || pathname === '/calendar';
+  const { isOpen, closeCopilot, refreshPendingCount } = useCopilot();
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 dark:bg-[#090D16] flex text-slate-900 dark:text-slate-100 selection:bg-purple-500/20 selection:text-purple-900 dark:selection:text-purple-200 transition-colors duration-200">
@@ -34,6 +37,13 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {/* Global AI Copilot Drawer (Accessible from any page via ⌘K or buttons) */}
+      <AgentCopilotDrawer
+        isOpen={isOpen}
+        onClose={closeCopilot}
+        onActionExecuted={refreshPendingCount}
+      />
     </div>
   );
 }

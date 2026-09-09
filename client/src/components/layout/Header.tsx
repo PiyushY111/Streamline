@@ -12,38 +12,23 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
-import { fetchConnectedAccounts, AccountData, fetchPendingActions } from '@/lib/api';
+import { fetchConnectedAccounts, AccountData } from '@/lib/api';
 import { useAuth } from '@/providers/AuthContext';
-import { AgentCopilotDrawer } from '@/components/agent/AgentCopilotDrawer';
+import { useCopilot } from '@/providers/CopilotContext';
 
 export function Header() {
   const { user, logout } = useAuth();
+  const { openCopilot, pendingCount } = useCopilot();
   const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     fetchConnectedAccounts()
       .then((data) => setAccounts(data))
       .catch(() => console.warn('No backend connected accounts yet'));
-
-    fetchPendingActions()
-      .then((acts) => setPendingCount(acts.length))
-      .catch(() => {});
-
-    // Cmd+K / Ctrl+K keyboard shortcut
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setIsCopilotOpen((prev) => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleSync = async () => {
@@ -155,7 +140,7 @@ export function Header() {
       <div className="flex items-center space-x-3">
         {/* AI Copilot Trigger */}
         <button
-          onClick={() => setIsCopilotOpen(true)}
+          onClick={openCopilot}
           className="relative flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/50 dark:hover:to-purple-900/50 border border-indigo-200 dark:border-indigo-800/80 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all shadow-xs group"
           title="Open AI Copilot (⌘K)"
         >
@@ -222,17 +207,6 @@ export function Header() {
           )}
         </div>
       </div>
-
-      {/* AI Copilot Drawer */}
-      <AgentCopilotDrawer
-        isOpen={isCopilotOpen}
-        onClose={() => setIsCopilotOpen(false)}
-        onActionExecuted={() => {
-          fetchPendingActions()
-            .then((acts) => setPendingCount(acts.length))
-            .catch(() => {});
-        }}
-      />
     </header>
   );
 }

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from './ThemeProvider';
 import { AuthProvider } from './AuthContext';
+import { CopilotProvider } from './CopilotContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -21,7 +22,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <CopilotProvider>{children}</CopilotProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
