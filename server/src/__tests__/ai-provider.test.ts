@@ -1,0 +1,76 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { getAiProvider, setAiProvider } from '../services/ai/ai.factory.js';
+import { GeminiProvider } from '../services/ai/providers/gemini.provider.js';
+import { OpenAiCompatibleProvider } from '../services/ai/providers/openai-compatible.provider.js';
+import { MockAiProvider } from '../services/ai/providers/mock.provider.js';
+import type { AiProvider } from '../services/ai/types.js';
+
+describe('Provider-Agnostic AI Architecture', () => {
+  beforeEach(() => {
+    setAiProvider(null);
+  });
+
+  afterEach(() => {
+    setAiProvider(null);
+  });
+
+  it('should instantiate MockAiProvider when requested or as test fallback', async () => {
+    const provider = getAiProvider('mock');
+    expect(provider.name).toBe('mock');
+    expect(provider.isAvailable()).toBe(true);
+
+    const text = await provider.generateText({ prompt: 'Hello world' });
+    expect(text).toContain('Mock AI Response');
+
+    const embedding = await provider.generateEmbedding('Sample test text');
+    expect(embedding.length).toBe(768);
+  });
+
+  it('should instantiate GeminiProvider when provider is gemini', () => {
+    const provider = getAiProvider('gemini');
+    expect(provider).toBeInstanceOf(GeminiProvider);
+    expect(provider.name).toBe('gemini');
+  });
+
+  it('should instantiate OpenAiCompatibleProvider when provider is openai or groq', () => {
+    const openaiProvider = getAiProvider('openai');
+    expect(openaiProvider).toBeInstanceOf(OpenAiCompatibleProvider);
+    expect(openaiProvider.name).toBe('openai');
+
+    const groqProvider = getAiProvider('groq');
+    expect(groqProvider).toBeInstanceOf(OpenAiCompatibleProvider);
+    expect(groqProvider.name).toBe('groq');
+  });
+
+  it('should allow dynamic AI provider swapping via setAiProvider()', async () => {
+    const customTestProvider: AiProvider = {
+      name: 'custom-claude-mock',
+      isAvailable: () => true,
+      generateText: async (opt) => `Custom Claude response to: ${opt.prompt}`,
+      generateStructuredJson: async <T>() => ({ customKey: 'customValue' } as unknown as T),
+      streamText: async (opt, onChunk) => {
+        onChunk('chunk-1 ');
+        onChunk('chunk-2');
+        return 'chunk-1 chunk-2';
+      },
+      generateEmbedding: async () => [0.1, 0.2, 0.3],
+    };
+
+    setAiProvider(customTestProvider);
+    const active = getAiProvider();
+    expect(active.name).toBe('custom-claude-mock');
+
+    const res = await active.generateText({ prompt: 'Test prompt' });
+    expect(res).toBe('Custom Claude response to: Test prompt');
+
+    const streamedChunks: string[] = [];
+    const streamRes = await active.streamText({ prompt: 'Stream test' }, (chunk) => {
+      streamedChunks.push(chunk);
+    });
+    expect(streamRes).toBe('chunk-1 chunk-2');
+    expect(streamedChunks).toEqual(['chunk-1 ', 'chunk-2']);
+
+    const emb = await active.generateEmbedding('Text');
+    expect(emb).toEqual([0.1, 0.2, 0.3]);
+  });
+});

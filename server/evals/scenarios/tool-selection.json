@@ -1,0 +1,18 @@
+[
+  {
+    "id": "tool-selection-stub-1",
+    "description": "Stage 2 stub: asserts correct agent tool is invoked given user query",
+    "input": {
+      "userQuery": "Find all unread emails from Sarah regarding project roadmap",
+      "availableTools": ["searchEmails", "createCalendarEvent", "listTasks", "draftReply"]
+    },
+    "expected": {
+      "tool": "searchEmails",
+      "parameters": {
+        "isUnread": true,
+        "query": "Sarah project roadmap"
+      }
+    },
+    "tags": ["stub", "stage-2"]
+  }
+]

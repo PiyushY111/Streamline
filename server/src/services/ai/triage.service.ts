@@ -1,4 +1,5 @@
-import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS, generateContentWithFallback } from './gemini.client.js';
+import { getAiProvider } from './ai.factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
 import { Type } from '@google/genai';
 import { logger } from '../../utils/logger.js';
 import { ExtractedTaskItem } from '../../db/schema/index.js';
@@ -43,10 +44,10 @@ export async function triageEmail(
     }
   }
 
-  const gemini = getGeminiClient();
+  const aiProvider = getAiProvider();
 
-  // If Gemini API is not available, provide heuristic fallback
-  if (!gemini) {
+  // If AI Provider is not available, provide heuristic fallback
+  if (!aiProvider.isAvailable()) {
     return heuristicFallbackTriage(email, isVip);
   }
 
@@ -85,57 +86,49 @@ Body:
 ${(email.bodyText || '').substring(0, 4000)}
 </email>`;
 
-    const response = await generateContentWithFallback(
-      gemini,
-      [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS],
-      {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              priority: {
-                type: Type.STRING,
-                enum: ['p1_urgent', 'p2_important', 'p3_updates', 'p4_newsletter', 'p5_low'],
-              },
-              urgencyScore: { type: Type.INTEGER },
-              category: {
-                type: Type.STRING,
-                enum: ['action_required', 'direct', 'notification', 'newsletter', 'promotional'],
-              },
-              oneSentenceSummary: { type: Type.STRING },
-              newsletterTopic: { type: Type.STRING },
-              sentiment: {
-                type: Type.STRING,
-                enum: ['urgent', 'positive', 'neutral', 'tense'],
-              },
-              tasks: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    title: { type: Type.STRING },
-                    type: {
-                      type: Type.STRING,
-                      enum: ['assigned_to_me', 'commitment_i_made', 'followup_waiting_on'],
-                    },
-                    priority: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
-                    dueDate: { type: Type.STRING },
-                    assignorOrAssignee: { type: Type.STRING },
-                    confidence: { type: Type.NUMBER },
-                  },
-                  required: ['title', 'type'],
+    const parsed: any = await aiProvider.generateStructuredJson({
+      prompt,
+      models: [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS],
+      schema: {
+        type: Type.OBJECT,
+        properties: {
+          priority: {
+            type: Type.STRING,
+            enum: ['p1_urgent', 'p2_important', 'p3_updates', 'p4_newsletter', 'p5_low'],
+          },
+          urgencyScore: { type: Type.INTEGER },
+          category: {
+            type: Type.STRING,
+            enum: ['action_required', 'direct', 'notification', 'newsletter', 'promotional'],
+          },
+          oneSentenceSummary: { type: Type.STRING },
+          newsletterTopic: { type: Type.STRING },
+          sentiment: {
+            type: Type.STRING,
+            enum: ['urgent', 'positive', 'neutral', 'tense'],
+          },
+          tasks: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                type: {
+                  type: Type.STRING,
+                  enum: ['assigned_to_me', 'commitment_i_made', 'followup_waiting_on'],
                 },
+                priority: { type: Type.STRING, enum: ['high', 'medium', 'low'] },
+                dueDate: { type: Type.STRING },
+                assignorOrAssignee: { type: Type.STRING },
+                confidence: { type: Type.NUMBER },
               },
+              required: ['title', 'type'],
             },
-            required: ['priority', 'urgencyScore', 'category', 'oneSentenceSummary', 'tasks'],
           },
         },
-      }
-    );
-
-    const parsed = JSON.parse(response.text || '{}');
+        required: ['priority', 'urgencyScore', 'category', 'oneSentenceSummary', 'tasks'],
+      },
+    });
 
     let priority = parsed.priority as TriageResult['priority'];
     if (isVip && (priority === 'p2_important' || priority === 'p3_updates')) {
@@ -155,9 +148,10 @@ ${(email.bodyText || '').substring(0, 4000)}
     }));
 
     // Record token usage asynchronously
-    if (options?.userId && response.text) {
+    if (options?.userId && parsed) {
+      const parsedText = JSON.stringify(parsed);
       const promptTokens = aiCostGuardService.estimateTokens(prompt);
-      const completionTokens = aiCostGuardService.estimateTokens(response.text);
+      const completionTokens = aiCostGuardService.estimateTokens(parsedText);
       aiCostGuardService.recordUsage({
         userId: options.userId,
         model: PRIMARY_FLASH_MODEL,

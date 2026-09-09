@@ -1,0 +1,12 @@
+[
+  {
+    "id": "smoke-test-1",
+    "description": "Placeholder smoke test scenario — to be expanded in Stage 1 with real priority scoring test cases",
+    "input": {
+      "a": 1,
+      "b": 2
+    },
+    "expected": 3,
+    "tags": ["placeholder", "smoke-test"]
+  }
+]

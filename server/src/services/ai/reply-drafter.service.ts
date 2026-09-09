@@ -1,4 +1,5 @@
-import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
+import { getAiProvider } from './ai.factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
 import { db } from '../../db/index.js';
 import { emails, emailThreads, connectedAccounts } from '../../db/schema/index.js';
 import { eq, and, asc, desc, or } from 'drizzle-orm';
@@ -154,9 +155,9 @@ ${cleanBody}`;
   }
 
   const prefs = await aiRepository.getUserPreferences(userId);
-  const gemini = getGeminiClient();
+  const aiProvider = getAiProvider();
 
-  if (!gemini) {
+  if (!aiProvider.isAvailable()) {
     const fallbackText = `Hi,\n\nThank you for reaching out. I have reviewed the details and will follow up shortly.\n\nBest regards,`;
     res.write(`data: ${JSON.stringify({ text: fallbackText })}\n\n`);
     res.write('data: [DONE]\n\n');
@@ -194,49 +195,24 @@ ${conversationHistory}
   const candidateModels = [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS, 'gemini-3.7-flash', 'gemini-3.5-flash'];
   let streamSucceeded = false;
   let fullGeneratedDraft = '';
-  let usedModel = PRIMARY_FLASH_MODEL;
 
-  for (const model of candidateModels) {
-    try {
-      usedModel = model;
-      const stream = await gemini.models.generateContentStream({
-        model,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
-
-      for await (const chunk of stream) {
-        if (chunk.text) {
-          fullGeneratedDraft += chunk.text;
-          res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
-        }
+  try {
+    fullGeneratedDraft = await aiProvider.streamText(
+      {
+        prompt,
+        models: candidateModels,
+      },
+      (chunk) => {
+        res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
       }
-      res.write('data: [DONE]\n\n');
-      res.end();
-      streamSucceeded = true;
-      break;
-    } catch (err: any) {
-      logger.warn({ model, err: err.message }, 'Streaming candidate attempt failed, trying next candidate');
-    }
-  }
-
-  if (!streamSucceeded) {
-    try {
-      const response = await gemini.models.generateContent({
-        model: PRIMARY_FLASH_MODEL,
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      });
-      if (response.text) {
-        fullGeneratedDraft = response.text;
-        res.write(`data: ${JSON.stringify({ text: response.text })}\n\n`);
-      }
-      res.write('data: [DONE]\n\n');
-      res.end();
-      streamSucceeded = true;
-    } catch (err: any) {
-      logger.error({ err: err.message, targetId }, 'Error generating reply draft from Gemini');
-      res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
-      res.end();
-    }
+    );
+    res.write('data: [DONE]\n\n');
+    res.end();
+    streamSucceeded = true;
+  } catch (err: any) {
+    logger.error({ err: err.message, targetId }, 'Error streaming reply draft');
+    res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
+    res.end();
   }
 
   // 5. Asynchronously Record Token Usage
@@ -245,7 +221,7 @@ ${conversationHistory}
     const completionTokens = aiCostGuardService.estimateTokens(fullGeneratedDraft);
     aiCostGuardService.recordUsage({
       userId,
-      model: usedModel,
+      model: aiProvider.name === 'gemini' ? PRIMARY_FLASH_MODEL : aiProvider.name,
       operation: 'reply_draft',
       promptTokens,
       completionTokens,

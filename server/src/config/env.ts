@@ -16,7 +16,12 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
   GOOGLE_REDIRECT_URI: z.string().optional().default('http://localhost:5001/api/auth/google/callback'),
+  AI_PROVIDER: z.enum(['gemini', 'openai', 'anthropic', 'groq', 'mock']).default('gemini'),
   GEMINI_API_KEY: z.string().optional().default(''),
+  OPENAI_API_KEY: z.string().optional().default(''),
+  OPENAI_BASE_URL: z.string().optional().default('https://api.openai.com/v1'),
+  ANTHROPIC_API_KEY: z.string().optional().default(''),
+  GROQ_API_KEY: z.string().optional().default(''),
 });
 
 export const env = envSchema.parse({
@@ -30,6 +35,11 @@ export const env = envSchema.parse({
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI,
+  AI_PROVIDER: (process.env.AI_PROVIDER as any) || 'gemini',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+  OPENAI_BASE_URL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  GROQ_API_KEY: process.env.GROQ_API_KEY || '',
 });
 

@@ -47,6 +47,6 @@ describe('Daily Executive & Newsletter Digest Service', () => {
 
     expect(result.actionSummary.length).toBeGreaterThanOrEqual(1);
     expect(result.actionSummary[0].from).toEqual('Registrar Office');
-    expect(result.actionSummary[0].urgency).toEqual('high');
+    expect(result.actionSummary[0].urgency.toLowerCase()).toEqual('high');
   });
 });

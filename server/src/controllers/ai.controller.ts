@@ -4,7 +4,8 @@ import { tasksRepository } from '../repositories/tasks.repository.js';
 import { generateDailyDigestForUser } from '../services/ai/newsletter-digest.service.js';
 import { streamDraftReply } from '../services/ai/reply-drafter.service.js';
 import { triageEmail } from '../services/ai/triage.service.js';
-import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from '../services/ai/gemini.client.js';
+import { getAiProvider } from '../services/ai/ai.factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from '../services/ai/gemini.client.js';
 import { emails, emailThreads, connectedAccounts } from '../db/schema/index.js';
 import { db } from '../db/index.js';
 import { eq, and, asc, desc, inArray } from 'drizzle-orm';
@@ -194,8 +195,8 @@ export async function summarizeThread(req: Request, res: Response): Promise<void
       return;
     }
 
-    const gemini = getGeminiClient();
-    if (!gemini) {
+    const aiProvider = getAiProvider();
+    if (!aiProvider.isAvailable()) {
       res.status(200).json({
         success: true,
         data: {
@@ -217,35 +218,23 @@ Return structured summary with key takeaways and action items.
 Email Thread:
 ${conversationText}`;
 
-    const candidateModels = [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS, 'gemini-3.7-flash', 'gemini-3.5-flash'];
     let summaryResult = null;
-
-    for (const model of candidateModels) {
-      try {
-        const response = await gemini.models.generateContent({
-          model,
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                summary: { type: Type.STRING },
-                keyTakeaways: { type: Type.ARRAY, items: { type: Type.STRING } },
-                actionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
-              },
-              required: ['summary', 'keyTakeaways', 'actionItems'],
-            },
+    try {
+      summaryResult = await aiProvider.generateStructuredJson({
+        prompt,
+        models: [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS, 'gemini-3.7-flash', 'gemini-3.5-flash'],
+        schema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            keyTakeaways: { type: Type.ARRAY, items: { type: Type.STRING } },
+            actionItems: { type: Type.ARRAY, items: { type: Type.STRING } },
           },
-        });
-
-        if (response.text) {
-          summaryResult = JSON.parse(response.text);
-          break;
-        }
-      } catch (err: any) {
-        logger.warn({ model, err: err.message }, 'Summarize model attempt failed, trying next candidate');
-      }
+          required: ['summary', 'keyTakeaways', 'actionItems'],
+        },
+      });
+    } catch (err: any) {
+      logger.warn({ err: err.message }, 'AI thread summarize attempt failed, using fallback');
     }
 
     if (!summaryResult) {

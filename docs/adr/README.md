@@ -13,3 +13,6 @@ Architecture Decision Records (ADRs) document significant architectural decision
 | [ADR-0003](./0003-multi-model-cascade-fallback.md) | Multi-Model Cascade Fallback vs Single-Model Exponential Retry | **Accepted** | 2026-08-25 |
 | [ADR-0004](./0004-neon-postgres-drizzle-orm.md) | Neon Serverless PostgreSQL with Drizzle ORM | **Accepted** | 2026-08-20 |
 | [ADR-0005](./0005-sse-over-websockets-for-ai-streaming.md) | Server-Sent Events (SSE) over WebSockets for AI Draft Streaming | **Accepted** | 2026-08-28 |
+| [ADR-0006](./0006-pgvector-over-dedicated-vector-db.md) | pgvector on Neon over a Dedicated Vector Database | **Accepted** | 2026-09-09 |
+| [ADR-0007](./0007-scenario-based-eval-harness.md) | Scenario-Based Eval Harness over Ad-Hoc Manual Testing | **Accepted** | 2026-09-09 |
+| [ADR-0008](./0008-vercel-railway-deployment-topology.md) | Vercel + Railway Deployment Topology | **Accepted** | 2026-09-09 |

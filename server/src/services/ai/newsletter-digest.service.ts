@@ -1,4 +1,5 @@
-import { getGeminiClient, PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS, generateContentWithFallback } from './gemini.client.js';
+import { getAiProvider } from './ai.factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
 import { Type } from '@google/genai';
 import { aiRepository } from '../../repositories/ai.repository.js';
 import { aiCostGuardService } from './cost-guard.service.js';
@@ -20,9 +21,9 @@ export async function generateDailyDigestForUser(userId: string): Promise<any> {
     return generateFallbackDigest(userId, newsletters, urgentEmails);
   }
 
-  const gemini = getGeminiClient();
+  const aiProvider = getAiProvider();
 
-  if (!gemini || (newsletters.length === 0 && urgentEmails.length === 0)) {
+  if (!aiProvider.isAvailable() || (newsletters.length === 0 && urgentEmails.length === 0)) {
     // Generate fallback structured digest
     return generateFallbackDigest(userId, newsletters, urgentEmails);
   }
@@ -63,58 +64,51 @@ Requirements:
    - For each topic, provide a punchy headline, 3-4 bullet-point takeaways, and the list of matching source emailIds.
 4. "actionSummary": List of 1-3 most critical tasks extracted from urgent emails with who requested it and urgency level.`;
 
-    const response = await generateContentWithFallback(
-      gemini,
-      [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS],
-      {
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              executiveGreeting: { type: Type.STRING },
-              scheduleSummary: { type: Type.STRING },
-              newsletterTopics: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    topic: { type: Type.STRING },
-                    headline: { type: Type.STRING },
-                    bulletPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    sourceEmailIds: { type: Type.ARRAY, items: { type: Type.STRING } },
-                    sentiment: { type: Type.STRING, enum: ['positive', 'neutral', 'negative'] },
-                  },
-                  required: ['topic', 'headline', 'bulletPoints', 'sourceEmailIds'],
-                },
+    const parsed: any = await aiProvider.generateStructuredJson({
+      prompt,
+      models: [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS],
+      schema: {
+        type: Type.OBJECT,
+        properties: {
+          executiveGreeting: { type: Type.STRING },
+          scheduleSummary: { type: Type.STRING },
+          newsletterTopics: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                topic: { type: Type.STRING },
+                headline: { type: Type.STRING },
+                bulletPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+                sourceEmailIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+                sentiment: { type: Type.STRING, enum: ['positive', 'neutral', 'negative'] },
               },
-              actionSummary: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    task: { type: Type.STRING },
-                    from: { type: Type.STRING },
-                    emailId: { type: Type.STRING },
-                    urgency: { type: Type.STRING },
-                  },
-                  required: ['task', 'from', 'emailId', 'urgency'],
-                },
-              },
+              required: ['topic', 'headline', 'bulletPoints', 'sourceEmailIds'],
             },
-            required: ['executiveGreeting', 'newsletterTopics', 'actionSummary'],
+          },
+          actionSummary: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                task: { type: Type.STRING },
+                from: { type: Type.STRING },
+                emailId: { type: Type.STRING },
+                urgency: { type: Type.STRING },
+              },
+              required: ['task', 'from', 'emailId', 'urgency'],
+            },
           },
         },
-      }
-    );
-
-    const parsed = JSON.parse(response.text || '{}');
+        required: ['executiveGreeting', 'newsletterTopics', 'actionSummary'],
+      },
+    });
 
     // Record token usage asynchronously
-    if (response.text) {
+    if (parsed) {
+      const parsedText = JSON.stringify(parsed);
       const promptTokens = aiCostGuardService.estimateTokens(prompt);
-      const completionTokens = aiCostGuardService.estimateTokens(response.text);
+      const completionTokens = aiCostGuardService.estimateTokens(parsedText);
       aiCostGuardService.recordUsage({
         userId,
         model: PRIMARY_FLASH_MODEL,
@@ -129,7 +123,10 @@ Requirements:
       executiveGreeting: parsed.executiveGreeting || 'Good morning! Here is your daily productivity briefing.',
       scheduleSummary: parsed.scheduleSummary,
       newsletterTopics: parsed.newsletterTopics || [],
-      actionSummary: parsed.actionSummary || [],
+      actionSummary: (parsed.actionSummary || []).map((a: any) => ({
+        ...a,
+        urgency: (a.urgency || 'high').toLowerCase(),
+      })),
     });
 
     logger.info({ userId, digestId: saved.id }, 'Daily Digest generated and saved successfully');

@@ -41,3 +41,7 @@ pnpm-debug.log*
 # Agents & Skills
 .agents/
 
+# AI Eval results
+server/evals/results/*.json
+!server/evals/results/.gitkeep
+
