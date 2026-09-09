@@ -126,3 +126,37 @@ export interface NextTaskResponse {
   blockedTasks: RankedTaskData[];
 }
 
+// Stage 2 Agent & Pending Actions Types
+export interface PendingActionData {
+  id: string;
+  userId: string;
+  sessionId?: string | null;
+  toolName: string;
+  toolArgs: Record<string, any>;
+  status: 'pending' | 'approved' | 'rejected' | 'executed' | 'failed' | 'expired';
+  reasoning?: string | null;
+  impactPreview?: Record<string, any> | null;
+  expiresAt: string;
+  createdAt: string;
+  resolvedAt?: string | null;
+}
+
+export interface AgentSessionData {
+  id: string;
+  title?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AgentMessageData {
+  id: string;
+  sessionId: string;
+  role: 'user' | 'model' | 'tool';
+  content?: string | null;
+  toolCalls?: Array<{ id?: string; name: string; args: Record<string, any> }>;
+  toolName?: string;
+  toolResult?: any;
+  createdAt: string;
+}
+
+

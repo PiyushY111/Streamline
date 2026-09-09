@@ -1,0 +1,242 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  Calendar,
+  Mail,
+  CheckSquare,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  ShieldAlert,
+  ArrowRight,
+  ExternalLink,
+} from 'lucide-react';
+import {
+  PendingActionData,
+  approvePendingAction,
+  rejectPendingAction,
+} from '@/lib/api';
+
+interface PendingActionCardProps {
+  action: PendingActionData;
+  onResolved?: () => void;
+}
+
+export function PendingActionCard({ action, onResolved }: PendingActionCardProps) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resolvedStatus, setResolvedStatus] = useState<string | null>(null);
+
+  const handleApprove = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await approvePendingAction(action.id);
+      setResolvedStatus('executed');
+      onResolved?.();
+    } catch (err: any) {
+      setError(err.message || 'Failed to execute action');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      await rejectPendingAction(action.id);
+      setResolvedStatus('rejected');
+      onResolved?.();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reject action');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getToolMeta = () => {
+    switch (action.toolName) {
+      case 'create_calendar_event':
+        return {
+          label: 'Calendar Event',
+          icon: Calendar,
+          color: 'text-blue-600 dark:text-blue-400',
+          bg: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/80',
+          badge: 'Write Action',
+        };
+      case 'send_email':
+        return {
+          label: 'External Email',
+          icon: Mail,
+          color: 'text-rose-600 dark:text-rose-400',
+          bg: 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800/80',
+          badge: 'Send Action • High Consequence',
+        };
+      case 'create_task':
+        return {
+          label: 'Create Task',
+          icon: CheckSquare,
+          color: 'text-amber-600 dark:text-amber-400',
+          bg: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800/80',
+          badge: 'Write Action',
+        };
+      default:
+        return {
+          label: action.toolName,
+          icon: AlertTriangle,
+          color: 'text-indigo-600 dark:text-indigo-400',
+          bg: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800/80',
+          badge: 'Action Proposal',
+        };
+    }
+  };
+
+  const meta = getToolMeta();
+  const Icon = meta.icon;
+  const preview = action.impactPreview || (action.toolArgs as Record<string, any>);
+
+  const expiresTime = new Date(action.expiresAt);
+  const hoursRemaining = Math.max(0, Math.round((expiresTime.getTime() - Date.now()) / 3600000));
+
+  if (resolvedStatus === 'executed') {
+    return (
+      <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center space-x-3 text-xs text-emerald-800 dark:text-emerald-300">
+        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <span>Action approved &amp; executed successfully.</span>
+      </div>
+    );
+  }
+
+  if (resolvedStatus === 'rejected') {
+    return (
+      <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-3 text-xs text-slate-500">
+        <XCircle className="w-4 h-4 text-slate-400 shrink-0" />
+        <span>Action rejected. No changes were made.</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`p-4 rounded-2xl border ${meta.bg} space-y-3 transition-all shadow-xs`}>
+      {/* Header bar */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center space-x-2">
+          <div className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <Icon className={`w-4 h-4 ${meta.color}`} />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">
+              {meta.label} Proposal
+            </h4>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              {meta.badge}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-1 text-[10px] text-slate-500 font-medium">
+          <Clock className="w-3 h-3" />
+          <span>Expires in {hoursRemaining}h</span>
+        </div>
+      </div>
+
+      {/* AI Reasoning */}
+      {action.reasoning && (
+        <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300">
+          <span className="font-semibold text-slate-900 dark:text-white block mb-0.5">
+            Agent Stated Reasoning:
+          </span>
+          <p className="leading-relaxed text-[11px]">{action.reasoning}</p>
+        </div>
+      )}
+
+      {/* Impact Preview details */}
+      <div className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 text-xs space-y-1.5">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+          What will change upon approval:
+        </span>
+
+        {action.toolName === 'create_calendar_event' && (
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">Event Title:</span>{' '}
+              <strong className="text-slate-900 dark:text-white">{preview.title || preview.name}</strong>
+            </div>
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">Duration:</span>{' '}
+              <span className="font-semibold text-slate-900 dark:text-white">{preview.durationMinutes} mins</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-slate-500 dark:text-slate-400">Time:</span>{' '}
+              <span className="font-mono text-[10px] text-slate-800 dark:text-slate-200">
+                {new Date(preview.startTime).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} -{' '}
+                {new Date(preview.endTime).toLocaleTimeString([], { timeStyle: 'short' })}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {action.toolName === 'send_email' && (
+          <div className="space-y-1 text-[11px]">
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">To:</span>{' '}
+              <strong className="text-slate-900 dark:text-white font-mono">{preview.to}</strong>
+            </div>
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">Subject:</span>{' '}
+              <strong className="text-slate-900 dark:text-white">{preview.subject}</strong>
+            </div>
+            {preview.bodySnippet && (
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-200/60 dark:border-slate-800/60 mt-1">
+                &quot;{preview.bodySnippet}&quot;
+              </div>
+            )}
+          </div>
+        )}
+
+        {action.toolName === 'create_task' && (
+          <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">Task Title:</span>{' '}
+              <strong className="text-slate-900 dark:text-white">{preview.title}</strong>
+            </div>
+            <div>
+              <span className="text-slate-500 dark:text-slate-400">Priority:</span>{' '}
+              <span className="font-semibold uppercase text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                {preview.priority}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300">
+          {error}
+        </div>
+      )}
+
+      {/* Decision Buttons */}
+      <div className="flex items-center justify-end space-x-2 pt-1">
+        <button
+          disabled={loading}
+          onClick={handleReject}
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-all"
+        >
+          Reject
+        </button>
+        <button
+          disabled={loading}
+          onClick={handleApprove}
+          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all hover:scale-[1.02] active:scale-98 flex items-center space-x-1.5"
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>{loading ? 'Executing...' : 'Approve & Execute'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}

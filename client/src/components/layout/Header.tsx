@@ -7,11 +7,14 @@ import {
   CheckCircle2,
   LogOut,
   User as UserIcon,
+  Sparkles,
+  Bot,
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
-import { fetchConnectedAccounts, AccountData } from '@/lib/api';
+import { fetchConnectedAccounts, AccountData, fetchPendingActions } from '@/lib/api';
 import { useAuth } from '@/providers/AuthContext';
+import { AgentCopilotDrawer } from '@/components/agent/AgentCopilotDrawer';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -20,11 +23,27 @@ export function Header() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     fetchConnectedAccounts()
       .then((data) => setAccounts(data))
       .catch(() => console.warn('No backend connected accounts yet'));
+
+    fetchPendingActions()
+      .then((acts) => setPendingCount(acts.length))
+      .catch(() => {});
+
+    // Cmd+K / Ctrl+K keyboard shortcut
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCopilotOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const handleSync = async () => {
@@ -134,6 +153,24 @@ export function Header() {
 
       {/* Actions & User Menu */}
       <div className="flex items-center space-x-3">
+        {/* AI Copilot Trigger */}
+        <button
+          onClick={() => setIsCopilotOpen(true)}
+          className="relative flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/50 dark:hover:to-purple-900/50 border border-indigo-200 dark:border-indigo-800/80 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all shadow-xs group"
+          title="Open AI Copilot (⌘K)"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 group-hover:rotate-12 transition-transform" />
+          <span className="hidden sm:inline">Copilot</span>
+          <kbd className="hidden md:inline-block px-1.5 py-0.5 text-[9px] font-mono bg-white/60 dark:bg-slate-800/60 border border-indigo-200/80 dark:border-indigo-700/50 rounded-md text-indigo-600 dark:text-indigo-300">
+            ⌘K
+          </kbd>
+          {pendingCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center animate-pulse shadow-sm">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+
         {/* Manual Sync Trigger */}
         <button
           onClick={handleSync}
@@ -185,6 +222,17 @@ export function Header() {
           )}
         </div>
       </div>
+
+      {/* AI Copilot Drawer */}
+      <AgentCopilotDrawer
+        isOpen={isCopilotOpen}
+        onClose={() => setIsCopilotOpen(false)}
+        onActionExecuted={() => {
+          fetchPendingActions()
+            .then((acts) => setPendingCount(acts.length))
+            .catch(() => {});
+        }}
+      />
     </header>
   );
 }

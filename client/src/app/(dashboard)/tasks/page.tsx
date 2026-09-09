@@ -26,6 +26,7 @@ import {
 import { NextTaskCard } from '@/components/tasks/NextTaskCard';
 import { ProjectsManager } from '@/components/tasks/ProjectsManager';
 import { AiTaskRadar } from '@/components/tasks/AiTaskRadar';
+import { PendingActionsBanner } from '@/components/agent/PendingActionsBanner';
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskData[]>([]);
@@ -145,6 +146,12 @@ export default function TasksPage() {
           <span>New Task</span>
         </button>
       </div>
+
+      {/* Pending Actions Banner (Human-in-the-Loop Safeguard) */}
+      <PendingActionsBanner
+        key={`pending-${refreshKey}`}
+        onActionResolved={() => setRefreshKey((k) => k + 1)}
+      />
 
       {/* Deterministic Next Best Action Planner Card */}
       <NextTaskCard

@@ -6,4 +6,6 @@ export * from './events';
 export * from './tasks';
 export * from './projects';
 export * from './planner';
+export * from './agent';
+
 
