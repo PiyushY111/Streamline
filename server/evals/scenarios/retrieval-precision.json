@@ -1,14 +1,305 @@
 [
   {
-    "id": "retrieval-precision-stub-1",
-    "description": "Stage 3 stub: evaluates top-k semantic retrieval precision on vector memory embeddings",
+    "id": "preference-deep-work",
+    "description": "Direct match for morning focus blocks and deep work preference",
     "input": {
-      "query": "What did we agree on regarding the database backup policy?",
-      "topK": 3
+      "query": "when is the best time for my focus blocks"
     },
     "expected": {
-      "expectedMemoryKeywords": ["daily automated backup", "point-in-time recovery", "retention 30 days"]
+      "expectedSubstring": "morning between 8am and 12pm",
+      "maxRank": 3
     },
-    "tags": ["stub", "stage-3"]
+    "tags": ["preference", "direct"]
+  },
+  {
+    "id": "preference-estimation",
+    "description": "Estimating software development tasks accurately",
+    "input": {
+      "query": "how accurate am I when estimating engineering tasks"
+    },
+    "expected": {
+      "expectedSubstring": "overestimate how long coding tasks",
+      "maxRank": 3
+    },
+    "tags": ["preference", "semantic"]
+  },
+  {
+    "id": "preference-buffers",
+    "description": "Buffer intervals required between back-to-back calendar events",
+    "input": {
+      "query": "how much buffer time should I leave between meetings"
+    },
+    "expected": {
+      "expectedSubstring": "15-minute buffer breaks",
+      "maxRank": 3
+    },
+    "tags": ["preference", "calendar"]
+  },
+  {
+    "id": "preference-email-style",
+    "description": "Preferred writing style and length for email replies",
+    "input": {
+      "query": "what is my preferred tone for replying to emails"
+    },
+    "expected": {
+      "expectedSubstring": "under three paragraphs",
+      "maxRank": 3
+    },
+    "tags": ["preference", "email"]
+  },
+  {
+    "id": "preference-external-calls",
+    "description": "Designated days for external recruiter or vendor calls",
+    "input": {
+      "query": "what days do I take external vendor calls"
+    },
+    "expected": {
+      "expectedSubstring": "Thursday afternoons",
+      "maxRank": 3
+    },
+    "tags": ["preference", "calendar"]
+  },
+  {
+    "id": "preference-fridays",
+    "description": "Weekly focus routine for Fridays",
+    "input": {
+      "query": "what do I like to focus on at the end of the week"
+    },
+    "expected": {
+      "expectedSubstring": "code reviews, refactoring",
+      "maxRank": 3
+    },
+    "tags": ["preference", "routine"]
+  },
+  {
+    "id": "preference-no-agenda",
+    "description": "Policy on accepting meeting invitations with missing agenda",
+    "input": {
+      "query": "should I accept this meeting with no description or agenda"
+    },
+    "expected": {
+      "expectedSubstring": "decline meeting invitations that lack",
+      "maxRank": 3
+    },
+    "tags": ["preference", "rules"]
+  },
+  {
+    "id": "decision-database-choice",
+    "description": "Architectural choice of relational PostgreSQL over document store",
+    "input": {
+      "query": "why did we choose a relational database over document store"
+    },
+    "expected": {
+      "expectedSubstring": "PostgreSQL over MongoDB",
+      "maxRank": 3
+    },
+    "tags": ["decision", "architecture"]
+  },
+  {
+    "id": "decision-github-sync",
+    "description": "Status of GitHub issues and pull request integration",
+    "input": {
+      "query": "are we implementing GitHub integration right now"
+    },
+    "expected": {
+      "expectedSubstring": "defer GitHub issues",
+      "maxRank": 3
+    },
+    "tags": ["decision", "scope"]
+  },
+  {
+    "id": "decision-streaming-protocol",
+    "description": "Decision rationale for SSE vs WebSockets",
+    "input": {
+      "query": "why did we pick SSE instead of WebSockets"
+    },
+    "expected": {
+      "expectedSubstring": "Server-Sent Events (SSE) over WebSockets",
+      "maxRank": 3
+    },
+    "tags": ["decision", "streaming"]
+  },
+  {
+    "id": "decision-background-jobs",
+    "description": "Worker queue infrastructure selection",
+    "input": {
+      "query": "how do we handle asynchronous jobs and periodic workers"
+    },
+    "expected": {
+      "expectedSubstring": "BullMQ with Redis",
+      "maxRank": 3
+    },
+    "tags": ["decision", "infrastructure"]
+  },
+  {
+    "id": "decision-memory-policy",
+    "description": "Security policy classification for saving memory notes",
+    "input": {
+      "query": "why does save_memory not require human confirmation"
+    },
+    "expected": {
+      "expectedSubstring": "zero external blast radius",
+      "maxRank": 3
+    },
+    "tags": ["decision", "security"]
+  },
+  {
+    "id": "decision-token-encryption",
+    "description": "Cryptographic standard used for connected account OAuth tokens",
+    "input": {
+      "query": "how are Google OAuth credentials encrypted at rest"
+    },
+    "expected": {
+      "expectedSubstring": "AES-256-GCM",
+      "maxRank": 3
+    },
+    "tags": ["decision", "security"]
+  },
+  {
+    "id": "decision-vector-index",
+    "description": "pgvector index type selected for cosine similarity search",
+    "input": {
+      "query": "what index type is used for similarity search"
+    },
+    "expected": {
+      "expectedSubstring": "HNSW indexing over IVFFlat",
+      "maxRank": 3
+    },
+    "tags": ["decision", "pgvector"]
+  },
+  {
+    "id": "decision-action-ttl",
+    "description": "Expiration timeout for pending human approvals",
+    "input": {
+      "query": "when do pending approval requests expire"
+    },
+    "expected": {
+      "expectedSubstring": "24-hour expiration TTL",
+      "maxRank": 3
+    },
+    "tags": ["decision", "policy"]
+  },
+  {
+    "id": "fact-draftly-collab",
+    "description": "Multiplayer real-time collaboration libraries in Draftly",
+    "input": {
+      "query": "what real-time tech does Draftly use"
+    },
+    "expected": {
+      "expectedSubstring": "Liveblocks and Y.js",
+      "maxRank": 3
+    },
+    "tags": ["fact", "crdt"]
+  },
+  {
+    "id": "fact-db-backups",
+    "description": "Point-in-time recovery and automated backup schedule",
+    "input": {
+      "query": "what is our automated database recovery window"
+    },
+    "expected": {
+      "expectedSubstring": "daily at 02:00 UTC with 30-day",
+      "maxRank": 3
+    },
+    "tags": ["fact", "database"]
+  },
+  {
+    "id": "fact-priority-decay",
+    "description": "Formula and half-life for priority score decay",
+    "input": {
+      "query": "how is task urgency calculated over time"
+    },
+    "expected": {
+      "expectedSubstring": "exponential urgency decay",
+      "maxRank": 3
+    },
+    "tags": ["fact", "planner"]
+  },
+  {
+    "id": "fact-calendar-buffer",
+    "description": "Transit time reservation before scheduled calendar events",
+    "input": {
+      "query": "how much transit time is reserved before calendar meetings"
+    },
+    "expected": {
+      "expectedSubstring": "10-minute transit buffer",
+      "maxRank": 3
+    },
+    "tags": ["fact", "calendar"]
+  },
+  {
+    "id": "fact-ai-budget",
+    "description": "Daily monetary threshold for AI cost guard circuit breaker",
+    "input": {
+      "query": "at what limit does the AI circuit breaker trip"
+    },
+    "expected": {
+      "expectedSubstring": "budget exceeds $1.00 USD",
+      "maxRank": 3
+    },
+    "tags": ["fact", "cost-guard"]
+  },
+  {
+    "id": "fact-vector-dims",
+    "description": "Standardized vector embedding length",
+    "input": {
+      "query": "what is the dimension size of our memory embeddings"
+    },
+    "expected": {
+      "expectedSubstring": "768 dimensions",
+      "maxRank": 3
+    },
+    "tags": ["fact", "embedding"]
+  },
+  {
+    "id": "fact-cycle-detection",
+    "description": "Graph cycle algorithm used in task DAGs",
+    "input": {
+      "query": "what algorithm prevents dependency loops in tasks"
+    },
+    "expected": {
+      "expectedSubstring": "topological sorting algorithm",
+      "maxRank": 3
+    },
+    "tags": ["fact", "dag"]
+  },
+  {
+    "id": "distractor-db-choice-vs-backup",
+    "description": "Disambiguate database choice from backup policy using type filter",
+    "input": {
+      "query": "database choice and pgvector rationale",
+      "type": "decision"
+    },
+    "expected": {
+      "expectedSubstring": "PostgreSQL over MongoDB",
+      "maxRank": 3
+    },
+    "tags": ["decision", "distractor"]
+  },
+  {
+    "id": "distractor-jobs-vs-session",
+    "description": "Disambiguate background workers from session store using project_fact filter",
+    "input": {
+      "query": "what library powers async queue workers",
+      "type": "project_fact"
+    },
+    "expected": {
+      "expectedSubstring": "BullMQ with Redis",
+      "maxRank": 3
+    },
+    "tags": ["fact", "distractor"]
+  },
+  {
+    "id": "type-filtered-preference",
+    "description": "Type-filtered query for scheduling habits",
+    "input": {
+      "query": "rules for scheduling my day",
+      "type": "preference"
+    },
+    "expected": {
+      "expectedSubstring": "deep work in the morning",
+      "maxRank": 3
+    },
+    "tags": ["preference", "filter"]
   }
 ]

@@ -320,10 +320,10 @@
     },
     "expected": {
       "tool": "save_memory",
-      "permissionClass": "write",
-      "policyOutcome": "pending"
+      "permissionClass": "read",
+      "policyOutcome": "executed"
     },
-    "tags": ["write", "memory", "human-in-the-loop"]
+    "tags": ["read", "memory"]
   },
   {
     "id": "injection-adversarial-shell",

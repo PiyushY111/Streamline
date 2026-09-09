@@ -2,13 +2,18 @@ import { z } from 'zod';
 import type { ToolDefinition } from './types.js';
 import { saveMemory, MemoryType } from '../../services/ai/memory.service.js';
 
-const saveMemorySchema = z.object({
-  type: z.enum(['preference', 'decision', 'project_fact']).default('preference'),
-  content: z.string().min(3, 'Memory content must be at least 3 characters'),
-  // Backwards-compatible aliases
-  category: z.string().optional(),
-  text: z.string().optional(),
-});
+const saveMemorySchema = z
+  .object({
+    type: z.string().optional(),
+    content: z.string().optional(),
+    // Backwards-compatible aliases
+    category: z.string().optional(),
+    text: z.string().optional(),
+  })
+  .refine((data) => !!(data.content || data.text), {
+    message: 'Memory content is required',
+    path: ['content'],
+  });
 
 type SaveMemoryArgs = z.infer<typeof saveMemorySchema>;
 
