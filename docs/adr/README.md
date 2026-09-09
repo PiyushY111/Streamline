@@ -19,4 +19,5 @@ Architecture Decision Records (ADRs) document significant architectural decision
 | [ADR-0009](./0009-exponential-urgency-decay-and-dag-prioritization.md) | Exponential Urgency Decay and DAG Prioritization | **Accepted** | 2026-09-09 |
 | [ADR-0010](./0010-dual-boundary-policy-engine-and-human-in-the-loop.md) | Dual-Boundary Policy Engine and Human-in-the-Loop Safeguards | **Accepted** | 2026-09-09 |
 | [ADR-0011](./0011-three-durable-memory-types-and-read-classified-storage.md) | Three Durable Memory Types, pgvector HNSW Hybrid Retrieval, and Read-Classified Storage | **Accepted** | 2026-09-09 |
+| [ADR-0012](./0012-policy-layer-prompt-injection-defense.md) | Policy-Layer Structural Enforcement Over Prompt-Based Refusal for Prompt-Injection Defense | **Accepted** | 2026-09-10 |
 
