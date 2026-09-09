@@ -243,6 +243,53 @@ export async function initDatabaseSchema() {
     );
   `;
 
+  // 11. Agent Sessions, Messages & Pending Actions (Stage 2)
+  await sql`
+    CREATE TABLE IF NOT EXISTS agent_sessions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS agent_sessions_user_idx ON agent_sessions (user_id, updated_at);`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS agent_messages (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      session_id UUID NOT NULL REFERENCES agent_sessions(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT,
+      tool_calls JSONB,
+      tool_name TEXT,
+      tool_result JSONB,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL
+    );
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS agent_messages_session_idx ON agent_messages (session_id, created_at);`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS pending_actions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      session_id UUID REFERENCES agent_sessions(id) ON DELETE SET NULL,
+      tool_name TEXT NOT NULL,
+      tool_args JSONB NOT NULL,
+      status TEXT DEFAULT 'pending' NOT NULL,
+      reasoning TEXT,
+      impact_preview JSONB,
+      idempotency_key TEXT UNIQUE,
+      expires_at TIMESTAMP NOT NULL DEFAULT (NOW() + INTERVAL '24 hours'),
+      result_json JSONB,
+      error_json JSONB,
+      created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+      resolved_at TIMESTAMP
+    );
+  `;
+  await sql`CREATE INDEX IF NOT EXISTS pending_actions_user_status_idx ON pending_actions (user_id, status);`;
+
+
   await sql`
     CREATE TABLE IF NOT EXISTS sync_states (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
