@@ -3,6 +3,7 @@ import {
   PendingActionData,
   AgentSessionData,
   AgentMessageData,
+  UserMemoryData,
 } from './types';
 
 export async function sendAgentMessage(
@@ -79,4 +80,23 @@ export async function fetchSessionMessages(sessionId: string): Promise<AgentMess
   } catch (err) {
     return [];
   }
+}
+
+export async function fetchUserMemories(type?: string): Promise<UserMemoryData[]> {
+  try {
+    const url = type ? `/agent/memories?type=${encodeURIComponent(type)}` : '/agent/memories';
+    const res = await safeFetch(url, { cache: 'no-store' });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.memories || [];
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function deleteUserMemory(id: string): Promise<boolean> {
+  const res = await safeFetch(`/agent/memories/${id}`, {
+    method: 'DELETE',
+  });
+  return res.ok;
 }

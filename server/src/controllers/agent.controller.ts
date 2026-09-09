@@ -4,6 +4,7 @@ import { agentOrchestratorService } from '../services/ai/agent-orchestrator.serv
 import { executeApprovedAction, rejectAction as rejectPolicyAction } from '../agent/policy.js';
 import { db } from '../db/index.js';
 import { agentSessions } from '../db/schema/index.js';
+import { memoryService } from '../services/ai/memory.service.js';
 import { logger } from '../utils/logger.js';
 
 export async function chat(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -162,5 +163,39 @@ export async function getSessionMessages(req: AuthenticatedRequest, res: Respons
     res.json({ messages });
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to fetch session messages' });
+  }
+}
+
+export async function listUserMemories(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const type = req.query.type as any;
+    const memories = await memoryService.listMemories(req.user.id, { type });
+    res.json({ memories });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'List user memories error');
+    res.status(500).json({ error: 'Failed to fetch user memories' });
+  }
+}
+
+export async function deleteUserMemory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const deleted = await memoryService.deleteMemory(req.user.id, id);
+    if (!deleted) {
+      res.status(404).json({ error: 'Memory not found or access denied' });
+      return;
+    }
+    res.json({ success: true, id });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Delete user memory error');
+    res.status(500).json({ error: 'Failed to delete user memory' });
   }
 }

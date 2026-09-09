@@ -221,6 +221,8 @@ import {
   rejectAction,
   listSessions,
   getSessionMessages,
+  listUserMemories,
+  deleteUserMemory,
 } from '../controllers/agent.controller.js';
 import {
   agentChatSchema,
@@ -250,6 +252,10 @@ router.get(
   validateParams(sessionIdParamSchema),
   getSessionMessages
 );
+
+// Semantic Memory & RAG Routes (Stage 3)
+router.get('/agent/memories', authenticate, listUserMemories);
+router.delete('/agent/memories/:id', authenticate, deleteUserMemory);
 
 export default router;
 

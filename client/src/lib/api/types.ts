@@ -159,4 +159,12 @@ export interface AgentMessageData {
   createdAt: string;
 }
 
+export interface UserMemoryData {
+  id: string;
+  type: 'preference' | 'decision' | 'project_fact';
+  content: string;
+  sourceRef?: string | null;
+  createdAt: string;
+}
+
 
