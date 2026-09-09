@@ -1,36 +1,77 @@
 import { z } from 'zod';
 import type { ToolDefinition } from './types.js';
+import { saveMemory, MemoryType } from '../../services/ai/memory.service.js';
 
 const saveMemorySchema = z.object({
-  text: z.string().min(1, 'Memory text is required'),
+  type: z.enum(['preference', 'decision', 'project_fact']).default('preference'),
+  content: z.string().min(3, 'Memory content must be at least 3 characters'),
+  // Backwards-compatible aliases
   category: z.string().optional(),
+  text: z.string().optional(),
 });
 
 type SaveMemoryArgs = z.infer<typeof saveMemorySchema>;
 
 export const saveMemoryTool: ToolDefinition<SaveMemoryArgs, any> = {
   name: 'save_memory',
-  description: 'Persist a fact, preference, or note into user long-term memory. (Stage 3 memory interface stub)',
-  permissionClass: 'write',
+  description:
+    'Explicitly save a durable user preference, architectural/project decision, or key project fact into long-term memory.',
+  /**
+   * Classification Note (ADR-0010 / ADR-0011):
+   * Writes to internal database, but has ZERO consequential real-world effect (no external email sent,
+   * no calendar event altered, no external API mutated). Deliberately classified as 'read' so it does
+   * not incur human-in-the-loop confirmation friction for personal productivity notes.
+   */
+  permissionClass: 'read',
   schema: saveMemorySchema,
   parameters: {
     type: 'object',
     properties: {
-      text: { type: 'string', description: 'Content or statement to remember' },
-      category: { type: 'string', description: 'Optional classification category' },
+      type: {
+        type: 'string',
+        enum: ['preference', 'decision', 'project_fact'],
+        description: 'Classification category for the durable fact',
+      },
+      content: {
+        type: 'string',
+        description: 'The durable statement or fact to remember across future sessions',
+      },
+      text: {
+        type: 'string',
+        description: 'Alias for content',
+      },
+      category: {
+        type: 'string',
+        description: 'Alias for type',
+      },
     },
-    required: ['text'],
+    required: ['content'],
   },
-  generateImpactPreview: (args) => ({
-    action: 'Save to Memory',
-    content: args.text,
-    category: args.category || 'general',
-  }),
-  execute: async (_userId, args) => {
+  generateImpactPreview: (args) => {
+    const content = args.content || args.text || '';
+    const type = (args.type || args.category || 'preference') as MemoryType;
     return {
-      saved: true,
-      text: args.text,
-      note: 'Semantic vector memory indexing is scheduled for Stage 3 activation.',
+      action: 'Save to Long-Term Memory',
+      category: type,
+      content,
+    };
+  },
+  execute: async (userId, args) => {
+    const rawContent = args.content || args.text || '';
+    const rawType = args.type || args.category || 'preference';
+
+    let resolvedType: MemoryType = 'preference';
+    if (rawType === 'decision') resolvedType = 'decision';
+    else if (rawType === 'project_fact') resolvedType = 'project_fact';
+
+    const result = await saveMemory(userId, resolvedType, rawContent, 'explicit_user_request');
+
+    return {
+      saved: !!result,
+      id: result?.id,
+      type: resolvedType,
+      content: rawContent,
+      message: result ? 'Memory saved successfully.' : 'Failed to save memory.',
     };
   },
 };
