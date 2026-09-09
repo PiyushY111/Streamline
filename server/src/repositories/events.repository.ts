@@ -149,6 +149,87 @@ export class EventsRepository {
       .delete(events)
       .where(and(eq(events.id, id), inArray(events.accountId, accountIds)));
   }
+
+  /**
+   * Stage 1: Deterministic smart calendar slot search with buffer times.
+   * Finds free gaps in the user's schedule between startTime and endTime.
+   */
+  async findSmartFreeSlots(
+    userId: string,
+    options: {
+      startTime?: Date;
+      endTime?: Date;
+      minDurationMinutes?: number;
+      bufferMinutes?: number;
+    } = {}
+  ): Promise<Array<{ start: Date; end: Date; durationMinutes: number }>> {
+    const now = new Date();
+    const windowStart = options.startTime || now;
+    const windowEnd = options.endTime || new Date(now.getTime() + 24 * 60 * 60 * 1000); // default 24h
+    const minDuration = options.minDurationMinutes ?? 15;
+    const bufferMs = (options.bufferMinutes ?? 10) * 60 * 1000;
+
+    const userEvents = await this.listUserEvents(userId, windowStart, windowEnd);
+
+    // Filter to timed events overlapping the window, sorted by start time
+    const sortedEvents = userEvents
+      .map((e) => ({
+        start: new Date(e.startTime).getTime(),
+        end: new Date(e.endTime).getTime(),
+      }))
+      .filter((e) => !isNaN(e.start) && !isNaN(e.end) && e.end > windowStart.getTime() && e.start < windowEnd.getTime())
+      .sort((a, b) => a.start - b.start);
+
+    // Merge overlapping/adjacent busy intervals (including buffer)
+    const busyIntervals: Array<{ start: number; end: number }> = [];
+    for (const evt of sortedEvents) {
+      const bStart = Math.max(windowStart.getTime(), evt.start - bufferMs);
+      const bEnd = Math.min(windowEnd.getTime(), evt.end + bufferMs);
+
+      if (busyIntervals.length === 0) {
+        busyIntervals.push({ start: bStart, end: bEnd });
+      } else {
+        const last = busyIntervals[busyIntervals.length - 1];
+        if (bStart <= last.end) {
+          last.end = Math.max(last.end, bEnd);
+        } else {
+          busyIntervals.push({ start: bStart, end: bEnd });
+        }
+      }
+    }
+
+    // Find gaps between busy intervals
+    const freeSlots: Array<{ start: Date; end: Date; durationMinutes: number }> = [];
+    let cursor = windowStart.getTime();
+
+    for (const busy of busyIntervals) {
+      if (busy.start > cursor) {
+        const gapDurationMinutes = Math.floor((busy.start - cursor) / (60 * 1000));
+        if (gapDurationMinutes >= minDuration) {
+          freeSlots.push({
+            start: new Date(cursor),
+            end: new Date(busy.start),
+            durationMinutes: gapDurationMinutes,
+          });
+        }
+      }
+      cursor = Math.max(cursor, busy.end);
+    }
+
+    if (windowEnd.getTime() > cursor) {
+      const gapDurationMinutes = Math.floor((windowEnd.getTime() - cursor) / (60 * 1000));
+      if (gapDurationMinutes >= minDuration) {
+        freeSlots.push({
+          start: new Date(cursor),
+          end: new Date(windowEnd.getTime()),
+          durationMinutes: gapDurationMinutes,
+        });
+      }
+    }
+
+    return freeSlots;
+  }
 }
 
 export const eventsRepository = new EventsRepository();
+

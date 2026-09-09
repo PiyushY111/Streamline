@@ -88,6 +88,10 @@ export const createTaskSchema = z.object({
   dueAt: z.union([z.string().datetime(), z.date(), z.string().min(1), z.null()]).optional(),
   sourceEmailId: z.string().uuid().nullable().optional(),
   sourceEventId: z.string().uuid().nullable().optional(),
+  projectId: z.string().uuid().nullable().optional(),
+  importance: z.number().min(0).max(1).optional(),
+  estimatedMinutes: z.number().min(1).nullable().optional(),
+  dependencies: z.array(z.string()).optional(),
 });
 
 export const updateTaskSchema = z.object({
@@ -96,11 +100,39 @@ export const updateTaskSchema = z.object({
   status: z.enum(['todo', 'in_progress', 'completed']).optional(),
   priority: z.enum(['low', 'medium', 'high']).optional(),
   dueAt: z.union([z.string().datetime(), z.date(), z.string().min(1), z.null()]).optional(),
+  projectId: z.string().uuid().nullable().optional(),
+  importance: z.number().min(0).max(1).optional(),
+  estimatedMinutes: z.number().min(1).nullable().optional(),
+  dependencies: z.array(z.string()).optional(),
 });
 
 export const taskIdParamSchema = z.object({
   id: z.string().uuid('Invalid task ID format'),
 });
 
+// Project Schemas (Stage 1)
+export const createProjectSchema = z.object({
+  name: z.string().min(1, 'Project name is required'),
+  description: z.string().optional(),
+  status: z.enum(['active', 'completed', 'archived', 'on_hold']).default('active'),
+  color: z.string().optional(),
+  stack: z.string().optional(),
+  currentMilestone: z.string().optional(),
+});
+
+export const updateProjectSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  status: z.enum(['active', 'completed', 'archived', 'on_hold']).optional(),
+  color: z.string().optional(),
+  stack: z.string().optional(),
+  currentMilestone: z.string().optional(),
+});
+
+export const projectIdParamSchema = z.object({
+  id: z.string().uuid('Invalid project ID format'),
+});
+
 export * from './ai.schema.js';
+
 

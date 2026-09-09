@@ -154,9 +154,64 @@ router.patch(
 );
 router.delete('/tasks/:id', authenticate, validateParams(taskIdParamSchema), deleteTask);
 
+// Projects Routes (Stage 1)
+import {
+  listProjects,
+  getProject,
+  createProject,
+  updateProject,
+  deleteProject,
+  getProjectTasks,
+} from '../controllers/projects.controller.js';
+import {
+  createProjectSchema,
+  updateProjectSchema,
+  projectIdParamSchema,
+} from '../schemas/index.js';
+
+router.get('/projects', authenticate, listProjects);
+router.post('/projects', authenticate, validateBody(createProjectSchema), createProject);
+router.get(
+  '/projects/:id',
+  authenticate,
+  validateParams(projectIdParamSchema),
+  getProject
+);
+router.patch(
+  '/projects/:id',
+  authenticate,
+  validateParams(projectIdParamSchema),
+  validateBody(updateProjectSchema),
+  updateProject
+);
+router.delete(
+  '/projects/:id',
+  authenticate,
+  validateParams(projectIdParamSchema),
+  deleteProject
+);
+router.get(
+  '/projects/:id/tasks',
+  authenticate,
+  validateParams(projectIdParamSchema),
+  getProjectTasks
+);
+
+// Deterministic Planner Routes (Stage 1)
+import {
+  getNextTask,
+  rankTasks,
+  getWeightPresets,
+} from '../controllers/planner.controller.js';
+
+router.get('/planner/next', authenticate, getNextTask);
+router.post('/planner/rank', authenticate, rankTasks);
+router.get('/planner/presets', authenticate, getWeightPresets);
+
 // AI Engine Routes
 import aiRouter from './ai.routes.js';
 router.use('/ai', aiRouter);
 
 export default router;
+
 

@@ -348,3 +348,51 @@ export function rankTasks(
     all,
   };
 }
+
+export type RankedTask = ScoredTask;
+export const WEIGHT_PRESETS = PRESET_WEIGHTS;
+
+export const priorityEngine = {
+  rankTasks: (
+    tasks: ScorableTask[],
+    options: {
+      weights?: Partial<PriorityWeights>;
+      preset?: PriorityPreset;
+      availableMinutes?: number;
+      now?: Date;
+    } = {}
+  ) => {
+    const preset = options.preset || 'balanced';
+    const weights = { ...PRESET_WEIGHTS[preset], ...(options.weights || {}) };
+    const res = rankTasks(tasks, {
+      weights,
+      now: options.now || new Date(),
+      availableMinutes: options.availableMinutes,
+    });
+    return res.all;
+  },
+  rankTasksPartitioned: (
+    tasks: ScorableTask[],
+    options: {
+      weights?: Partial<PriorityWeights>;
+      preset?: PriorityPreset;
+      availableMinutes?: number;
+      now?: Date;
+    } = {}
+  ) => {
+    const preset = options.preset || 'balanced';
+    const weights = { ...PRESET_WEIGHTS[preset], ...(options.weights || {}) };
+    return rankTasks(tasks, {
+      weights,
+      now: options.now || new Date(),
+      availableMinutes: options.availableMinutes,
+    });
+  },
+  scoreTask,
+  analyzeDependencies,
+  detectCycles: (tasks: ScorableTask[]) => {
+    const analysis = analyzeDependencies(tasks);
+    return { hasCycles: analysis.hasCycles };
+  },
+};
+
