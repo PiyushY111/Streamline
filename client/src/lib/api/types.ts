@@ -66,6 +66,63 @@ export interface TaskData {
   status: 'todo' | 'in_progress' | 'completed';
   priority: 'high' | 'medium' | 'low';
   dueAt?: string;
+  completedAt?: string | null;
   sourceEmailId?: string;
   sourceEventId?: string;
+  projectId?: string | null;
+  importance?: number;
+  estimatedMinutes?: number | null;
+  dependencies?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
+
+export interface ProjectData {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  status: 'active' | 'completed' | 'archived' | 'on_hold';
+  color: string;
+  stack?: string | null;
+  currentMilestone?: string | null;
+  totalTasks: number;
+  completedTasks: number;
+  completionPercentage: number;
+  createdAt: string;
+  updatedAt: string;
+  tasks?: TaskData[];
+}
+
+export interface RankedTaskData extends TaskData {
+  score: number;
+  isBlocked: boolean;
+  breakdown: {
+    urgency: number;
+    importance: number;
+    deadlineProximity: number;
+    dependencyImpact: number;
+    contextFit: number;
+  };
+  reasoning: string[];
+}
+
+export interface NextTaskResponse {
+  recommendedTask: RankedTaskData | null;
+  availableSlot: {
+    start: string;
+    end: string;
+    durationMinutes: number;
+  } | null;
+  summary: {
+    totalActive: number;
+    actionableCount: number;
+    blockedCount: number;
+    hasCycles: boolean;
+    activePreset: string;
+    effectiveAvailableMinutes?: number;
+  };
+  rankedTasks: RankedTaskData[];
+  blockedTasks: RankedTaskData[];
+}
+

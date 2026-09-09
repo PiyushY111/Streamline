@@ -4,3 +4,6 @@ export * from './accounts';
 export * from './emails';
 export * from './events';
 export * from './tasks';
+export * from './projects';
+export * from './planner';
+
