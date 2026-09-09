@@ -1,7 +1,5 @@
-import { Type } from '@google/genai';
 import { getAiProvider } from './ai.factory.js';
 import { saveMemory, MemoryType } from './memory.service.js';
-import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
 import { logger } from '../../utils/logger.js';
 
 export interface ExtractedFactResult {
@@ -10,10 +8,27 @@ export interface ExtractedFactResult {
   content?: string;
 }
 
+const EXTRACTION_SCHEMA = {
+  type: 'object',
+  properties: {
+    hasFact: { type: 'boolean', description: 'Whether a durable fact was identified' },
+    type: {
+      type: 'string',
+      enum: ['preference', 'decision', 'project_fact'],
+      description: 'Category of durable fact',
+    },
+    content: {
+      type: 'string',
+      description: 'The durable fact statement in plain language',
+    },
+  },
+  required: ['hasFact'],
+};
+
 export class MemoryExtractionService {
   /**
    * Evaluates an interaction or executed action and extracts at most one durable fact.
-   * Decoupled, non-blocking fire-and-forget design.
+   * 100% provider-agnostic, decoupled from proprietary vendor SDKs.
    */
   async extractMemoryFromInteraction(
     userId: string,
@@ -46,19 +61,7 @@ ${agentResponse}`;
     try {
       const parsed = await provider.generateStructuredJson<ExtractedFactResult>({
         prompt,
-        models: [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS],
-        schema: {
-          type: Type.OBJECT,
-          properties: {
-            hasFact: { type: Type.BOOLEAN },
-            type: {
-              type: Type.STRING,
-              enum: ['preference', 'decision', 'project_fact'],
-            },
-            content: { type: Type.STRING },
-          },
-          required: ['hasFact'],
-        },
+        schema: EXTRACTION_SCHEMA,
       });
 
       if (parsed?.hasFact && parsed.type && parsed.content) {
