@@ -1,11 +1,25 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { streamDraftReply } from '../services/ai/reply-drafter.service.js';
 import { db } from '../db/index.js';
 import { aiRepository } from '../repositories/ai.repository.js';
+import { setAiProvider } from '../services/ai/ai.factory.js';
 
-describe('AI Streaming Reply Drafter Service', { timeout: 15000 }, () => {
+describe('AI Streaming Reply Drafter Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setAiProvider({
+      name: 'mock',
+      isAvailable: () => true,
+      generateText: vi.fn(),
+      generateStructuredJson: vi.fn(),
+      streamText: vi.fn().mockImplementation(async (_opts: any, onChunk: any) => {
+        onChunk('data: {"chunk": "Drafted reply"}\n\n');
+        return 'Drafted reply';
+      }),
+      generateEmbedding: vi.fn(),
+      chatWithTools: vi.fn(),
+    } as any);
+
     vi.spyOn(aiRepository, 'getUserPreferences').mockResolvedValue(null as any);
     vi.spyOn(db, 'select').mockImplementation(() => {
       const chain: any = {
@@ -18,6 +32,10 @@ describe('AI Streaming Reply Drafter Service', { timeout: 15000 }, () => {
       };
       return chain;
     });
+  });
+
+  afterEach(() => {
+    setAiProvider(null);
   });
 
   it('should format and stream fallback draft when no thread messages exist', async () => {

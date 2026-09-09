@@ -1,8 +1,53 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { triageEmail } from '../services/ai/triage.service.js';
+import { setAiProvider } from '../services/ai/ai.factory.js';
 
-describe('AI Triage Service', { timeout: 15000 }, () => {
+describe('AI Triage Service', () => {
+  beforeEach(() => {
+    setAiProvider({
+      name: 'mock',
+      isAvailable: () => true,
+      generateStructuredJson: vi.fn().mockImplementation(async (opts: any) => {
+        if (opts.prompt.includes('contract ASAP')) {
+          return {
+            priority: 'p1_urgent',
+            urgencyScore: 95,
+            category: 'action_required',
+            oneSentenceSummary: 'Sign contract before 5 PM deadline.',
+            tasks: [{ title: 'Sign contract', type: 'assigned_to_me', priority: 'high' }],
+          };
+        }
+        return {
+          priority: 'p2_important',
+          urgencyScore: 70,
+          category: 'direct',
+          oneSentenceSummary: 'Important direct message.',
+          newsletterTopic: 'Direct',
+          tasks: [],
+        };
+      }),
+      generateText: vi.fn(),
+      streamText: vi.fn(),
+      generateEmbedding: vi.fn(),
+      chatWithTools: vi.fn(),
+    } as any);
+  });
+
+  afterEach(() => {
+    setAiProvider(null);
+  });
+
   it('should classify newsletter emails to p4_newsletter via heuristic fallback when no LLM client', async () => {
+    setAiProvider({
+      name: 'unavailable-mock',
+      isAvailable: () => false,
+      generateStructuredJson: vi.fn(),
+      generateText: vi.fn(),
+      streamText: vi.fn(),
+      generateEmbedding: vi.fn(),
+      chatWithTools: vi.fn(),
+    } as any);
+
     const email = {
       id: 'test-1',
       subject: 'Weekly Tech Digest #42',

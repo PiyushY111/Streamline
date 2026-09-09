@@ -1,8 +1,36 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { generateDailyDigestForUser } from '../services/ai/newsletter-digest.service.js';
 import { aiRepository } from '../repositories/ai.repository.js';
+import { setAiProvider } from '../services/ai/ai.factory.js';
 
 describe('Daily Executive & Newsletter Digest Service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setAiProvider({
+      name: 'mock',
+      isAvailable: () => true,
+      generateText: vi.fn(),
+      generateStructuredJson: vi.fn().mockResolvedValue({
+        executiveGreeting: 'Good morning, here is your executive digest.',
+        newsletterTopics: ['AI Developments', 'Cloud Infrastructure'],
+        actionSummary: [
+          {
+            from: 'Registrar Office',
+            urgency: 'high',
+            summary: 'Final grades must be submitted before Friday 5 PM.',
+          },
+        ],
+      }),
+      streamText: vi.fn(),
+      generateEmbedding: vi.fn(),
+      chatWithTools: vi.fn(),
+    } as any);
+  });
+
+  afterEach(() => {
+    setAiProvider(null);
+  });
+
   it('should generate fallback digest structure when newsletters and urgent items are empty', async () => {
     vi.spyOn(aiRepository, 'getNewslettersForUser').mockResolvedValue([]);
     vi.spyOn(aiRepository, 'getUrgentEmailsForUser').mockResolvedValue([]);
