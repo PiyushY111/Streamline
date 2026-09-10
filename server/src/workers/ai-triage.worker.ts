@@ -3,7 +3,7 @@ import { redisConnection } from '../queues/index.js';
 import { db } from '../db/index.js';
 import { emails, connectedAccounts } from '../db/schema/index.js';
 import { eq, inArray } from 'drizzle-orm';
-import { triageEmail } from '../services/ai/triage.service.js';
+import { triageEmail } from '../services/ai/features/triage.service.js';
 import { aiRepository } from '../repositories/ai.repository.js';
 import { logger } from '../utils/logger.js';
 

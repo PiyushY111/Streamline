@@ -1,4 +1,4 @@
-import { MemoryType } from '../src/services/ai/memory.service.js';
+import { MemoryType } from '../src/services/ai/memory/memory.service.js';
 
 export interface SeedMemoryItem {
   type: MemoryType;

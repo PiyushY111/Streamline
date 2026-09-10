@@ -1,9 +1,9 @@
 import { sql, eq, and, inArray, desc } from 'drizzle-orm';
-import { db } from '../../db/index.js';
-import { memories } from '../../db/schema/index.js';
-import { getAiProvider } from './ai.factory.js';
-import { aiCostGuardService } from './cost-guard.service.js';
-import { logger } from '../../utils/logger.js';
+import { db } from '../../../db/index.js';
+import { memories } from '../../../db/schema/index.js';
+import { getAiProvider } from '../core/factory.js';
+import { aiCostGuardService } from '../core/cost-guard.service.js';
+import { logger } from '../../../utils/logger.js';
 
 export type MemoryType = 'preference' | 'decision' | 'project_fact';
 export type MemoryStatus = 'active' | 'superseded' | 'archived';

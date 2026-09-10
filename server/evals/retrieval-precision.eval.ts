@@ -1,10 +1,10 @@
 import { runSuite } from './runner.js';
-import { searchMemory, MemoryType } from '../src/services/ai/memory.service.js';
+import { searchMemory, MemoryType } from '../src/services/ai/memory/memory.service.js';
 import { SEED_EVAL_MEMORIES } from './seed-memory-eval-data.js';
 import { db } from '../src/db/index.js';
 import { memories } from '../src/db/schema/index.js';
-import { setAiProvider } from '../src/services/ai/ai.factory.js';
-import { MockAiProvider } from '../src/services/ai/providers/mock.provider.js';
+import { setAiProvider } from '../src/services/ai/core/factory.js';
+import { MockAiProvider } from '../src/services/ai/core/providers/mock.provider.js';
 
 interface RetrievalScenarioInput {
   query: string;

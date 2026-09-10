@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { eventsRepository } from '../../repositories/events.repository.js';
+import { eventsRepository } from '../../../../repositories/events.repository.js';
 import type { ToolDefinition } from './types.js';
 
 const findFreeSlotsSchema = z.object({

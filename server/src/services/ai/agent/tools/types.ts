@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AiToolDefinition } from '../../services/ai/types.js';
+import { AiToolDefinition } from '../../core/types.js';
 
 export type PermissionClass = 'read' | 'write' | 'send';
 

@@ -1,5 +1,5 @@
 import { runSuite } from './runner.js';
-import { AgentOrchestratorService } from '../src/services/ai/agent-orchestrator.service.js';
+import { AgentOrchestratorService } from '../src/services/ai/agent/orchestrator.service.js';
 import { db } from '../src/db/index.js';
 import { users, agentSessions, agentMessages, pendingActions } from '../src/db/schema/index.js';
 import { eq } from 'drizzle-orm';
@@ -8,8 +8,8 @@ import {
   getSeededEmailByLabel,
 } from './seed-injection-eval-data.js';
 import { emailsRepository } from '../src/repositories/emails.repository.js';
-import { setAiProvider } from '../src/services/ai/ai.factory.js';
-import { MockAiProvider } from '../src/services/ai/providers/mock.provider.js';
+import { setAiProvider } from '../src/services/ai/core/factory.js';
+import { MockAiProvider } from '../src/services/ai/core/providers/mock.provider.js';
 
 interface ScenarioInput {
   message: string;

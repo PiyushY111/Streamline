@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { generateDailyDigestForUser } from '../services/ai/newsletter-digest.service.js';
+import { generateDailyDigestForUser } from '../services/ai/features/newsletter-digest.service.js';
 import { aiRepository } from '../repositories/ai.repository.js';
-import { setAiProvider } from '../services/ai/ai.factory.js';
+import { setAiProvider } from '../services/ai/core/factory.js';
 
 describe('Daily Executive & Newsletter Digest Service', () => {
   beforeEach(() => {

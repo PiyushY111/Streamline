@@ -8,7 +8,7 @@ import { searchMemoryTool } from './search_memory.js';
 import { saveMemoryTool } from './save_memory.js';
 import { getEmailTool } from './get_email.js';
 import type { ToolDefinition } from './types.js';
-import { AiToolDefinition } from '../../services/ai/types.js';
+import { AiToolDefinition } from '../../core/types.js';
 
 export * from './types.js';
 

@@ -1,5 +1,5 @@
-import { env } from '../../config/env.js';
-import { logger } from '../../utils/logger.js';
+import { env } from '../../../config/env.js';
+import { logger } from '../../../utils/logger.js';
 import type { AiProvider } from './types.js';
 import { GeminiProvider } from './providers/gemini.provider.js';
 import { OpenAiCompatibleProvider } from './providers/openai-compatible.provider.js';

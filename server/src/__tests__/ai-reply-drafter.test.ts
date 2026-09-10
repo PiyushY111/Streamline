@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { streamDraftReply } from '../services/ai/reply-drafter.service.js';
+import { streamDraftReply } from '../services/ai/features/reply-drafter.service.js';
 import { db } from '../db/index.js';
 import { aiRepository } from '../repositories/ai.repository.js';
-import { setAiProvider } from '../services/ai/ai.factory.js';
+import { setAiProvider } from '../services/ai/core/factory.js';
 
 describe('AI Streaming Reply Drafter Service', () => {
   beforeEach(() => {

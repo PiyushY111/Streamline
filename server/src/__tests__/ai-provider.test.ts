@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getAiProvider, setAiProvider } from '../services/ai/ai.factory.js';
-import { GeminiProvider } from '../services/ai/providers/gemini.provider.js';
-import { OpenAiCompatibleProvider } from '../services/ai/providers/openai-compatible.provider.js';
-import { MockAiProvider } from '../services/ai/providers/mock.provider.js';
-import type { AiProvider } from '../services/ai/types.js';
+import { getAiProvider, setAiProvider } from '../services/ai/core/factory.js';
+import { GeminiProvider } from '../services/ai/core/providers/gemini.provider.js';
+import { OpenAiCompatibleProvider } from '../services/ai/core/providers/openai-compatible.provider.js';
+import { MockAiProvider } from '../services/ai/core/providers/mock.provider.js';
+import type { AiProvider } from '../services/ai/core/types.js';
 
 describe('Provider-Agnostic AI Architecture', () => {
   beforeEach(() => {

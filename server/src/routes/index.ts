@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { checkHealth } from '../controllers/health.controller.js';
 import { listEvents, listCalendars } from '../controllers/events.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { csrfProtection } from '../middlewares/security.js';
@@ -18,8 +17,7 @@ import healthRouter from './health.routes.js';
 
 const router = Router();
 
-// Health Check (unauthenticated, un-rate-limited)
-router.get('/health', checkHealth);
+// Health Check (unauthenticated, un-rate-limited: /, /liveness, /readiness)
 router.use('/health', healthRouter);
 
 // Authentication & OAuth Flow Routes

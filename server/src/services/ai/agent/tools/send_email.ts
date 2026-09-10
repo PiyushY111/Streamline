@@ -34,7 +34,7 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
     consequence: 'External email will be sent from your connected account immediately upon approval.',
   }),
   execute: async (userId, args) => {
-    const { emailsService } = await import('../../services/emails.service.js');
+    const { emailsService } = await import('../../../../services/emails.service.js');
     return emailsService.sendEmail(userId, {
       to: args.to,
       subject: args.subject,

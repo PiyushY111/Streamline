@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { aiCostGuardService, AI_BUDGET_LIMITS } from '../services/ai/cost-guard.service.js';
+import { aiCostGuardService, AI_BUDGET_LIMITS } from '../services/ai/core/cost-guard.service.js';
 import { db } from '../db/index.js';
 
 describe('AI Cost Guard & Circuit Breaker Service', () => {

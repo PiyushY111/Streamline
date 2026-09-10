@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { tasksRepository } from '../../repositories/tasks.repository.js';
+import { tasksRepository } from '../../../../repositories/tasks.repository.js';
 import type { ToolDefinition } from './types.js';
 
 const getTasksSchema = z.object({

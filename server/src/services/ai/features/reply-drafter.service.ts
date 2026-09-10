@@ -1,11 +1,11 @@
-import { getAiProvider } from './ai.factory.js';
-import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
-import { db } from '../../db/index.js';
-import { emails, emailThreads, connectedAccounts } from '../../db/schema/index.js';
+import { getAiProvider } from '../core/factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from '../core/gemini.client.js';
+import { db } from '../../../db/index.js';
+import { emails, emailThreads, connectedAccounts } from '../../../db/schema/index.js';
 import { eq, and, asc, desc, or } from 'drizzle-orm';
-import { logger } from '../../utils/logger.js';
-import { aiRepository } from '../../repositories/ai.repository.js';
-import { aiCostGuardService } from './cost-guard.service.js';
+import { logger } from '../../../utils/logger.js';
+import { aiRepository } from '../../../repositories/ai.repository.js';
+import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { Response } from 'express';
 
 export interface DraftOptions {

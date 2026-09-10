@@ -1,5 +1,5 @@
-import { env } from '../../../config/env.js';
-import { logger } from '../../../utils/logger.js';
+import { env } from '../../../../config/env.js';
+import { logger } from '../../../../utils/logger.js';
 import type {
   AiProvider,
   AiGenerateTextOptions,

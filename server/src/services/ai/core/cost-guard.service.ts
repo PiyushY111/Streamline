@@ -1,7 +1,7 @@
-import { db } from '../../db/index.js';
-import { aiTokenUsage } from '../../db/schema/index.js';
+import { db } from '../../../db/index.js';
+import { aiTokenUsage } from '../../../db/schema/index.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export interface ModelPricing {
   promptPerMillion: number;

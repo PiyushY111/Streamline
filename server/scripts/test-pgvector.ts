@@ -1,6 +1,6 @@
 import { neon } from '@neondatabase/serverless';
-import { env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { env } from '../src/config/env.js';
+import { logger } from '../src/utils/logger.js';
 
 async function testPgVector() {
   logger.info('🔌 Connecting to Neon PostgreSQL to verify pgvector extension...');

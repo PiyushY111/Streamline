@@ -1,10 +1,10 @@
-import { db } from '../db/index.js';
-import { pendingActions } from '../db/schema/index.js';
+import { db } from '../../../db/index.js';
+import { pendingActions } from '../../../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { TOOL_REGISTRY } from './tools/index.js';
-import { auditService } from '../services/audit.service.js';
-import { logger } from '../utils/logger.js';
-import { extractMemoryFromInteraction } from '../services/ai/memory-extraction.service.js';
+import { auditService } from '../../audit.service.js';
+import { logger } from '../../../utils/logger.js';
+import { extractMemoryFromInteraction } from '../memory/extraction.service.js';
 
 export interface ProposedToolCall {
   id?: string;

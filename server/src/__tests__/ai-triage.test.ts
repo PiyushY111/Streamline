@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { triageEmail } from '../services/ai/triage.service.js';
-import { setAiProvider } from '../services/ai/ai.factory.js';
+import { triageEmail } from '../services/ai/features/triage.service.js';
+import { setAiProvider } from '../services/ai/core/factory.js';
 
 describe('AI Triage Service', () => {
   beforeEach(() => {

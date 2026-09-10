@@ -1,131 +1,87 @@
 import { Response } from 'express';
 import { emailsService } from '../services/emails.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
-import { logger } from '../utils/logger.js';
+import { UnauthorizedError, NotFoundError } from '../errors/index.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
-export async function listEmails(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const folder = (req.query.folder as string) || 'inbox';
-    const parsedLimit = parseInt(req.query.limit as string, 10) || 50;
-    const limit = Math.min(Math.max(1, parsedLimit), 100);
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const emailList = await emailsService.getEmails(req.user.id, folder, limit, page);
-
-    res.json({ emails: emailList });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to list emails';
-    logger.error({ err }, 'List emails controller error');
-    res.status(500).json({ error: message });
+export const listEmails = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const folder = (req.query.folder as string) || 'inbox';
+  const parsedLimit = parseInt(req.query.limit as string, 10) || 50;
+  const limit = Math.min(Math.max(1, parsedLimit), 100);
+  const page = parseInt(req.query.page as string, 10) || 1;
+  const emailList = await emailsService.getEmails(req.user.id, folder, limit, page);
 
-export async function getEmailById(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const email = await emailsService.getEmailById(id, req.user.id);
-    if (!email) {
-      res.status(404).json({ error: 'Email not found' });
-      return;
-    }
-    res.json({ success: true, email });
-  } catch (err: unknown) {
-    logger.error({ err }, 'Get email by ID controller error');
-    res.status(500).json({ error: 'Failed to fetch email details' });
-  }
-}
+  res.json({ emails: emailList });
+});
 
-export async function sendEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const { to, subject, body, accountId } = req.body;
-    const sentEmail = await emailsService.sendEmail(req.user.id, { to, subject, body, accountId });
-    res.status(200).json({ success: true, email: sentEmail, message: `Email sent to ${to}` });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Failed to send email';
-    logger.error({ err }, 'Send email controller error');
-    res.status(500).json({ error: message });
+export const getEmailById = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const email = await emailsService.getEmailById(id, req.user.id);
+  if (!email) {
+    throw new NotFoundError('Email not found');
+  }
+  res.json({ success: true, email });
+});
 
-export async function markEmailAsRead(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { isRead = true } = req.body;
-    const updated = await emailsService.markAsRead(id, req.user.id, isRead);
-    if (!updated) {
-      res.status(404).json({ error: 'Email not found' });
-      return;
-    }
-    res.json({ success: true, email: updated });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to update read status' });
+export const sendEmail = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const { to, subject, body, accountId } = req.body;
+  const sentEmail = await emailsService.sendEmail(req.user.id, { to, subject, body, accountId });
+  res.status(200).json({ success: true, email: sentEmail, message: `Email sent to ${to}` });
+});
 
-export async function toggleStarEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { isStarred = true } = req.body;
-    const updated = await emailsService.toggleStar(id, req.user.id, isStarred);
-    if (!updated) {
-      res.status(404).json({ error: 'Email not found' });
-      return;
-    }
-    res.json({ success: true, email: updated });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to update star status' });
+export const markEmailAsRead = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { isRead = true } = req.body;
+  const updated = await emailsService.markAsRead(id, req.user.id, isRead);
+  if (!updated) {
+    throw new NotFoundError('Email not found');
+  }
+  res.json({ success: true, email: updated });
+});
 
-export async function updateEmailCategory(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { category } = req.body;
-    const updated = await emailsService.updateCategory(id, req.user.id, category);
-    if (!updated) {
-      res.status(404).json({ error: 'Email not found' });
-      return;
-    }
-    res.json({ success: true, email: updated });
-  } catch (err: unknown) {
-    logger.error({ err }, 'Update email category controller error');
-    res.status(500).json({ error: 'Failed to update email category' });
+export const toggleStarEmail = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { isStarred = true } = req.body;
+  const updated = await emailsService.toggleStar(id, req.user.id, isStarred);
+  if (!updated) {
+    throw new NotFoundError('Email not found');
+  }
+  res.json({ success: true, email: updated });
+});
 
-export async function deleteEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await emailsService.deleteEmail(id, req.user.id);
-    res.json({ success: true, message: 'Email deleted successfully' });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to delete email' });
+export const updateEmailCategory = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { category } = req.body;
+  const updated = await emailsService.updateCategory(id, req.user.id, category);
+  if (!updated) {
+    throw new NotFoundError('Email not found');
+  }
+  res.json({ success: true, email: updated });
+});
+
+export const deleteEmail = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
+  }
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  await emailsService.deleteEmail(id, req.user.id);
+  res.json({ success: true, message: 'Email deleted successfully' });
+});

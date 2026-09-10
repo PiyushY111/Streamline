@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { emailsRepository } from '../../repositories/emails.repository.js';
+import { emailsRepository } from '../../../../repositories/emails.repository.js';
 import type { ToolDefinition } from './types.js';
 
 const getEmailSchema = z.object({

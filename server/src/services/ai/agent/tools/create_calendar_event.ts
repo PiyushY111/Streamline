@@ -43,7 +43,7 @@ export const createCalendarEventTool: ToolDefinition<CreateCalendarEventArgs, an
     };
   },
   execute: async (userId, args) => {
-    const { eventsService } = await import('../../services/events.service.js');
+    const { eventsService } = await import('../../../../services/events.service.js');
     return eventsService.createEvent(userId, {
       title: args.title,
       startTime: args.startTime,

@@ -1,6 +1,6 @@
 import { runSuite } from './runner.js';
-import { TOOL_REGISTRY } from '../src/agent/tools/index.js';
-import { enforcePolicy, ProposedToolCall, PolicyOutcome } from '../src/agent/policy.js';
+import { TOOL_REGISTRY } from '../src/services/ai/agent/tools/index.js';
+import { enforcePolicy, ProposedToolCall, PolicyOutcome } from '../src/services/ai/agent/policy.js';
 import { db } from '../src/db/index.js';
 import { auditService } from '../src/services/audit.service.js';
 import { TasksRepository } from '../src/repositories/tasks.repository.js';

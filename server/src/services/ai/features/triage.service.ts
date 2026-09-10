@@ -1,9 +1,9 @@
-import { getAiProvider } from './ai.factory.js';
-import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
+import { getAiProvider } from '../core/factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from '../core/gemini.client.js';
 import { Type } from '@google/genai';
-import { logger } from '../../utils/logger.js';
-import { ExtractedTaskItem } from '../../db/schema/index.js';
-import { aiCostGuardService } from './cost-guard.service.js';
+import { logger } from '../../../utils/logger.js';
+import { ExtractedTaskItem } from '../../../db/schema/index.js';
+import { aiCostGuardService } from '../core/cost-guard.service.js';
 import crypto from 'crypto';
 
 export interface TriageResult {

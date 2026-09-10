@@ -1,59 +1,39 @@
 import { Response } from 'express';
 import { tasksService } from '../services/tasks.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
-import { logger } from '../utils/logger.js';
+import { UnauthorizedError } from '../errors/index.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
-export async function listTasks(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const taskList = await tasksService.getTasks(req.user.id);
-    res.json({ tasks: taskList });
-  } catch (err: unknown) {
-    logger.error({ err }, 'List tasks controller error');
-    res.status(500).json({ error: 'Failed to fetch tasks' });
+export const listTasks = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const taskList = await tasksService.getTasks(req.user.id);
+  res.json({ tasks: taskList });
+});
 
-export async function createTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const newTask = await tasksService.createTask(req.user.id, req.body);
-    res.status(201).json({ task: newTask });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to create task' });
+export const createTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const newTask = await tasksService.createTask(req.user.id, req.body);
+  res.status(201).json({ task: newTask });
+});
 
-export async function updateTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const updated = await tasksService.updateTask(id, req.user.id, req.body);
-    res.json({ task: updated });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to update task' });
+export const updateTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const updated = await tasksService.updateTask(id, req.user.id, req.body);
+  res.json({ task: updated });
+});
 
-export async function deleteTask(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await tasksService.deleteTask(id, req.user.id);
-    res.json({ success: true });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to delete task' });
+export const deleteTask = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  await tasksService.deleteTask(id, req.user.id);
+  res.json({ success: true });
+});

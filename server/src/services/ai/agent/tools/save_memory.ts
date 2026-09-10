@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ToolDefinition } from './types.js';
-import { saveMemory, MemoryType } from '../../services/ai/memory.service.js';
+import { saveMemory, MemoryType } from '../../memory/memory.service.js';
 
 const saveMemorySchema = z
   .object({

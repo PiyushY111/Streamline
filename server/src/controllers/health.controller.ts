@@ -5,7 +5,60 @@ import Redis from 'ioredis';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 
-export async function checkHealth(req: Request, res: Response): Promise<void> {
+/**
+ * Fast liveness probe for container orchestrators (Kubernetes / Railway).
+ * Returns 200 if process is up and running HTTP event loop without hitting external dependencies.
+ */
+export function checkLiveness(_req: Request, res: Response): void {
+  res.status(200).json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Readiness probe checking critical downstream dependencies (PostgreSQL & Redis).
+ * Returns 200 when ready to accept traffic, 503 when degraded.
+ */
+export async function checkReadiness(_req: Request, res: Response): Promise<void> {
+  let dbOk = false;
+  let redisOk = false;
+
+  try {
+    await db.select().from(users).limit(1);
+    dbOk = true;
+  } catch (err: unknown) {
+    logger.warn({ err }, 'Readiness probe: database unreachable');
+  }
+
+  try {
+    const redis = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 2000,
+    });
+    await redis.ping();
+    await redis.quit();
+    redisOk = true;
+  } catch (err: unknown) {
+    logger.warn({ err }, 'Readiness probe: Redis unreachable');
+  }
+
+  const isReady = dbOk && redisOk;
+  res.status(isReady ? 200 : 503).json({
+    status: isReady ? 'ready' : 'degraded',
+    timestamp: new Date().toISOString(),
+    dependencies: {
+      postgres: dbOk ? 'up' : 'down',
+      redis: redisOk ? 'up' : 'down',
+    },
+  });
+}
+
+/**
+ * Comprehensive system diagnostics with service latency breakdown.
+ */
+export async function checkHealth(_req: Request, res: Response): Promise<void> {
   let dbStatus = 'healthy';
   let redisStatus = 'healthy';
   let dbLatencyMs = 0;

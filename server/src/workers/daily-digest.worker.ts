@@ -3,7 +3,7 @@ import { redisConnection, dailyDigestQueue } from '../queues/index.js';
 import { db } from '../db/index.js';
 import { users, userAiPreferences, dailyDigests } from '../db/schema/index.js';
 import { eq, and, gte } from 'drizzle-orm';
-import { generateDailyDigestForUser } from '../services/ai/newsletter-digest.service.js';
+import { generateDailyDigestForUser } from '../services/ai/features/newsletter-digest.service.js';
 import { logger } from '../utils/logger.js';
 
 export function createDailyDigestWorker() {

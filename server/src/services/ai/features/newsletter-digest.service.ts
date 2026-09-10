@@ -1,10 +1,10 @@
-import { getAiProvider } from './ai.factory.js';
-import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from './gemini.client.js';
+import { getAiProvider } from '../core/factory.js';
+import { PRIMARY_FLASH_MODEL, FALLBACK_FLASH_MODELS } from '../core/gemini.client.js';
 import { Type } from '@google/genai';
-import { aiRepository } from '../../repositories/ai.repository.js';
-import { aiCostGuardService } from './cost-guard.service.js';
-import { logger } from '../../utils/logger.js';
-import { NewsletterTopicSummary, DigestActionSummary } from '../../db/schema/index.js';
+import { aiRepository } from '../../../repositories/ai.repository.js';
+import { aiCostGuardService } from '../core/cost-guard.service.js';
+import { logger } from '../../../utils/logger.js';
+import { NewsletterTopicSummary, DigestActionSummary } from '../../../db/schema/index.js';
 
 export async function generateDailyDigestForUser(userId: string): Promise<any> {
   logger.info({ userId }, 'Generating Daily Executive & Newsletter Digest...');

@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { memoryService, saveMemory, searchMemory, deleteMemory } from '../services/ai/memory.service.js';
+import { memoryService, saveMemory, searchMemory, deleteMemory } from '../services/ai/memory/memory.service.js';
 import { db } from '../db/index.js';
 import { memories } from '../db/schema/index.js';
-import { setAiProvider } from '../services/ai/ai.factory.js';
-import { MockAiProvider } from '../services/ai/providers/mock.provider.js';
-import { aiCostGuardService } from '../services/ai/cost-guard.service.js';
+import { setAiProvider } from '../services/ai/core/factory.js';
+import { MockAiProvider } from '../services/ai/core/providers/mock.provider.js';
+import { aiCostGuardService } from '../services/ai/core/cost-guard.service.js';
 
 describe('Stage 3 Memory Service & Hybrid RAG Engine', () => {
   const mockProvider = new MockAiProvider();

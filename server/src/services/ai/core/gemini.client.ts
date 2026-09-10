@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import { env } from '../../config/env.js';
-import { logger } from '../../utils/logger.js';
+import { env } from '../../../config/env.js';
+import { logger } from '../../../utils/logger.js';
 
 let geminiClientInstance: GoogleGenAI | null = null;
 

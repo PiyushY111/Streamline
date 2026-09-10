@@ -1,6 +1,6 @@
-import { getAiProvider } from './ai.factory.js';
+import { getAiProvider } from '../core/factory.js';
 import { saveMemory, MemoryType } from './memory.service.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../../utils/logger.js';
 
 export interface ExtractedFactResult {
   hasFact: boolean;

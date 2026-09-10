@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { neon } from '@neondatabase/serverless';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import apiRouter from './routes/index.js';
@@ -10,10 +9,15 @@ import { startSyncScheduler } from './workers/scheduler.js';
 import { accountSyncQueue, aiTriageQueue, dailyDigestQueue, redisConnection } from './queues/index.js';
 import { securityHeaders } from './middlewares/security.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
-import { initDatabaseSchema } from './db/init-all.js';
+import { requestId } from './middlewares/requestId.js';
+import { notFoundHandler } from './middlewares/notFound.js';
+import { errorHandler } from './middlewares/errorHandler.js';
 
 
 const app = express();
+
+// Request Correlation ID (assigned first so all logs carry it)
+app.use(requestId);
 
 // Security Headers
 app.use(securityHeaders);
@@ -41,14 +45,11 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(cookieParser());
 
-// Request Logger
+// Request Logger (correlated via req.id)
 app.use((req, res, next) => {
-  logger.info({ method: req.method, url: req.url }, 'Incoming API Request');
+  logger.info({ reqId: req.id, method: req.method, url: req.url }, 'Incoming API Request');
   next();
 });
-
-// API Routes
-app.use('/api', apiRouter);
 
 // Root Status
 app.get('/', (req, res) => {
@@ -60,29 +61,14 @@ app.get('/', (req, res) => {
   });
 });
 
-async function ensureSchemaUpdated() {
-  try {
-    await initDatabaseSchema();
-    const sql = neon(env.DATABASE_URL);
-    await sql`ALTER TABLE emails ADD COLUMN IF NOT EXISTS category text DEFAULT 'primary'`;
-    await sql`DELETE FROM emails WHERE external_message_id LIKE 'seed_%'`;
-    await sql`DELETE FROM events WHERE external_event_id LIKE 'seed_%'`;
-    await sql`DELETE FROM tasks WHERE title IN (
-      'Review Q3 Product Architecture & API Specs',
-      'Prepare Presentation for Academic Advisory Meeting',
-      'Follow up on Client Onboarding & Security Clearance',
-      'Set up Automated CI/CD Build & Type-Check Pipeline',
-      'Schedule 1:1 Mentorship Sessions for September'
-    )`;
-    logger.info('✨ Verified DB schema & cleaned all hardcoded seed entries');
-  } catch (err) {
-    logger.warn({ err }, 'Auto-schema update warning');
-  }
-}
+// API Routes
+app.use('/api', apiRouter);
 
+// 404 Handler for unmatched routes & Global Centralized Error Handler
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 async function bootstrap() {
-  await ensureSchemaUpdated();
   const port = parseInt(env.PORT, 10) || 5001;
 
   const server = app.listen(port, '0.0.0.0', () => {

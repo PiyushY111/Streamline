@@ -6,27 +6,23 @@ import { env } from '../config/env.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
 import { auditService } from '../services/audit.service.js';
 import { logger } from '../utils/logger.js';
+import { UnauthorizedError, NotFoundError } from '../errors/index.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
-export async function connectGoogle(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized. Please log in first.' });
-      return;
-    }
-    const signedState = signOAuthState(req.user.id);
-    const authUrl = getAuthUrl(signedState);
-    res.redirect(authUrl);
-  } catch (err: unknown) {
-    logger.error({ err }, 'Google connect error');
-    res.status(500).json({ error: 'Failed to generate OAuth URL' });
+export const connectGoogle = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError('Unauthorized. Please log in first.');
   }
-}
+  const signedState = signOAuthState(req.user.id);
+  const authUrl = getAuthUrl(signedState);
+  res.redirect(authUrl);
+});
 
-export async function googleCallback(req: AuthenticatedRequest, res: Response): Promise<void> {
+export const googleCallback = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { code, state } = req.query;
     if (!code || typeof code !== 'string') {
-      res.status(400).json({ error: 'Authorization code is missing.' });
+      res.redirect(`${env.CLIENT_URL}/inbox?error=missing_code`);
       return;
     }
 
@@ -69,7 +65,6 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       return;
     }
 
-
     const account = await oauthService.handleGoogleCallback(code, userId);
 
     await auditService.logAction(userId, 'account.connected', {
@@ -78,68 +73,51 @@ export async function googleCallback(req: AuthenticatedRequest, res: Response): 
       provider: 'google',
     });
 
-
     res.redirect(`${env.CLIENT_URL}/inbox?accountConnected=true`);
   } catch (err: unknown) {
     logger.error({ err }, 'Google callback error');
     res.redirect(`${env.CLIENT_URL}/inbox?error=oauth_failed`);
   }
-}
+});
 
-export async function listAccounts(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const accounts = await oauthService.getAccounts(req.user.id);
-    res.json({ accounts });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to list accounts' });
+export const listAccounts = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
+  const accounts = await oauthService.getAccounts(req.user.id);
+  res.json({ accounts });
+});
 
-export async function updateAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const { label, color } = req.body;
-    const updated = await oauthService.updateAccount(id, req.user.id, { label, color });
-    if (!updated) {
-      res.status(404).json({ error: 'Account not found' });
-      return;
-    }
-
-    await auditService.logAction(req.user.id, 'account.updated', {
-      accountId: id,
-      label,
-      color,
-    });
-
-    res.json({ success: true, account: updated });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to update account' });
+export const updateAccount = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
   }
-}
-
-export async function disconnectAccount(req: AuthenticatedRequest, res: Response): Promise<void> {
-  try {
-    if (!req.user?.id) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await oauthService.disconnectAccount(id, req.user.id);
-
-    await auditService.logAction(req.user.id, 'account.disconnected', {
-      accountId: id,
-    });
-
-    res.json({ success: true, message: 'Account disconnected successfully' });
-  } catch (err: unknown) {
-    res.status(500).json({ error: 'Failed to disconnect account' });
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { label, color } = req.body;
+  const updated = await oauthService.updateAccount(id, req.user.id, { label, color });
+  if (!updated) {
+    throw new NotFoundError('Account not found');
   }
-}
+
+  await auditService.logAction(req.user.id, 'account.updated', {
+    accountId: id,
+    label,
+    color,
+  });
+
+  res.json({ success: true, account: updated });
+});
+
+export const disconnectAccount = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
+  }
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  await oauthService.disconnectAccount(id, req.user.id);
+
+  await auditService.logAction(req.user.id, 'account.disconnected', {
+    accountId: id,
+  });
+
+  res.json({ success: true, message: 'Account disconnected successfully' });
+});

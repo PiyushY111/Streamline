@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ToolDefinition } from './types.js';
-import { searchMemory, MemoryType } from '../../services/ai/memory.service.js';
+import { searchMemory, MemoryType } from '../../memory/memory.service.js';
 
 const searchMemorySchema = z.object({
   query: z.string().min(1, 'Search query is required'),

@@ -8,7 +8,7 @@ import {
 } from '../db/schema/index.js';
 import { eq, and, asc, inArray, gte, sql } from 'drizzle-orm';
 import { redactSecrets } from '../utils/redactor.js';
-import { TOOL_REGISTRY, PermissionClass } from '../agent/tools/index.js';
+import { TOOL_REGISTRY, PermissionClass } from './ai/agent/tools/index.js';
 
 export interface OTelSpan {
   traceId: string;

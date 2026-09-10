@@ -40,7 +40,7 @@ export const createTaskTool: ToolDefinition<CreateTaskArgs, any> = {
     dueAt: args.dueAt || 'No deadline',
   }),
   execute: async (userId, args) => {
-    const { tasksRepository } = await import('../../repositories/tasks.repository.js');
+    const { tasksRepository } = await import('../../../../repositories/tasks.repository.js');
     return tasksRepository.create({
       userId,
       title: args.title,

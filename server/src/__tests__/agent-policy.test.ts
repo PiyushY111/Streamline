@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { enforcePolicy, executeApprovedAction, rejectAction } from '../agent/policy.js';
+import { enforcePolicy, executeApprovedAction, rejectAction } from '../services/ai/agent/policy.js';
 import { db } from '../db/index.js';
 import { pendingActions } from '../db/schema/index.js';
 import { auditService } from '../services/audit.service.js';
 import { TasksRepository, tasksRepository } from '../repositories/tasks.repository.js';
 import { eventsRepository } from '../repositories/events.repository.js';
-import { agentOrchestratorService } from '../services/ai/agent-orchestrator.service.js';
-import { aiCostGuardService } from '../services/ai/cost-guard.service.js';
-import { setAiProvider, getAiProvider } from '../services/ai/ai.factory.js';
+import { agentOrchestratorService } from '../services/ai/agent/orchestrator.service.js';
+import { aiCostGuardService } from '../services/ai/core/cost-guard.service.js';
+import { setAiProvider, getAiProvider } from '../services/ai/core/factory.js';
 
 describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
   beforeEach(() => {

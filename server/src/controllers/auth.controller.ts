@@ -4,19 +4,18 @@ import { AuthenticatedRequest } from '../middlewares/auth.js';
 import { generateCsrfToken } from '../middlewares/security.js';
 import { auditService } from '../services/audit.service.js';
 import { env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
 import { db } from '../db/index.js';
 import { connectedAccounts } from '../db/schema/index.js';
 import { accountSyncQueue } from '../queues/index.js';
 import { eq } from 'drizzle-orm';
+import { BadRequestError, UnauthorizedError, NotFoundError } from '../errors/index.js';
+import { asyncHandler } from '../middlewares/asyncHandler.js';
 
-
-export async function register(req: Request, res: Response): Promise<void> {
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password, name } = req.body;
   try {
-    const { email, password, name } = req.body;
     const result = await authService.register(email, password, name);
     const csrfToken = generateCsrfToken();
-
     const isProd = env.NODE_ENV === 'production';
 
     res.cookie('session_token', result.token, {
@@ -43,17 +42,15 @@ export async function register(req: Request, res: Response): Promise<void> {
     res.status(201).json({ ...result, csrfToken });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Registration failed';
-    logger.error({ err }, 'Register controller error');
-    res.status(400).json({ error: message });
+    throw new BadRequestError(message);
   }
-}
+});
 
-export async function login(req: Request, res: Response): Promise<void> {
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
     const result = await authService.login(email, password);
     const csrfToken = generateCsrfToken();
-
     const isProd = env.NODE_ENV === 'production';
 
     res.cookie('session_token', result.token, {
@@ -89,20 +86,17 @@ export async function login(req: Request, res: Response): Promise<void> {
       .catch(() => {});
 
     res.json({ ...result, csrfToken });
-
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Login failed';
-    logger.error({ err }, 'Login controller error');
-    res.status(401).json({ error: message });
+    throw new UnauthorizedError(message);
   }
-}
+});
 
-export async function me(req: AuthenticatedRequest, res: Response): Promise<void> {
+export const me = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError('Unauthorized');
+  }
   try {
-    if (!req.user) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
-    }
     const user = await authService.getMe(req.user.id);
     let csrfToken = req.cookies?.csrf_token;
     if (!csrfToken) {
@@ -118,15 +112,15 @@ export async function me(req: AuthenticatedRequest, res: Response): Promise<void
     res.json({ user, csrfToken });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'User fetch failed';
-    res.status(404).json({ error: message });
+    throw new NotFoundError(message);
   }
-}
+});
 
-export async function logout(req: AuthenticatedRequest, res: Response): Promise<void> {
+export const logout = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   if (req.user?.id) {
     await auditService.logAction(req.user.id, 'auth.logout', { ip: req.ip });
   }
   res.clearCookie('session_token', { path: '/' });
   res.clearCookie('csrf_token', { path: '/' });
   res.json({ success: true, message: 'Logged out successfully.' });
-}
+});

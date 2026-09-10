@@ -1,17 +1,17 @@
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
-import { getAiProvider } from './ai.factory.js';
-import { getAiToolDeclarations } from '../../agent/tools/index.js';
-import { enforcePolicy } from '../../agent/policy.js';
-import { aiCostGuardService } from './cost-guard.service.js';
-import { db } from '../../db/index.js';
-import { agentSessions, agentMessages, pendingActions } from '../../db/schema/index.js';
+import { getAiProvider } from '../core/factory.js';
+import { getAiToolDeclarations } from './tools/index.js';
+import { enforcePolicy } from './policy.js';
+import { aiCostGuardService } from '../core/cost-guard.service.js';
+import { db } from '../../../db/index.js';
+import { agentSessions, agentMessages, pendingActions } from '../../../db/schema/index.js';
 import { eq, and, asc, desc, gt } from 'drizzle-orm';
-import { logger } from '../../utils/logger.js';
-import { redactSecrets } from '../../utils/redactor.js';
-import type { AiChatMessage } from './types.js';
+import { logger } from '../../../utils/logger.js';
+import { redactSecrets } from '../../../utils/redactor.js';
+import type { AiChatMessage } from '../core/types.js';
 
-import { searchMemory } from './memory.service.js';
+import { searchMemory } from '../memory/memory.service.js';
 
 export const agentTraceEmitter = new EventEmitter();
 
