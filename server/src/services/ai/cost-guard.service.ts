@@ -22,6 +22,8 @@ export const AI_BUDGET_LIMITS = {
   DAILY_COST_LIMIT_USD: 0.50,     // $0.50 / day per user
 };
 
+export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn';
+
 export class AiCostGuardService {
   /**
    * Computes USD cost from token counts according to model pricing
@@ -53,14 +55,14 @@ export class AiCostGuardService {
   async recordUsage(params: {
     userId: string;
     model: string;
-    operation: 'triage' | 'reply_draft' | 'digest' | 'summary';
+    operation: AiOperationType;
     promptTokens: number;
     completionTokens: number;
-  }): Promise<void> {
+  }): Promise<{ totalTokens: number; costUsd: number; formattedCost: string }> {
     try {
       const { userId, model, operation, promptTokens, completionTokens } = params;
       const totalTokens = promptTokens + completionTokens;
-      const { formattedCost } = this.calculateCost(model, promptTokens, completionTokens);
+      const { costUsd, formattedCost } = this.calculateCost(model, promptTokens, completionTokens);
 
       await db.insert(aiTokenUsage).values({
         userId,
@@ -76,8 +78,12 @@ export class AiCostGuardService {
         { userId, model, operation, totalTokens, costUsd: formattedCost },
         'AI Token Usage recorded'
       );
+
+      return { totalTokens, costUsd, formattedCost };
     } catch (err: any) {
       logger.warn({ err: err?.message }, 'Failed to record AI token usage in database');
+      const { costUsd, formattedCost } = this.calculateCost(params.model, params.promptTokens, params.completionTokens);
+      return { totalTokens: params.promptTokens + params.completionTokens, costUsd, formattedCost };
     }
   }
 

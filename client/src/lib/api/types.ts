@@ -156,6 +156,10 @@ export interface AgentMessageData {
   toolCalls?: Array<{ id?: string; name: string; args: Record<string, any> }>;
   toolName?: string;
   toolResult?: any;
+  latencyMs?: number;
+  retrievedMemoryIds?: string[];
+  spanId?: string;
+  parentSpanId?: string;
   createdAt: string;
 }
 
@@ -234,5 +238,101 @@ export interface InjectionSimulationResultData {
   };
   verdict: string;
 }
+
+// Stage 5 Observability & OpenTelemetry Trace Types
+export interface OTelSpanData {
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;
+  name: string;
+  kind: 'INTERNAL' | 'CLIENT' | 'SERVER';
+  startTimeMs: number;
+  endTimeMs: number;
+  durationMs: number;
+  statusCode: 'OK' | 'ERROR' | 'INTERCEPTED';
+  statusMessage?: string;
+  attributes: {
+    'gen_ai.system'?: string;
+    'gen_ai.request.model'?: string;
+    'gen_ai.usage.prompt_tokens'?: number;
+    'gen_ai.usage.completion_tokens'?: number;
+    'gen_ai.usage.total_tokens'?: number;
+    'gen_ai.usage.estimated_cost_usd'?: number;
+    'agent.step_kind': 'user_message' | 'context_retrieved' | 'tool_call' | 'pending_action' | 'model_response';
+    'agent.tool_name'?: string;
+    'agent.permission_class'?: 'read' | 'write' | 'send';
+    'agent.recalled_memory_ids'?: string[];
+    'agent.untrusted_content_detected'?: boolean;
+    'agent.action_id'?: string;
+    'agent.action_status'?: string;
+  };
+}
+
+export interface TraceStepData {
+  id: string;
+  spanId: string;
+  parentSpanId?: string;
+  timestamp: string;
+  kind: 'user_message' | 'context_retrieved' | 'tool_call' | 'pending_action' | 'model_response';
+  label: string;
+  detail: unknown;
+  latencyMs?: number;
+  metadata?: {
+    permissionClass?: 'read' | 'write' | 'send';
+    actionId?: string;
+    status?: string;
+    memorySnippets?: Array<{ id: string; type: string; snippet: string }>;
+    tokens?: { prompt: number; completion: number; total: number };
+    costUsd?: string;
+    model?: string;
+    untrustedContentWarning?: boolean;
+    reasoning?: string;
+    impactPreview?: Record<string, unknown>;
+  };
+}
+
+export interface TraceSummaryData {
+  sessionId: string;
+  sessionTitle: string;
+  totalCostUsd: number;
+  totalTokens: number;
+  totalLatencyMs: number;
+  modelLatencyMs: number;
+  toolLatencyMs: number;
+  stepCount: number;
+  toolCallsCount: number;
+  pendingActionsCount: number;
+  hasUntrustedContentWarning: boolean;
+  createdAt: string;
+  updatedAt: string;
+  costDecomposition: {
+    systemPromptTokens: number;
+    memoryContextTokens: number;
+    historyTokens: number;
+    completionTokens: number;
+    totalCostFormatted: string;
+  };
+}
+
+export interface AgentTraceResponseData {
+  summary: TraceSummaryData;
+  timelineSteps: TraceStepData[];
+  waterfallSpans: OTelSpanData[];
+}
+
+export interface AgentStatsResponseData {
+  totalSessions: number;
+  last7Days: {
+    agentTurnCostUsd: number;
+    triageCostUsd: number;
+    digestCostUsd: number;
+    operations: Array<{
+      operation: string;
+      tokens: number;
+      costUsd: number;
+    }>;
+  };
+}
+
 
 

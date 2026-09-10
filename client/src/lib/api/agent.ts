@@ -6,6 +6,8 @@ import {
   UserMemoryData,
   MemorySearchResultData,
   AiProviderInfoData,
+  AgentTraceResponseData,
+  AgentStatsResponseData,
 } from './types';
 
 export async function sendAgentMessage(
@@ -174,3 +176,24 @@ export async function simulateInjectionAttack(
   }
   return res.json();
 }
+
+export async function fetchAgentTrace(sessionId: string): Promise<AgentTraceResponseData | null> {
+  try {
+    const res = await safeFetch(`/agent/traces/${sessionId}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+
+export async function fetchAgentStats(): Promise<AgentStatsResponseData | null> {
+  try {
+    const res = await safeFetch('/agent/stats', { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (err) {
+    return null;
+  }
+}
+

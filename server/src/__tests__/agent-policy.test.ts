@@ -387,7 +387,7 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
 
     it('terminates loop cleanly and does not loop infinitely when tool calls persist', async () => {
       vi.spyOn(aiCostGuardService, 'checkCircuitBreaker').mockResolvedValue({ isTripped: false } as any);
-      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue(undefined);
+      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue({ totalTokens: 10, costUsd: 0.00001, formattedCost: '0.000010' });
 
       // Mock session exists and message history
       vi.spyOn(db, 'select').mockReturnValue({

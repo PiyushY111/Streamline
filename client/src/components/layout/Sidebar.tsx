@@ -17,6 +17,7 @@ import {
   Bot,
   Brain,
   ShieldCheck,
+  Activity,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { name: 'Daily Digest', href: '/digest' },
   { name: 'Memory Vault', href: '/memory' },
   { name: 'AI Security', href: '/security' },
+  { name: 'Agent Studio', href: '/agent' },
   { name: 'Connected Accounts', href: '/settings' },
 ];
 
@@ -46,6 +48,7 @@ const iconsMap: Record<string, React.ElementType> = {
   '/digest': Sparkles,
   '/memory': Brain,
   '/security': ShieldCheck,
+  '/agent': Activity,
   '/settings': Settings,
 };
 
@@ -172,6 +175,18 @@ export function Sidebar() {
                   )}
                 >
                   Shield
+                </span>
+              )}
+              {!isCollapsed && item.href === '/agent' && (
+                <span
+                  className={cn(
+                    'px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-colors',
+                    isActive
+                      ? 'bg-white/20 text-white'
+                      : 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800'
+                  )}
+                >
+                  Trace
                 </span>
               )}
             </Link>

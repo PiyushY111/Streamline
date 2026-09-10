@@ -228,6 +228,9 @@ import {
   getProviderInfo,
   getSecurityStatus,
   simulateInjection,
+  getTrace,
+  getAgentStats,
+  streamTrace,
 } from '../controllers/agent.controller.js';
 import {
   agentChatSchema,
@@ -271,10 +274,24 @@ router.delete(
 );
 router.get('/agent/provider', authenticate, getProviderInfo);
 
-
 // Prompt-Injection Defense & Security Routes (Stage 4)
 router.get('/agent/security/status', authenticate, getSecurityStatus);
 router.post('/agent/security/simulate-injection', authenticate, simulateInjection);
+
+// Observability & OpenTelemetry Decision Trace Routes (Stage 5)
+router.get(
+  '/agent/traces/:sessionId',
+  authenticate,
+  validateParams(sessionIdParamSchema),
+  getTrace
+);
+router.get(
+  '/agent/traces/:sessionId/stream',
+  authenticate,
+  validateParams(sessionIdParamSchema),
+  streamTrace
+);
+router.get('/agent/stats', authenticate, getAgentStats);
 
 export default router;
 

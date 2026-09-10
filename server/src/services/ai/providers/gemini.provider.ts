@@ -257,9 +257,15 @@ export class GeminiProvider implements AiProvider {
       }
     }
 
+    const promptTokens = response.usageMetadata?.promptTokenCount;
+    const completionTokens = response.usageMetadata?.candidatesTokenCount;
+    const totalTokens = response.usageMetadata?.totalTokenCount;
+
     return {
       text: response.text || undefined,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      model: PRIMARY_FLASH_MODEL,
+      usage: promptTokens !== undefined ? { promptTokens, completionTokens, totalTokens } : undefined,
     };
   }
 }

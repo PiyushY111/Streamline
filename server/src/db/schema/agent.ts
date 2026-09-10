@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, index, integer } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
 
 // A conversation thread with the agent
@@ -33,10 +33,22 @@ export const agentMessages = pgTable(
     >(),
     toolName: text('tool_name'), // set on role='tool' result turns
     toolResult: jsonb('tool_result'),
+
+    // Enterprise OpenTelemetry & Observability Extensions:
+    spanId: text('span_id'),
+    parentSpanId: text('parent_span_id'),
+    latencyMs: integer('latency_ms'),
+    retrievedMemoryIds: jsonb('retrieved_memory_ids').$type<string[]>().default([]),
+    tokenPromptCount: integer('token_prompt_count').default(0),
+    tokenCandidateCount: integer('token_candidate_count').default(0),
+    costUsd: text('cost_usd').default('0.000000'),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
     sessionMsgIdx: index('agent_messages_session_idx').on(table.sessionId, table.createdAt),
+    spanIdx: index('agent_messages_span_idx').on(table.spanId),
+    latencyIdx: index('agent_messages_latency_idx').on(table.latencyMs),
   })
 );
 

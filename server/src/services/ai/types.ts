@@ -54,6 +54,12 @@ export interface AiChatTurnOptions {
 export interface AiChatTurnResponse {
   text?: string;
   toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  model?: string;
+  usage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
 }
 
 export interface AiProvider {

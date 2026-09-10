@@ -1,11 +1,13 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
-import { agentOrchestratorService } from '../services/ai/agent-orchestrator.service.js';
+import { agentOrchestratorService, agentTraceEmitter } from '../services/ai/agent-orchestrator.service.js';
 import { executeApprovedAction, rejectAction as rejectPolicyAction } from '../agent/policy.js';
 import { db } from '../db/index.js';
 import { agentSessions } from '../db/schema/index.js';
+import { eq, and } from 'drizzle-orm';
 import { memoryService, MemoryType } from '../services/ai/memory.service.js';
 import { getAiProvider } from '../services/ai/ai.factory.js';
+import { traceService } from '../services/trace.service.js';
 import { logger } from '../utils/logger.js';
 
 export async function chat(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -366,3 +368,90 @@ export async function simulateInjection(req: AuthenticatedRequest, res: Response
     res.status(500).json({ error: 'Failed to simulate injection containment' });
   }
 }
+
+export async function getTrace(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+    const trace = await traceService.assembleTrace(req.user.id, sessionId);
+    if (!trace) {
+      res.status(404).json({ error: 'Trace not found or access denied' });
+      return;
+    }
+    res.json(trace);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Get trace error');
+    res.status(500).json({ error: 'Failed to assemble agent trace' });
+  }
+}
+
+export async function getAgentStats(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const stats = await traceService.getAgentCostStats(req.user.id);
+    res.json(stats);
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Get agent stats error');
+    res.status(500).json({ error: 'Failed to fetch agent stats' });
+  }
+}
+
+export async function streamTrace(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    if (!req.user?.id) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+
+    const [session] = await db
+      .select()
+      .from(agentSessions)
+      .where(and(eq(agentSessions.id, sessionId), eq(agentSessions.userId, req.user.id)))
+      .limit(1);
+
+    if (!session) {
+      res.status(404).json({ error: 'Session not found or access denied' });
+      return;
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    });
+
+    res.write(`event: connected\ndata: ${JSON.stringify({ sessionId })}\n\n`);
+
+    const onTraceEvent = (event: any) => {
+      if (event.sessionId === sessionId && !res.writableEnded) {
+        res.write(`event: trace_event\ndata: ${JSON.stringify(event)}\n\n`);
+      }
+    };
+
+    agentTraceEmitter.on('trace_event', onTraceEvent);
+
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(': heartbeat\n\n');
+      }
+    }, 15000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      agentTraceEmitter.off('trace_event', onTraceEvent);
+    });
+  } catch (err: any) {
+    logger.error({ err: err.message }, 'Stream trace error');
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to stream trace' });
+    }
+  }
+}
+
