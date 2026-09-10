@@ -4,7 +4,7 @@ import { agentOrchestratorService, agentTraceEmitter } from '../services/ai/agen
 import { executeApprovedAction, rejectAction as rejectPolicyAction } from '../services/ai/agent/policy.js';
 import { db } from '../db/index.js';
 import { agentSessions } from '../db/schema/index.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { memoryService, MemoryType } from '../services/ai/memory/memory.service.js';
 import { getAiProvider } from '../services/ai/core/factory.js';
 import { traceService } from '../services/trace.service.js';
@@ -28,11 +28,22 @@ export const chat = asyncHandler(async (req: AuthenticatedRequest, res: Response
   }
 
   if (!sessionId) {
-    const [newSession] = await db
-      .insert(agentSessions)
-      .values({ userId: req.user.id })
-      .returning();
-    sessionId = newSession.id;
+    const [recentSession] = await db
+      .select()
+      .from(agentSessions)
+      .where(eq(agentSessions.userId, req.user.id))
+      .orderBy(desc(agentSessions.updatedAt))
+      .limit(1);
+
+    if (recentSession && Date.now() - new Date(recentSession.updatedAt).getTime() < 30 * 60 * 1000) {
+      sessionId = recentSession.id;
+    } else {
+      const [newSession] = await db
+        .insert(agentSessions)
+        .values({ userId: req.user.id })
+        .returning();
+      sessionId = newSession.id;
+    }
   }
 
   const result = await agentOrchestratorService.runAgentTurn(
@@ -55,11 +66,22 @@ export const chatStream = asyncHandler(async (req: AuthenticatedRequest, res: Re
   }
 
   if (!sessionId) {
-    const [newSession] = await db
-      .insert(agentSessions)
-      .values({ userId: req.user.id })
-      .returning();
-    sessionId = newSession.id;
+    const [recentSession] = await db
+      .select()
+      .from(agentSessions)
+      .where(eq(agentSessions.userId, req.user.id))
+      .orderBy(desc(agentSessions.updatedAt))
+      .limit(1);
+
+    if (recentSession && Date.now() - new Date(recentSession.updatedAt).getTime() < 30 * 60 * 1000) {
+      sessionId = recentSession.id;
+    } else {
+      const [newSession] = await db
+        .insert(agentSessions)
+        .values({ userId: req.user.id })
+        .returning();
+      sessionId = newSession.id;
+    }
   }
 
   const abortController = new AbortController();

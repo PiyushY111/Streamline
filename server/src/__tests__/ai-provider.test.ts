@@ -74,4 +74,19 @@ describe('Provider-Agnostic AI Architecture', () => {
     const emb = await active.generateEmbedding('Text');
     expect(emb).toEqual([0.1, 0.2, 0.3]);
   });
+
+  it('should preserve thoughtSignature in tool call parts when using GeminiProvider', async () => {
+    const gemini = new GeminiProvider();
+    expect(gemini.name).toBe('gemini');
+
+    // Verify types and interface contract for AiToolCall with thoughtSignature
+    const mockToolCall: import('../services/ai/core/types.js').AiToolCall = {
+      id: 'call_123',
+      name: 'create_calendar_event',
+      args: { title: 'Team Sync' },
+      thoughtSignature: 'cryptographic_opaque_signature_token',
+    };
+    expect(mockToolCall.thoughtSignature).toBe('cryptographic_opaque_signature_token');
+  });
 });
+

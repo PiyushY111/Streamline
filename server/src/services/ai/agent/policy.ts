@@ -104,93 +104,91 @@ export async function executeApprovedAction(
   pendingActionId: string,
   options: { idempotencyKey?: string } = {}
 ) {
-  return await db.transaction(async (tx) => {
-    // 1. Fetch with row-level lock
-    const [action] = await tx
-      .select()
-      .from(pendingActions)
-      .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)))
-      .for('update');
+  // 1. Fetch action with ownership validation
+  const [action] = await db
+    .select()
+    .from(pendingActions)
+    .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)))
+    .limit(1);
 
-    if (!action) {
-      throw new Error('Pending action not found or not owned by user');
-    }
+  if (!action) {
+    throw new Error('Pending action not found or not owned by user');
+  }
 
-    // 2. State verification
-    if (action.status !== 'pending') {
-      throw new Error(`Action already resolved with status: "${action.status}"`);
-    }
+  // 2. State verification
+  if (action.status !== 'pending') {
+    throw new Error(`Action already resolved with status: "${action.status}"`);
+  }
 
-    // 3. Expiration check (24-hour TTL)
-    if (new Date(action.expiresAt) <= new Date()) {
-      await tx
-        .update(pendingActions)
-        .set({ status: 'expired', resolvedAt: new Date() })
-        .where(eq(pendingActions.id, pendingActionId));
-      throw new Error('This pending action has expired (24h time limit exceeded).');
-    }
+  // 3. Expiration check (24-hour TTL)
+  if (new Date(action.expiresAt) <= new Date()) {
+    await db
+      .update(pendingActions)
+      .set({ status: 'expired', resolvedAt: new Date() })
+      .where(eq(pendingActions.id, pendingActionId));
+    throw new Error('This pending action has expired (24h time limit exceeded).');
+  }
 
-    // 4. Idempotency validation
-    if (options.idempotencyKey && action.idempotencyKey && action.idempotencyKey !== options.idempotencyKey) {
-      throw new Error('Idempotency key mismatch.');
-    }
+  // 4. Idempotency validation
+  if (options.idempotencyKey && action.idempotencyKey && action.idempotencyKey !== options.idempotencyKey) {
+    throw new Error('Idempotency key mismatch.');
+  }
 
-    // 5. Tool resolution
-    const tool = TOOL_REGISTRY[action.toolName];
-    if (!tool) {
-      throw new Error(`Unknown tool: "${action.toolName}"`);
-    }
+  // 5. Tool resolution
+  const tool = TOOL_REGISTRY[action.toolName];
+  if (!tool) {
+    throw new Error(`Unknown tool: "${action.toolName}"`);
+  }
 
-    try {
-      // 6. Execute real service
-      const result = await tool.execute(userId, action.toolArgs);
+  try {
+    // 6. Execute real service
+    const result = await tool.execute(userId, action.toolArgs);
 
-      // 7. Atomic state update
-      await tx
-        .update(pendingActions)
-        .set({
-          status: 'executed',
-          resultJson: result,
-          idempotencyKey: options.idempotencyKey || action.idempotencyKey || null,
-          resolvedAt: new Date(),
-        })
-        .where(eq(pendingActions.id, pendingActionId));
+    // 7. Atomic state update
+    await db
+      .update(pendingActions)
+      .set({
+        status: 'executed',
+        resultJson: result,
+        idempotencyKey: options.idempotencyKey || action.idempotencyKey || null,
+        resolvedAt: new Date(),
+      })
+      .where(eq(pendingActions.id, pendingActionId));
 
-      await auditService.logAction(userId, `agent.tool.executed.${action.toolName}`, {
-        pendingActionId,
-        toolName: action.toolName,
-      });
+    await auditService.logAction(userId, `agent.tool.executed.${action.toolName}`, {
+      pendingActionId,
+      toolName: action.toolName,
+    });
 
-      // 9. Fire-and-forget background memory extraction (decoupled from response latency)
-      setImmediate(() => {
-        extractMemoryFromInteraction(
-          userId,
-          `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
-          JSON.stringify(result),
-          `pending_action:${pendingActionId}`
-        ).catch((err) => logger.warn({ err: err.message }, 'Background memory extraction failed, non-fatal'));
-      });
+    // 8. Fire-and-forget background memory extraction (decoupled from response latency)
+    setImmediate(() => {
+      extractMemoryFromInteraction(
+        userId,
+        `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
+        JSON.stringify(result),
+        `pending_action:${pendingActionId}`
+      ).catch((err) => logger.warn({ err: err.message }, 'Background memory extraction failed, non-fatal'));
+    });
 
-      return result;
-    } catch (err: any) {
-      // 8. Error recording
-      await tx
-        .update(pendingActions)
-        .set({
-          status: 'failed',
-          errorJson: { message: err.message, stack: err.stack },
-          resolvedAt: new Date(),
-        })
-        .where(eq(pendingActions.id, pendingActionId));
+    return result;
+  } catch (err: any) {
+    // 9. Error recording
+    await db
+      .update(pendingActions)
+      .set({
+        status: 'failed',
+        errorJson: { message: err.message, stack: err.stack },
+        resolvedAt: new Date(),
+      })
+      .where(eq(pendingActions.id, pendingActionId));
 
-      await auditService.logAction(userId, `agent.tool.failed.${action.toolName}`, {
-        pendingActionId,
-        error: err.message,
-      });
+    await auditService.logAction(userId, `agent.tool.failed.${action.toolName}`, {
+      pendingActionId,
+      error: err.message,
+    });
 
-      throw err;
-    }
-  });
+    throw err;
+  }
 }
 
 /**

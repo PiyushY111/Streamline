@@ -29,7 +29,7 @@ export const agentMessages = pgTable(
     role: text('role').notNull(), // 'user' | 'model' | 'tool'
     content: text('content'), // natural-language content, nullable for pure tool-call turns
     toolCalls: jsonb('tool_calls').$type<
-      Array<{ id?: string; name: string; args: Record<string, unknown> }>
+      Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }>
     >(),
     toolName: text('tool_name'), // set on role='tool' result turns
     toolResult: jsonb('tool_result'),

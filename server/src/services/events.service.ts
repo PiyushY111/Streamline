@@ -1,7 +1,8 @@
 import { db } from '../db/index.js';
-import { connectedAccounts } from '../db/schema/index.js';
+import { connectedAccounts, calendars } from '../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { eventsRepository } from '../repositories/events.repository.js';
+import { logger } from '../utils/logger.js';
 
 export class EventsService {
   async getEvents(userId: string, startDate?: string, endDate?: string) {
@@ -26,19 +27,21 @@ export class EventsService {
       startTime: string | Date;
       endTime: string | Date;
       timezone?: string;
+      attendees?: string[];
     }
   ) {
     let accountId = data.accountId;
     if (!accountId) {
       const accountsList = await db
-        .select({ id: connectedAccounts.id })
+        .select({ id: connectedAccounts.id, status: connectedAccounts.status })
         .from(connectedAccounts)
-        .where(eq(connectedAccounts.userId, userId))
-        .limit(1);
+        .where(eq(connectedAccounts.userId, userId));
+
       if (accountsList.length === 0) {
         throw new Error('No connected Google account found. Please connect an account first.');
       }
-      accountId = accountsList[0].id;
+      const activeAcc = accountsList.find((a) => a.status === 'active') || accountsList[0];
+      accountId = activeAcc.id;
     } else {
       const [userAcc] = await db
         .select({ id: connectedAccounts.id })
@@ -56,8 +59,70 @@ export class EventsService {
       calendarId = primaryCal.id;
     }
 
-    const externalEventId =
-      data.externalEventId || `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    let externalEventId = data.externalEventId;
+    let htmlLink: string | undefined;
+
+    // Collect any attendee emails from data or description/title
+    const attendeeEmails = new Set<string>(data.attendees || []);
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const descMatches = (data.description || '').match(emailRegex) || [];
+    const titleMatches = (data.title || '').match(emailRegex) || [];
+    for (const em of [...descMatches, ...titleMatches]) {
+      attendeeEmails.add(em);
+    }
+
+    // Push event to Google Calendar API
+    try {
+      const { getGmailClientForAccount } = await import('./google/gmail-sync.service.js');
+      const clientData = await getGmailClientForAccount(accountId);
+      if (clientData?.oauth2Client) {
+        const { google } = await import('googleapis');
+        const calendarApi = google.calendar({ version: 'v3', auth: clientData.oauth2Client });
+
+        const [calRow] = await db
+          .select({ externalId: calendars.externalCalendarId, isPrimary: calendars.isPrimary })
+          .from(calendars)
+          .where(eq(calendars.id, calendarId))
+          .limit(1);
+
+        const targetExternalCalId = calRow?.isPrimary ? 'primary' : (calRow?.externalId || 'primary');
+
+        const insertPayload: any = {
+          calendarId: targetExternalCalId,
+          requestBody: {
+            summary: data.title || 'Untitled Event',
+            description: data.description || '',
+            location: data.location || '',
+            start: {
+              dateTime: new Date(data.startTime || Date.now()).toISOString(),
+              timeZone: data.timezone || 'UTC',
+            },
+            end: {
+              dateTime: new Date(data.endTime || Date.now() + 3600 * 1000).toISOString(),
+              timeZone: data.timezone || 'UTC',
+            },
+          },
+        };
+
+        if (attendeeEmails.size > 0) {
+          insertPayload.requestBody.attendees = Array.from(attendeeEmails).map((email) => ({ email }));
+          insertPayload.sendUpdates = 'all';
+        }
+
+        const googleRes = await calendarApi.events.insert(insertPayload);
+        if (googleRes.data.id) {
+          externalEventId = googleRes.data.id;
+          htmlLink = googleRes.data.htmlLink || undefined;
+          logger.info({ accountId, externalEventId, htmlLink }, 'Event successfully pushed live to Google Calendar');
+        }
+      }
+    } catch (gErr: any) {
+      logger.warn({ err: gErr.message, accountId }, 'Failed to push event directly to Google Calendar API, persisting to local DB');
+    }
+
+    if (!externalEventId) {
+      externalEventId = `local_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
 
     return eventsRepository.create({
       userId,
@@ -70,6 +135,7 @@ export class EventsService {
       startTime: new Date(data.startTime || Date.now()),
       endTime: new Date(data.endTime || Date.now() + 3600 * 1000),
       timezone: data.timezone,
+      htmlLink,
     });
   }
 

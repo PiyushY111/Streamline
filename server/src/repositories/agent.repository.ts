@@ -6,7 +6,7 @@ export interface CreateAgentMessageInput {
   sessionId: string;
   role: string;
   content?: string | null;
-  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }>;
   toolName?: string;
   toolResult?: unknown;
   spanId?: string;

@@ -35,10 +35,17 @@ export interface AiToolDefinition {
   };
 }
 
+export interface AiToolCall {
+  id?: string;
+  name: string;
+  args: Record<string, unknown>;
+  thoughtSignature?: string;
+}
+
 export interface AiChatMessage {
   role: 'user' | 'model' | 'tool';
   content?: string | null;
-  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  toolCalls?: AiToolCall[];
   toolName?: string;
   toolResult?: unknown;
 }
@@ -53,7 +60,7 @@ export interface AiChatTurnOptions {
 
 export interface AiChatTurnResponse {
   text?: string;
-  toolCalls?: Array<{ id?: string; name: string; args: Record<string, unknown> }>;
+  toolCalls?: AiToolCall[];
   model?: string;
   usage?: {
     promptTokens?: number;

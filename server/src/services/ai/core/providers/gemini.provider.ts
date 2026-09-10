@@ -196,12 +196,19 @@ export class GeminiProvider implements AiProvider {
         if (m.content) parts.push({ text: m.content });
         if (m.toolCalls && m.toolCalls.length > 0) {
           for (const tc of m.toolCalls) {
-            parts.push({
+            const partObj: any = {
               functionCall: {
                 name: tc.name,
                 args: tc.args || {},
               },
-            });
+            };
+            if (tc.id) {
+              partObj.functionCall.id = tc.id;
+            }
+            if (tc.thoughtSignature) {
+              partObj.thoughtSignature = tc.thoughtSignature;
+            }
+            parts.push(partObj);
           }
         }
         return { role: 'model', parts: parts.length > 0 ? parts : [{ text: '' }] };
@@ -247,10 +254,29 @@ export class GeminiProvider implements AiProvider {
       config,
     });
 
-    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown> }> = [];
-    if (response.functionCalls && response.functionCalls.length > 0) {
+    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }> = [];
+    const candidateParts = response.candidates?.[0]?.content?.parts || [];
+    for (const part of candidateParts) {
+      if (part.functionCall) {
+        const thoughtSignature =
+          part.thoughtSignature ||
+          (part as any).thought_signature ||
+          (part.functionCall as any)?.thoughtSignature ||
+          (part.functionCall as any)?.thought_signature;
+
+        toolCalls.push({
+          id: part.functionCall.id,
+          name: part.functionCall.name,
+          args: (part.functionCall.args as Record<string, unknown>) || {},
+          thoughtSignature,
+        });
+      }
+    }
+
+    if (toolCalls.length === 0 && response.functionCalls && response.functionCalls.length > 0) {
       for (const fc of response.functionCalls) {
         toolCalls.push({
+          id: (fc as any).id,
           name: fc.name,
           args: (fc.args as Record<string, unknown>) || {},
         });

@@ -174,23 +174,18 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       vi.spyOn(tasksRepository, 'create').mockResolvedValue(mockCreatedTask as any);
       vi.spyOn(auditService, 'logAction').mockResolvedValue(undefined as any);
 
-      // Mock db.transaction
+      // Mock db.select and db.update
       const updateMock = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) });
-      vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
-        const mockTx = {
-          select: () => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
           }),
-          update: () => ({
-            set: updateMock,
-          }),
-        };
-        return callback(mockTx);
-      });
+        }),
+      } as any);
+      vi.spyOn(db, 'update').mockReturnValue({
+        set: updateMock,
+      } as any);
 
       const result = await executeApprovedAction('user-1', 'action-101', { idempotencyKey: 'idem-1' });
 
@@ -210,18 +205,13 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
     });
 
     it('rejects approval if action belongs to another user (cross-user violation)', async () => {
-      vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
-        const mockTx = {
-          select: () => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([]), // No action found for this user
-              }),
-            }),
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([]), // No action found for this user
           }),
-        };
-        return callback(mockTx);
-      });
+        }),
+      } as any);
 
       await expect(
         executeApprovedAction('hacker-user-99', 'action-101')
@@ -238,18 +228,13 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         expiresAt: new Date(Date.now() + 10000),
       };
 
-      vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
-        const mockTx = {
-          select: () => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
           }),
-        };
-        return callback(mockTx);
-      });
+        }),
+      } as any);
 
       await expect(
         executeApprovedAction('user-1', 'action-101')
@@ -267,21 +252,16 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       };
 
       const setMock = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) });
-      vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
-        const mockTx = {
-          select: () => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
           }),
-          update: () => ({
-            set: setMock,
-          }),
-        };
-        return callback(mockTx);
-      });
+        }),
+      } as any);
+      vi.spyOn(db, 'update').mockReturnValue({
+        set: setMock,
+      } as any);
 
       await expect(
         executeApprovedAction('user-1', 'action-101')
@@ -302,21 +282,16 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       vi.spyOn(tasksRepository, 'create').mockRejectedValue(new Error('Database foreign key failure'));
       const setMock = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([]) });
 
-      vi.spyOn(db, 'transaction').mockImplementation(async (callback: any) => {
-        const mockTx = {
-          select: () => ({
-            from: () => ({
-              where: () => ({
-                for: vi.fn().mockResolvedValue([mockAction]),
-              }),
-            }),
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
           }),
-          update: () => ({
-            set: setMock,
-          }),
-        };
-        return callback(mockTx);
-      });
+        }),
+      } as any);
+      vi.spyOn(db, 'update').mockReturnValue({
+        set: setMock,
+      } as any);
 
       await expect(
         executeApprovedAction('user-1', 'action-fail')

@@ -5,6 +5,7 @@ import {
   Bot,
   Send,
   X,
+  Plus,
   Sparkles,
   RefreshCw,
   Clock,
@@ -71,10 +72,44 @@ export function AgentCopilotDrawer({
   }, [messages, loading, activeTab]);
 
   useEffect(() => {
+    if (!isOpen || activeTab !== 'chat') return;
+    if (typeof window === 'undefined') return;
+
+    const saved = localStorage.getItem('streamline_copilot_session_id');
+    if (saved && !sessionId) {
+      setSessionId(saved);
+      fetchSessionMessages(saved)
+        .then(async (serverMsgs) => {
+          if (serverMsgs && serverMsgs.length > 0) {
+            const allPending = await fetchPendingActions();
+            const formatted = serverMsgs
+              .filter((sm) => sm.role === 'user' || (sm.role === 'model' && sm.content))
+              .map((sm) => ({
+                id: sm.id,
+                role: sm.role as 'user' | 'model',
+                content: sm.content || '',
+                pendingActions: allPending.filter((a) => a.sessionId === saved && a.status === 'pending'),
+              }));
+            setMessages(formatted);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, activeTab]);
+
+  useEffect(() => {
     if (isOpen && activeTab === 'memories') {
       loadMemories();
     }
   }, [isOpen, activeTab, memoryFilter]);
+
+  const handleNewChat = () => {
+    setSessionId(undefined);
+    setMessages([]);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('streamline_copilot_session_id');
+    }
+  };
 
   const loadMemories = async () => {
     setLoadingMemories(true);
@@ -113,8 +148,11 @@ export function AgentCopilotDrawer({
 
     try {
       const response: any = await sendAgentMessage(userText, sessionId);
-      if (!sessionId) {
+      if (!sessionId && response.sessionId) {
         setSessionId(response.sessionId);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('streamline_copilot_session_id', response.sessionId);
+        }
       }
 
       // Fetch pending actions if any action was queued
@@ -183,12 +221,22 @@ export function AgentCopilotDrawer({
               </div>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center space-x-1.5">
+              <button
+                onClick={handleNewChat}
+                className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800 transition-colors"
+                title="Start a brand new chat session"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>New Chat</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Navigation Tabs */}

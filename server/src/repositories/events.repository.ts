@@ -79,6 +79,13 @@ export class EventsRepository {
   }
 
   async getOrCreatePrimaryCalendar(accountId: string) {
+    const [primary] = await db
+      .select()
+      .from(calendars)
+      .where(and(eq(calendars.accountId, accountId), eq(calendars.isPrimary, true)))
+      .limit(1);
+    if (primary) return primary;
+
     const [existing] = await db.select().from(calendars).where(eq(calendars.accountId, accountId)).limit(1);
     if (existing) return existing;
 
@@ -105,6 +112,7 @@ export class EventsRepository {
     startTime: Date;
     endTime: Date;
     timezone?: string;
+    htmlLink?: string;
   }) {
     // Verify account belongs to user
     const accountIds = await this.getUserAccountIds(data.userId);
@@ -124,6 +132,7 @@ export class EventsRepository {
         startTime: data.startTime,
         endTime: data.endTime,
         timezone: data.timezone,
+        htmlLink: data.htmlLink || '',
       })
       .returning();
     return newEvent;
