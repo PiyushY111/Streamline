@@ -214,7 +214,7 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
       // Memory injection provenance verification
       const contextStep = trace.timelineSteps.find((s) => s.kind === 'context_retrieved');
       expect(contextStep).toBeDefined();
-      expect(contextStep?.metadata?.memorySnippets?.[0].content || contextStep?.metadata?.memorySnippets?.[0].snippet).toContain('morning meetings');
+      expect(contextStep?.metadata?.memorySnippets?.[0].snippet).toContain('morning meetings');
 
       // Policy gate interception verification
       const pendingStep = trace.timelineSteps.find((s) => s.kind === 'pending_action');
