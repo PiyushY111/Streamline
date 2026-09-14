@@ -74,8 +74,8 @@ graph TD
 Streamline/
 ├── client/                     # Next.js 15 Frontend Application
 │   ├── src/
-│   │   ├── app/                # App Router (Dashboard, Inbox, Digest, Calendar, Tasks, Auth)
-│   │   ├── components/         # Reusable UI components (Inbox, Drafter Modal, Task Radar)
+│   │   ├── app/                # App Router (Dashboard: inbox, agent, memory, security, calendar, tasks, digest)
+│   │   ├── components/         # Reusable UI components (Inbox, Agent Studio, Drafter, Task Radar, Memory)
 │   │   ├── hooks/              # Custom React hooks
 │   │   ├── lib/api/            # Typed API client, fetch wrappers, and DTO definitions
 │   │   └── providers/          # React Context providers (AuthContext, ThemeContext)
@@ -83,25 +83,33 @@ Streamline/
 │   └── package.json
 │
 ├── server/                     # Node.js + Express + BullMQ Backend
+│   ├── evals/                  # Automated scenario-based AI evaluation harness
+│   │   ├── scenarios/          # Ground-truth JSON test cases (priority, tool, memory, injection)
+│   │   ├── runner.ts           # Asynchronous eval runner
+│   │   └── run-all.ts          # Master evaluation execution script
+│   ├── scripts/                # Utility scripts (injection demo, pgvector test, seed clean)
 │   ├── src/
 │   │   ├── config/             # Environment validation with Zod
-│   │   ├── controllers/        # REST route controllers
-│   │   ├── db/                 # Database connection, schemas, and migration runners
-│   │   │   └── schema/         # Drizzle schema definitions (users, emails, AI, sync)
-│   │   ├── middlewares/        # Security headers, auth, rate limiting
+│   │   ├── controllers/        # REST route controllers (Agent, Auth, Accounts, Emails, Events, Tasks, etc.)
+│   │   ├── db/                 # Database connection, migrations, and schema definitions
+│   │   │   └── schema/         # Drizzle schemas (users, accounts, emails, agent, memories, tasks, ai)
+│   │   ├── middlewares/        # Security headers, auth, rate limiting, validation
 │   │   ├── queues/             # BullMQ queue instances and Redis connection factory
 │   │   ├── repositories/       # Database access layer (Drizzle ORM queries)
 │   │   ├── routes/             # Express API routing tables
 │   │   ├── schemas/            # Zod validation schemas for requests
 │   │   ├── services/           # Business logic & integrations
-│   │   │   ├── ai/             # Gemini triage, reply drafter, and digest synthesis
-│   │   │   └── google/         # Gmail, Calendar sync services, and token rotation
-│   │   ├── utils/              # Crypto (AES-256-GCM), Logger (Pino), OAuth helpers
+│   │   │   ├── ai/             # Agent orchestrator, policy engine, tools, memory, features, core providers
+│   │   │   ├── google/         # Gmail, Calendar sync services, and token rotation
+│   │   │   ├── planner.service.ts  # DAG dependency and exponential urgency scoring
+│   │   │   └── trace.service.ts    # OpenTelemetry trace assembler & live SSE stream
+│   │   ├── utils/              # Crypto (AES-256-GCM), Logger (Pino), OAuth helpers, Redactor
 │   │   └── workers/            # BullMQ background workers and cron schedulers
 │   ├── package.json
 │   └── vitest.config.ts
 │
-├── docs/                       # Comprehensive Architecture & Developer Docs
+├── docs/                       # Comprehensive Architecture, Security, API & Developer Docs
+│   └── adr/                    # Architecture Decision Records (ADR-0001 to ADR-0012)
 └── .env.example                # Root environment template
 ```
 
