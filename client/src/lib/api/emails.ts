@@ -80,9 +80,9 @@ export async function updateEmailCategoryApi(id: string, category: string): Prom
   return data.email;
 }
 
-export async function triggerSyncApi(): Promise<void> {
+export async function triggerSyncApi(wait: boolean = true): Promise<void> {
   try {
-    await safeFetch('/sync/trigger', { method: 'POST' });
+    await safeFetch(`/sync/trigger${wait ? '?wait=true' : ''}`, { method: 'POST' });
   } catch (err: unknown) {
     console.warn('Manual sync trigger error:', err);
   }

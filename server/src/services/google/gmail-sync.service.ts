@@ -101,13 +101,31 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
 
   if (allMessageMetas.length === 0) return 0;
 
+  // 1. Efficient Pre-Filtering: Query which message IDs are ALREADY in the database
+  const existingRecords = await db
+    .select({ externalMessageId: emails.externalMessageId })
+    .from(emails)
+    .where(eq(emails.accountId, accountId));
+
+  const existingIds = new Set(existingRecords.map((r) => r.externalMessageId));
+  const newMetas = allMessageMetas.filter((meta) => !existingIds.has(meta.id));
+
+  logger.info(
+    { accountId, totalListed: allMessageMetas.length, alreadyInDb: existingIds.size, newToFetch: newMetas.length },
+    'Gmail Sync: Pre-filtered emails against database'
+  );
+
+  if (newMetas.length === 0) {
+    logger.info({ accountId }, 'Gmail Sync: All messages already up-to-date in database');
+    return 0;
+  }
+
   const batchSize = 25;
   let syncedCount = 0;
   const newEmailIds: string[] = [];
 
-
-  for (let i = 0; i < allMessageMetas.length; i += batchSize) {
-    const chunk = allMessageMetas.slice(i, i + batchSize);
+  for (let i = 0; i < newMetas.length; i += batchSize) {
+    const chunk = newMetas.slice(i, i + batchSize);
     const fullMessages = await Promise.all(
       chunk.map(async (meta: any) => {
         try {
@@ -213,6 +231,22 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
       logger.info({ accountId, count: newEmailIds.length }, 'Enqueued newly synced emails for AI triage');
     } catch (err: any) {
       logger.warn({ err: err.message }, 'Failed to enqueue emails to AI triage queue');
+    }
+
+    // Immediately invalidate Redis cache so user inbox instantly displays newly fetched emails
+    try {
+      const [acc] = await db
+        .select({ userId: connectedAccounts.userId })
+        .from(connectedAccounts)
+        .where(eq(connectedAccounts.id, accountId))
+        .limit(1);
+
+      if (acc?.userId) {
+        await delCache(`emails:${acc.userId}:*`);
+        logger.info({ userId: acc.userId }, 'Invalidated Redis email cache for user after sync');
+      }
+    } catch (cacheErr) {
+      logger.warn({ cacheErr }, 'Non-fatal error invalidating cache after sync');
     }
   }
 

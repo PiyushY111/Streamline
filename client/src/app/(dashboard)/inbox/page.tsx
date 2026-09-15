@@ -268,18 +268,33 @@ function InboxContent() {
   };
 
   useEffect(() => {
-    // Initial load with live sync to pull latest incoming emails
+    // Initial load with live fast-sync to immediately pull latest incoming emails
     loadData(true);
 
-    // Auto-polling interval every 15 seconds to automatically receive incoming emails
+    // Auto-sync polling every 25 seconds to guarantee all incoming emails are updated within < 30s
     const pollInterval = setInterval(() => {
-      fetchEmails().then((emailData) => {
-        if (emailData.length > 0) updateEmailsState(emailData);
-      }).catch(() => {});
-    }, 15000);
+      triggerSyncApi(true)
+        .then(() => fetchEmails())
+        .then((emailData) => {
+          if (emailData && emailData.length > 0) updateEmailsState(emailData);
+        })
+        .catch(() => {});
+    }, 25000);
+
+    // Immediate fast sync when user returns to this browser tab
+    const handleFocus = () => {
+      triggerSyncApi(true)
+        .then(() => fetchEmails())
+        .then((emailData) => {
+          if (emailData && emailData.length > 0) updateEmailsState(emailData);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
       if (undoTimerRef.current) {
         clearInterval(undoTimerRef.current);
       }
@@ -1192,6 +1207,24 @@ function InboxContent() {
                   viewMode === 'split' ? 'w-96 shrink-0' : 'w-full'
                 } h-full overflow-hidden min-h-0`}
               >
+                {/* Account OAuth Re-Authentication Warning Banner */}
+                {accounts.some((a) => a.status === 'error') && (
+                  <div className="mx-4 my-2 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
+                    <div className="flex items-center space-x-2.5">
+                      <AlertOctagon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span>
+                        Google OAuth session expired for <strong>{accounts.filter((a) => a.status === 'error').map((a) => a.email).join(', ')}</strong>.
+                      </span>
+                    </div>
+                    <a
+                      href="/settings"
+                      className="px-3 py-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition-colors shrink-0 shadow-sm"
+                    >
+                      Reconnect in Settings
+                    </a>
+                  </div>
+                )}
+
                 {/* Top Gmail Action Bar */}
                 <div className="px-4 py-2 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 shrink-0 bg-white dark:bg-[#141517]">
                   <div className="flex items-center space-x-3">
