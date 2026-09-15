@@ -2,6 +2,7 @@ import { db } from '../../../db/index.js';
 import { emails, connectedAccounts, userStyleProfiles } from '../../../db/schema/index.js';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface StyleProfile {
   id?: string;
@@ -42,8 +43,8 @@ export class StyleProfilerService {
           traitsDescription: existing.traitsDescription || undefined,
         };
       }
-    } catch (err: any) {
-      logger.warn({ userId, err: err.message }, 'Failed to query userStyleProfiles, returning default');
+    } catch (err: unknown) {
+      logger.warn({ userId, err: toError(err).message }, 'Failed to query userStyleProfiles, returning default');
     }
 
     return {
@@ -186,8 +187,8 @@ export class StyleProfilerService {
         });
 
       logger.info({ userId, formality, brevity, preferredSignoff }, 'Saved user style profile to database');
-    } catch (err: any) {
-      logger.warn({ userId, err: err.message }, 'Failed to persist style profile in DB, continuing in memory');
+    } catch (err: unknown) {
+      logger.warn({ userId, err: toError(err).message }, 'Failed to persist style profile in DB, continuing in memory');
     }
 
     return profile;

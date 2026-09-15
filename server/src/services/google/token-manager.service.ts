@@ -7,6 +7,7 @@ import { logger } from '../../utils/logger.js';
 import { createOAuth2Client } from '../../utils/google-oauth.js';
 import { decrypt, encrypt } from '../../utils/encryption.js';
 import { auditService } from '../audit.service.js';
+import { toError } from '../../utils/errors.js';
 
 export interface AuthenticatedClientResult {
   oauth2Client: OAuth2Client;
@@ -52,6 +53,17 @@ export class GoogleTokenManager {
     } finally {
       this.activeOperations.delete(accountId);
     }
+  }
+
+  /**
+   * Helper returning an authenticated OAuth2Client directly, throwing if not found.
+   */
+  async getAuthorizedClient(accountId: string): Promise<OAuth2Client> {
+    const result = await this.getValidOAuth2Client(accountId);
+    if (!result) {
+      throw new Error(`Failed to obtain authorized OAuth2 client for account: ${accountId}`);
+    }
+    return result.oauth2Client;
   }
 
   private async resolveClient(accountId: string): Promise<AuthenticatedClientResult | null> {
@@ -141,15 +153,18 @@ export class GoogleTokenManager {
       }
 
       return { oauth2Client, account, refreshed: false };
-    } catch (refreshErr: any) {
-      logger.error({ refreshErr, accountId }, 'Failed to refresh Google OAuth token');
-      const errString = String(refreshErr?.message || refreshErr || '');
+    } catch (refreshErr: unknown) {
+      const error = toError(refreshErr);
+      logger.error({ refreshErr: error.message, accountId }, 'Failed to refresh Google OAuth token');
+      const errString = error.message;
+
+      const status = (refreshErr as { status?: number })?.status;
 
       if (
         errString.includes('invalid_grant') ||
         errString.includes('revoked') ||
-        refreshErr?.status === 400 ||
-        refreshErr?.status === 401
+        status === 400 ||
+        status === 401
       ) {
         logger.warn({ accountId }, 'Detected revoked or invalid Google OAuth grant. Marking account as error');
 

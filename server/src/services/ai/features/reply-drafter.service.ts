@@ -8,6 +8,7 @@ import { aiRepository } from '../../../repositories/ai.repository.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { styleProfilerService } from './style-profiler.service.js';
 import { Response } from 'express';
+import { toError } from '../../../utils/errors.js';
 
 export interface DraftOptions {
   threadId?: string;
@@ -124,8 +125,8 @@ export async function streamDraftReply(
             .orderBy(asc(emails.receivedAt));
         }
       }
-    } catch (err: any) {
-      logger.warn({ err: err.message, targetId }, 'Error during SQL thread resolution');
+    } catch (err: unknown) {
+      logger.warn({ err: toError(err).message, targetId }, 'Error during SQL thread resolution');
     }
   }
 
@@ -239,14 +240,15 @@ ${conversationHistory}
       res.end();
       streamSucceeded = true;
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const error = toError(err);
     if (abortSignal?.aborted) {
       logger.info({ userId }, 'Draft reply streaming aborted by client disconnect');
       return;
     }
-    logger.error({ err: err.message, targetId }, 'Error streaming reply draft');
+    logger.error({ err: error.message, targetId }, 'Error streaming reply draft');
     if (!res.writableEnded) {
-      res.write(`data: ${JSON.stringify({ error: err.message || 'Failed to generate draft' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: error.message || 'Failed to generate draft' })}\n\n`);
       res.end();
     }
   }

@@ -1,8 +1,9 @@
 import { db } from '../../../../../db/index.js';
-import { emails, connectedAccounts } from '../../../../../db/schema/index.js';
+import { emails, connectedAccounts, emailAiMetadata } from '../../../../../db/schema/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { getAiProvider } from '../../../core/factory.js';
 import { logger } from '../../../../../utils/logger.js';
+import { toError } from '../../../../../utils/errors.js';
 
 export interface InboxSentryOutput {
   threadsAnalyzed: number;
@@ -21,12 +22,13 @@ export class InboxSentryAgent {
         id: emails.id,
         subject: emails.subject,
         sender: emails.sender,
-        snippet: emails.snippet,
-        priorityScore: emails.priorityScore,
+        snippet: emails.bodyText,
+        priorityScore: emailAiMetadata.urgencyScore,
         receivedAt: emails.receivedAt,
       })
       .from(emails)
       .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
+      .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
       .where(
         and(
           eq(connectedAccounts.userId, userId),
@@ -69,8 +71,9 @@ Output JSON:
           summary = res.summary;
           keyCommitments = res.commitments || [];
         }
-      } catch (err: any) {
-        logger.warn({ err: err.message }, 'Inbox Sentry LLM parsing fallback');
+      } catch (err: unknown) {
+        const error = toError(err);
+        logger.warn({ err: error.message }, 'Inbox Sentry LLM parsing fallback');
       }
     }
 

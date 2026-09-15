@@ -1,4 +1,6 @@
+import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface RerankCandidate {
   id: string;
@@ -62,8 +64,8 @@ export class RerankerService {
         } else {
           logger.warn({ status: response.status }, 'Cohere Rerank API returned non-200, falling back to local scoring');
         }
-      } catch (err: any) {
-        logger.warn({ err: err.message }, 'Failed to call Cohere Rerank API, using local scoring fallback');
+      } catch (err: unknown) {
+        logger.warn({ err: toError(err).message }, 'Failed to call Cohere Rerank API, using local scoring fallback');
       }
     }
 

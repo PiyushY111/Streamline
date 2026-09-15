@@ -4,6 +4,7 @@ import { memories } from '../../../db/schema/index.js';
 import { getAiProvider } from '../core/factory.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export type MemoryType = 'preference' | 'decision' | 'project_fact';
 export type MemoryStatus = 'active' | 'superseded' | 'archived';
@@ -164,8 +165,9 @@ export class MemoryService {
         content: cleanContent,
         status: 'active',
       };
-    } catch (err: any) {
-      logger.warn({ err: err.message, userId }, 'Non-fatal error saving semantic memory');
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.warn({ err: error.message, userId }, 'Non-fatal error saving semantic memory');
       return null;
     }
   }
@@ -275,8 +277,8 @@ export class MemoryService {
           .where(and(...sparseConditions))
           .orderBy(desc(sql`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`))
           .limit(topK * 2);
-      } catch (sparseErr: any) {
-        logger.warn({ err: sparseErr.message }, 'Sparse keyword search fallback to pure vector');
+      } catch (sparseErr: unknown) {
+        logger.warn({ err: toError(sparseErr).message }, 'Sparse keyword search fallback to pure vector');
       }
 
       // 3. Reciprocal Rank Fusion (RRF) with constant k=60
@@ -336,8 +338,9 @@ export class MemoryService {
       this.recordAccessAsync(finalResults.map((r) => r.id));
 
       return finalResults;
-    } catch (err: any) {
-      logger.warn({ err: err.message, query }, 'Failed to search semantic memory');
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.warn({ err: error.message, query }, 'Failed to search semantic memory');
       return [];
     }
   }
@@ -353,8 +356,9 @@ export class MemoryService {
         .returning({ id: memories.id });
 
       return result.length > 0;
-    } catch (err: any) {
-      logger.error({ err: err.message, userId, memoryId }, 'Failed to delete memory');
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.error({ err: error.message, userId, memoryId }, 'Failed to delete memory');
       return false;
     }
   }
@@ -405,15 +409,28 @@ export class MemoryService {
             lastAccessedAt: new Date(),
           })
           .where(inArray(memories.id, memoryIds));
-      } catch (err: any) {
-        logger.debug({ err: err.message }, 'Failed to record memory access');
+      } catch (err: unknown) {
+        const error = toError(err);
+        logger.debug({ err: error.message }, 'Failed to record memory access');
       }
     });
+  }
+
+  /**
+   * Alias for searchMemory (plural compatibility)
+   */
+  async searchMemories(
+    userId: string,
+    query: string,
+    options?: SearchMemoryOptions
+  ) {
+    return this.searchMemory(userId, query, options);
   }
 }
 
 export const memoryService = new MemoryService();
 export const saveMemory = memoryService.saveMemory.bind(memoryService);
 export const searchMemory = memoryService.searchMemory.bind(memoryService);
+export const searchMemories = memoryService.searchMemories.bind(memoryService);
 export const deleteMemory = memoryService.deleteMemory.bind(memoryService);
 export const listMemories = memoryService.listMemories.bind(memoryService);

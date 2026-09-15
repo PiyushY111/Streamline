@@ -4,6 +4,7 @@ import { Type } from '@google/genai';
 import { logger } from '../../../utils/logger.js';
 import { ExtractedTaskItem } from '../../../db/schema/index.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
+import { toError } from '../../../utils/errors.js';
 import crypto from 'crypto';
 
 export interface TriageResult {
@@ -14,6 +15,8 @@ export interface TriageResult {
   newsletterTopic?: string;
   sentiment?: 'urgent' | 'positive' | 'neutral' | 'tense';
   extractedTasks: ExtractedTaskItem[];
+  confidenceScore?: number;
+  requiresHumanReview?: boolean;
 }
 
 export async function triageEmail(
@@ -107,6 +110,10 @@ ${(email.bodyText || '').substring(0, 4000)}
             type: Type.STRING,
             enum: ['urgent', 'positive', 'neutral', 'tense'],
           },
+          confidenceScore: {
+            type: Type.NUMBER,
+            description: 'Classification confidence score between 0.0 and 1.0',
+          },
           tasks: {
             type: Type.ARRAY,
             items: {
@@ -161,6 +168,9 @@ ${(email.bodyText || '').substring(0, 4000)}
       });
     }
 
+    const confidenceScore = typeof parsed.confidenceScore === 'number' ? parsed.confidenceScore : 0.88;
+    const requiresHumanReview = confidenceScore < 0.70;
+
     return {
       priority: priority || 'p2_important',
       urgencyScore: Math.min(100, Math.max(1, parsed.urgencyScore || 50)),
@@ -169,9 +179,12 @@ ${(email.bodyText || '').substring(0, 4000)}
       newsletterTopic: parsed.newsletterTopic,
       sentiment: parsed.sentiment || 'neutral',
       extractedTasks: tasks,
+      confidenceScore,
+      requiresHumanReview,
     };
-  } catch (err: any) {
-    logger.warn({ err: err.message, emailId: email.id }, 'Gemini triage failed, falling back to heuristic');
+  } catch (err: unknown) {
+    const error = toError(err);
+    logger.warn({ err: error.message, emailId: email.id }, 'Gemini triage failed, falling back to heuristic');
     return heuristicFallbackTriage(email, isVip);
   }
 }

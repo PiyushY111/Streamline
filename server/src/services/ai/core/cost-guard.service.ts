@@ -2,6 +2,7 @@ import { db } from '../../../db/index.js';
 import { aiTokenUsage } from '../../../db/schema/index.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface ModelPricing {
   promptPerMillion: number;
@@ -22,7 +23,7 @@ export const AI_BUDGET_LIMITS = {
   DAILY_COST_LIMIT_USD: 0.50,     // $0.50 / day per user
 };
 
-export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn';
+export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn' | 'agent_tool_call';
 
 export class AiCostGuardService {
   /**
@@ -80,8 +81,9 @@ export class AiCostGuardService {
       );
 
       return { totalTokens, costUsd, formattedCost };
-    } catch (err: any) {
-      logger.warn({ err: err?.message }, 'Failed to record AI token usage in database');
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.warn({ err: error.message }, 'Failed to record AI token usage in database');
       const { costUsd, formattedCost } = this.calculateCost(params.model, params.promptTokens, params.completionTokens);
       return { totalTokens: params.promptTokens + params.completionTokens, costUsd, formattedCost };
     }
@@ -141,10 +143,30 @@ export class AiCostGuardService {
         tokensToday,
         costTodayUsd,
       };
-    } catch (err: any) {
-      logger.warn({ err: err?.message }, 'Error checking AI circuit breaker, allowing request');
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.warn({ err: error.message }, 'Error checking AI circuit breaker, allowing request');
       return { isTripped: false, tokensToday: 0, costTodayUsd: 0 };
     }
+  }
+
+  /**
+   * Records token usage and USD cost for an individual tool call inside an agent turn.
+   */
+  async recordToolUsage(params: {
+    userId: string;
+    toolName: string;
+    model?: string;
+    promptTokens: number;
+    completionTokens: number;
+  }) {
+    return this.recordUsage({
+      userId: params.userId,
+      model: params.model || 'gemini-3.5-flash-lite',
+      operation: 'agent_tool_call',
+      promptTokens: params.promptTokens,
+      completionTokens: params.completionTokens,
+    });
   }
 
   /**
