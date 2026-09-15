@@ -183,14 +183,14 @@ export default function AgentStudioPage() {
               <Activity className="h-5 w-5" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Agent Decision Studio
+              ReAct Agent Orchestrator
             </h1>
             <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-              Stage 5 Observability
+              Tool Runtime &amp; HITL Shield
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Real-time execution telemetry, OpenTelemetry spans, latency attribution, and human-in-the-loop control.
+            Multi-turn tool execution runtime with thought signature inspection, OpenTelemetry waterfall profiler, and dual-boundary policy safeguards.
           </p>
         </div>
 

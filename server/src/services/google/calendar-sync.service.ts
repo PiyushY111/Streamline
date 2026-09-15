@@ -4,8 +4,16 @@ import { calendars, events } from '../../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { logger } from '../../utils/logger.js';
 
+import { googleTokenManager } from './token-manager.service.js';
+
 export async function syncGoogleCalendar(oauth2Client: any, accountId: string): Promise<number> {
-  const calendarApi = google.calendar({ version: 'v3', auth: oauth2Client });
+  let auth = oauth2Client;
+  if (!auth) {
+    const clientData = await googleTokenManager.getCalendarClient(accountId);
+    if (!clientData) throw new Error(`Connected account not found for ID: ${accountId}`);
+    auth = clientData.oauth2Client;
+  }
+  const calendarApi = google.calendar({ version: 'v3', auth });
   const calendarListRes = await calendarApi.calendarList.list();
   const calendarItems = calendarListRes.data.items || [];
 

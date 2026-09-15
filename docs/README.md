@@ -21,7 +21,7 @@ graph TD
 
 | Section | Document | Description |
 | :--- | :--- | :--- |
-| **01. System Architecture** | [Architecture & System Overview](./architecture/system-overview.md) | High-level topology, Monorepo layout, Service decomposition, Agent Decision Studio, and Caching layer. |
+| **01. System Architecture** | [Architecture & System Overview](./architecture/system-overview.md) | High-level topology, Monorepo layout, Service decomposition, ReAct Agent Orchestrator, and Caching layer. |
 | **02. Database Architecture** | [Database Schema & Models](./architecture/database-schema.md) | Neon Serverless PostgreSQL schema, `pgvector` HNSW index design, Drizzle ORM entity definitions, and ER diagrams. |
 | **03. AI Intelligence** | [Gemini AI Intelligence Pipeline](./ai/gemini-pipeline.md) | Real-time email triage, Action Item radar, Streaming reply drafter, and Daily Executive Digest synthesis. |
 | **04. AI Cost Control & Guard** | [Cost Control & Circuit Breaker](./ai/cost-control-and-circuit-breaker.md) | Token tracking per user, per-model USD cost calculation, and autonomous budget circuit breaker. |
@@ -38,7 +38,7 @@ graph TD
 * **Frontend**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, Radix UI, Zustand, TanStack Query, and Server-Sent Events (SSE).
 * **Backend API & Workers**: Express.js 5 REST API, BullMQ 5.x async job queues, Redis, and cron-based schedulers.
 * **Database & Vector Store**: Neon Serverless PostgreSQL with Drizzle ORM, connection pooling, and `pgvector` for semantic memory retrieval.
-* **Autonomous Agent Studio**: Multi-turn agent with tool execution (`get_email`, `send_email`, `create_calendar_event`, `create_task`, `save_memory`), thought signatures, and dual-boundary human-in-the-loop pending action approvals.
+* **ReAct Agent Orchestrator**: Multi-turn agent with tool execution (`get_email`, `send_email`, `create_calendar_event`, `create_task`, `save_memory`), thought signatures, and dual-boundary human-in-the-loop pending action approvals.
 * **Prompt Injection Defense**: Structural isolation with `<untrusted_external_content>` wrapping, delimiter neutralization, and interactive penetration testing lab.
 * **Observability**: OpenTelemetry-compliant trace assembler producing waterfall timelines, model vs. tool latency breakdown, and live SSE trace streams.
 * **Task & Agenda Engine**: DAG dependency resolution with cycle detection, exponential urgency decay scoring, and Google Calendar free-slot discovery.

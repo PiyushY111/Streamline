@@ -67,67 +67,10 @@ function extractAttachments(payload: any): Array<{ filename: string; mimeType: s
   return attachments;
 }
 
+import { googleTokenManager } from './token-manager.service.js';
+
 export async function getGmailClientForAccount(accountId: string) {
-  const [account] = await db.select().from(connectedAccounts).where(eq(connectedAccounts.id, accountId)).limit(1);
-  if (!account) return null;
-
-  let accessToken = decrypt(account.accessToken);
-  const refreshToken = account.refreshToken ? decrypt(account.refreshToken) : undefined;
-
-  const oauth2Client = createOAuth2Client();
-  oauth2Client.setCredentials({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    expiry_date: account.tokenExpiresAt ? new Date(account.tokenExpiresAt).getTime() : undefined,
-  });
-
-  if (account.tokenExpiresAt && new Date(account.tokenExpiresAt).getTime() < Date.now() + 120000 && refreshToken) {
-    try {
-      logger.info({ accountId }, 'Google OAuth access token expired or expiring soon. Refreshing token...');
-      const { credentials } = await oauth2Client.refreshAccessToken();
-      if (credentials.access_token) {
-        accessToken = credentials.access_token;
-        oauth2Client.setCredentials(credentials);
-        const newEncryptedAccess = encrypt(credentials.access_token);
-        const newExpiresAt = new Date(credentials.expiry_date || Date.now() + 3600 * 1000);
-        await db.update(connectedAccounts)
-          .set({
-            accessToken: newEncryptedAccess,
-            tokenExpiresAt: newExpiresAt,
-            status: 'active',
-            updatedAt: new Date(),
-          })
-          .where(eq(connectedAccounts.id, accountId));
-        logger.info({ accountId }, 'Google OAuth access token refreshed and updated successfully');
-      }
-    } catch (refreshErr: any) {
-      logger.error({ refreshErr, accountId }, 'Failed to refresh Google OAuth token');
-      const errString = String(refreshErr?.message || refreshErr || '');
-      if (
-        errString.includes('invalid_grant') ||
-        errString.includes('revoked') ||
-        refreshErr?.status === 400 ||
-        refreshErr?.status === 401
-      ) {
-        logger.warn({ accountId }, 'Detected revoked/invalid Google OAuth grant. Flagging account status=error');
-        await db.update(connectedAccounts)
-          .set({ status: 'error', updatedAt: new Date() })
-          .where(eq(connectedAccounts.id, accountId));
-
-        await db.update(syncStates)
-          .set({ status: 'error', lastError: 'OAuth token revoked or expired. Reconnection required.' })
-          .where(eq(syncStates.accountId, accountId));
-
-        await auditService.logAction(account.userId, 'account.token_revocation_error', {
-          accountId,
-          email: account.email,
-          error: errString,
-        });
-      }
-    }
-  }
-
-  return { gmail: google.gmail({ version: 'v1', auth: oauth2Client }), account, oauth2Client };
+  return googleTokenManager.getGmailClient(accountId);
 }
 
 export async function syncGmailMessages(oauth2Client: any, accountId: string): Promise<number> {

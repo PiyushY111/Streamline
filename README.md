@@ -26,68 +26,141 @@
 **Streamline** transforms personal productivity by aggregating fragmented Google Workspace accounts (Work, Personal, University) into a single, high-performance command center. 
 
 Beyond standard email clients, Streamline acts as an **autonomous personal operating system**:
-* **Autonomous Agent Decision Studio**: An interactive multi-turn agent capable of scheduling events, drafting emails, managing tasks, and recalling memories using explicit thought signatures.
+* **ReAct Agent Runtime & Tool Orchestrator**: An interactive multi-turn agent capable of scheduling events, drafting emails, managing tasks, and recalling memories using explicit thought signatures and multi-step tool execution loops.
+* **OAuth 2.0 Token Lifecycle & Multi-Account Credential Vault**: Proactive 5-minute expiry buffer checks, single-flight concurrency mutex locks (preventing thundering herd refresh storms across parallel BullMQ workers), AES-256-GCM encryption, and automated `invalid_grant` revocation handling.
 * **Dual-Boundary Policy Engine & Human-in-the-Loop Shield**: Automated interception of state-mutating actions (`send_email`, `create_calendar_event`, `create_task`) requiring cryptographic human review before execution.
 * **Policy-Layer Prompt Injection Defense**: Structural isolation of untrusted external content via delimiter neutralization, preventing indirect prompt injections from hijacking agent execution.
-* **Durable Semantic Memory Vault (pgvector)**: Continuous semantic recall across 3 memory classes (*User Preferences*, *Confirmed Decisions*, *Project Facts*) with hybrid vector and keyword search.
+* **pgvector Hybrid RAG & Semantic Memory Engine**: Continuous semantic recall across 3 memory classes (*User Preferences*, *Confirmed Decisions*, *Project Facts*) via Neon pgvector HNSW cosine distance fused with PostgreSQL `tsvector` full-text search via Reciprocal Rank Fusion ($k=60$).
 * **OpenTelemetry-Compliant Observability**: Real-time waterfall trace profiler tracking per-step latencies, model vs. tool overhead, and exact token/USD cost attribution via live SSE streams.
-* **DAG Task Dependency Engine**: Topological sorting with cycle detection and exponential urgency decay scoring to deterministically select your next best task.
+* **DAG Task Dependency Scheduler & Topological Urgency Engine**: Topological sorting with cycle detection (Kahn's / DFS algorithm) and exponential urgency decay scoring ($e^{-\Delta t / 48}$) to deterministically select your next best task against Google Calendar free slots.
 * **AI Cost Guard & Circuit Breaker**: Autonomous per-user daily token budgets and USD spend limits with automatic tripping mechanisms.
 
 ---
 
 ## 🏛️ System Architecture
 
+### Tier 1: 5-Box Executive Architecture (10-Second High-Level Scan)
+
+```mermaid
+flowchart LR
+    subgraph B1 ["1. Client & Streaming UI"]
+        NextJS["Next.js 15 (React 19)\nSSE Waterfall & Drafter Stream"]
+    end
+
+    subgraph B2 ["2. Security & Token Gateway"]
+        Gateway["Express 5 REST API\nToken Lifecycle Mutex\nAES-256-GCM Vault"]
+    end
+
+    subgraph B3 ["3. ReAct Agent Core"]
+        AgentCore["ReAct Execution Runtime\nGemini Cascade Fallback\nHITL Dual-Boundary Shield"]
+    end
+
+    subgraph B4 ["4. Distributed Async Queues"]
+        AsyncQ["BullMQ 5.x + Redis Cluster\nSync, Triage & Digest Workers"]
+    end
+
+    subgraph B5 ["5. Hybrid Storage & Vectors"]
+        DBStore["Neon Serverless Postgres\npgvector HNSW Cosine Search\nFull-Text tsvector Engine"]
+    end
+
+    B1 <-->|HTTP / SSE| B2
+    B2 <-->|Enqueued Jobs| B4
+    B2 <-->|Read / Write| B5
+    B4 <-->|Persistence & Vectors| B5
+    B2 <-->|Agent Sessions| B3
+    B3 <-->|Context Recall & Mutex| B5
+```
+
+---
+
+### Tier 2: Deep-Dive Distributed Systems Topology & Dataflows
+
 ```mermaid
 graph TD
-    subgraph MultiAccount ["Multi-Account Ingestion & Sync"]
+    subgraph MultiAccount ["Multi-Account Ingestion Layer"]
         G1["Work Gmail & Calendar"]
         G2["Personal Gmail & Calendar"]
         G3["University / Org Mail"]
     end
 
-    subgraph SecurityCore ["Zero-Trust Security & Storage Layer"]
-        AES["AES-256-GCM Token Vault"]
-        PolicyEngine["Dual-Boundary Policy Engine"]
-        Shield["Pending Action Approval Shield"]
-        NeonDB[("Neon Serverless Postgres")]
-        PGVector[("pgvector HNSW Memory Store")]
+    subgraph TokenLifecycle ["OAuth 2.0 Token Lifecycle & Credential Vault"]
+        TokenManager["GoogleTokenManager\n(Single-Flight Concurrency Mutex)"]
+        AES["AES-256-GCM Encrypted Vault\n(Unique IV per secret)"]
+        ExpiryGuard["Proactive Expiry Guard\n(<5m buffer + invalid_grant handling)"]
     end
 
-    subgraph AsyncEngine ["Async Background Core"]
+    subgraph SecurityCore ["Policy & Isolation Layer"]
+        PolicyEngine["Dual-Boundary Policy Engine"]
+        Shield["Pending Action Approval Shield\n(Cryptographic Human Review)"]
+        InjectionShield["XML Delimiter Neutralizer\n(<untrusted_external_content>)"]
+    end
+
+    subgraph AsyncEngine ["Distributed Async Engine"]
         BullMQ["BullMQ 5.x Job Queues"]
         RedisBus["Redis Cache & Event Bus"]
-        Workers["Sync, Triage & Digest Workers"]
+        SyncWorker["Account Sync Worker"]
+        TriageWorker["AI Email Triage Worker"]
+        DigestWorker["Daily Digest Worker"]
     end
 
-    subgraph GeminiAI ["AI Intelligence & Agent Layer"]
-        AgentStudio["Autonomous Agent Decision Studio"]
-        Cascade["Multi-Model Cascade (Gemini 3.5/3.6)"]
-        CostGuard["AI Cost Guard & Circuit Breaker"]
-        Tools["Tool Registry (Email, Cal, Task, Memory)"]
-        OTel["OpenTelemetry Trace Profiler"]
+    subgraph StorageEngine ["Hybrid Persistence & Vector Engine"]
+        NeonDB[("Neon Serverless Postgres")]
+        PGVector[("pgvector HNSW Vector Store\n(768-dim cosine distance)")]
+        TSVector[("PostgreSQL tsvector Index\n(Sparse BM25 Keyword Search)")]
+    end
+
+    subgraph GeminiAI ["AI Intelligence & Orchestration Runtime"]
+        AgentRuntime["ReAct Agent Runtime\n(Multi-Turn Reasoning & Tools)"]
+        Cascade["Multi-Model Cascade Fallback\n(Gemini 3.5 Lite → 3.6 Flash)"]
+        CostGuard["AI Spend Circuit Breaker"]
+        Tools["Tool Registry\n(Email, Calendar, Tasks, Memory)"]
+        OTel["OpenTelemetry GenAI Span Profiler"]
     end
 
     subgraph UnifiedOS ["Streamline Personal OS Dashboard"]
         Inbox["Unified Multi-Account Inbox"]
         Drafter["Streaming Contextual Drafter"]
-        CalendarUI["Integrated Agenda & Direct Scheduling"]
-        TaskDAG["Action Item DAG & Urgency Planner"]
-        MemVault["Durable Memory Vault & RAG Simulator"]
-        SecDash["Security Guardrails & Injection Lab"]
+        CalendarUI["Integrated Agenda & Slot Finder"]
+        TaskDAG["DAG Task Dependency Scheduler"]
+        RAGInspector["Hybrid RAG Retrieval Inspector"]
+        SecDash["Security & Injection Test Lab"]
         TraceUI["Live Decision Trace Waterfall"]
     end
 
-    G1 & G2 & G3 --> AES --> BullMQ --> Workers --> NeonDB
-    NeonDB <--> PGVector
-    NeonDB & PGVector --> AgentStudio & Cascade
-    AgentStudio --> Tools --> PolicyEngine
+    G1 & G2 & G3 --> TokenManager
+    TokenManager <--> ExpiryGuard
+    TokenManager <--> AES
+    TokenManager --> BullMQ
+    BullMQ --> RedisBus
+    RedisBus --> SyncWorker & TriageWorker & DigestWorker
+    SyncWorker --> NeonDB
+    TriageWorker & DigestWorker --> Cascade
+    TriageWorker --> InjectionShield --> NeonDB
+    NeonDB <--> PGVector & TSVector
+
+    NeonDB & PGVector --> AgentRuntime & Cascade
+    AgentRuntime --> Tools --> PolicyEngine
     PolicyEngine -->|Safe / Read-Only| Tools
     PolicyEngine -->|Mutating Action| Shield -->|User Approved| Tools
-    AgentStudio --> OTel --> TraceUI
+    AgentRuntime --> OTel --> TraceUI
     Cascade --> CostGuard
-    Tools & Cascade --> Inbox & Drafter & CalendarUI & TaskDAG & MemVault & SecDash
+    Tools & Cascade --> Inbox & Drafter & CalendarUI & TaskDAG & RAGInspector & SecDash
 ```
+
+---
+
+## 🔍 Show Me The Code: Interview Follow-Up Defense Matrix
+
+Every box in the architecture diagrams corresponds to production code. Below is the technical defense matrix detailing exact algorithms, complexity, and source references:
+
+| Diagram Box Name | What Does This Actually Do? | Core Algorithm / Complexity | Production Code Location | Interviewer Follow-Up Defense |
+| :--- | :--- | :--- | :--- | :--- |
+| **OAuth 2.0 Token Lifecycle & Refresh Mutex** | Manages Google multi-account credentials, proactive refresh buffer (<5m), and serialized concurrency locking. | In-memory single-flight promise map per `accountId` ($O(1)$) | [`token-manager.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/google/token-manager.service.ts) | Prevents thundering herd refresh storms across parallel BullMQ workers; handles `invalid_grant` with automatic status downgrades and audit logging. |
+| **ReAct Agent Runtime & Tool Execution Core** | Multi-turn reasoning loop executing registered operational tools (`gmail`, `calendar`, `tasks`, `memory`) with thought signature parsing. | ReAct pattern; regex parsing of `<thought>` signatures; deterministic step iteration | [`orchestrator.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/agent/orchestrator.service.ts) | Parses Gemini internal reasoning blocks, evaluates max turn guardrails, and pipes live step execution to SSE streams. |
+| **Dual-Boundary Policy & HITL Approval Shield** | Intercepts state-mutating operations (`send_email`, `create_calendar_event`, `create_task`) before external execution. | Two-phase commit interception; state machine (`pending` → `approved` / `rejected`) | [`policy.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/agent/policy.ts) | Mutating actions write directly to the `pending_actions` table; Google Workspace API calls are strictly blocked until explicit cryptographic human authorization. |
+| **pgvector Hybrid RAG & Semantic Memory Store** | Dense HNSW vector search fused with sparse PostgreSQL tsvector full-text search via Reciprocal Rank Fusion ($k=60$). | $RRF(d) = \sum \frac{1}{60 + \text{rank}}$; HNSW cosine distance (`<=>`); deduplication distance < 0.12 | [`memory.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/memory/memory.service.ts) | Uses Neon pgvector cosine operator `<=>`; automatically supersedes conflicting memories (`supersededBy`); records access frequencies for decay modeling. |
+| **DAG Dependency Scheduler & Urgency Engine** | Deterministic task prioritization via topological graph analysis, cycle detection, and exponential urgency decay. | Kahn's / DFS cycle detection ($O(V+E)$); exponential urgency decay $e^{-\Delta t / 48}$; Gaussian slot fit | [`priority.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/priority.service.ts) | Prevents dependency deadlocks with cycle detection; computes transitive downstream impact; factors in Google Calendar free slots for contextual fit. |
+| **AI Spend Guard & Circuit Breaker** | Tracks per-user daily token consumption and USD expenditure; trips before vendor quotas are exceeded. | Leaky bucket rate limiting + atomic daily spend ledger aggregation ($O(1)$) | [`cost-guard.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/core/cost-guard.service.ts) | Fallback from primary Gemini models to deterministic local handlers when spend exceeds configured daily limits or provider error rates spike. |
 
 ---
 
@@ -109,7 +182,7 @@ graph TD
 * **Streaming Reply Drafter (SSE)**: Real-time contextual reply generation supporting tone modulation (*Professional*, *Friendly*, *Concise*, *Custom Prompt*).
 * **Daily Executive Digest**: Synthesized morning briefing consolidating newsletters, pending tasks, and upcoming meetings into an actionable dashboard.
 
-### 🤖 3. Autonomous Agent Decision Studio & Human-in-the-Loop
+### 🤖 3. ReAct Agent Runtime & Tool Orchestrator
 * **Multi-Turn Decision Agent**: Natural language assistant equipped with specialized operational tools:
   * `get_email`, `send_email`, `draft_email`
   * `create_calendar_event`, `find_free_slots`
@@ -118,13 +191,13 @@ graph TD
 * **Thought Signatures**: Transparent agent reasoning with explicit internal reasoning steps before executing actions.
 * **Dual-Boundary Policy Interception**: State-mutating operations are held in a secure `pending_actions` queue, displaying impact previews and requiring one-click user authorization before touching Google APIs.
 
-### 🛡️ 4. Durable Memory Vault & pgvector Semantic RAG
+### 🛡️ 4. Durable Memory Vault & pgvector Hybrid RAG Engine
 * **3-Tier Durable Memory Architecture** ([ADR-0011](./docs/adr/0011-three-durable-memory-types-and-read-classified-storage.md)):
   * `preference`: Working styles, communication habits, and scheduling preferences.
   * `decision`: Confirmed agreements, policy rules, and explicit directives.
   * `project_fact`: System configurations, architectural constraints, and organizational context.
 * **Hybrid Search Engine**: Neon PostgreSQL `pgvector` HNSW cosine similarity search combined with full-text keyword indexing.
-* **Interactive RAG Simulator**: Live dashboard to inspect memory embeddings, run similarity queries, and preview agent context injection in real time.
+* **Hybrid RAG Retrieval Inspector**: Live inspection interface to execute real-time vector queries, inspect retrieval latency, examine HNSW cosine distance (`<=>`), and preview exact prompt context injection.
 
 ### 🔒 5. Bank-Grade Security & Prompt Injection Defense
 * **Policy-Layer Structural Enforcement** ([ADR-0012](./docs/adr/0012-policy-layer-prompt-injection-defense.md)): Untrusted external email bodies are strictly encapsulated inside `<untrusted_external_content>` XML delimiters with neutralized delimiters, eliminating prompt injection risks at the architectural level.
@@ -153,14 +226,14 @@ graph TD
 | Route | Page Name | Primary Capabilities |
 | :--- | :--- | :--- |
 | **`/inbox`** | Unified Inbox | Multi-account email stream, priority badges, thread viewer, streaming reply drafter. |
-| **`/agent`** | Agent Decision Studio | Multi-turn AI assistant, tool execution, pending approval cards, thought inspection. |
+| **`/agent`** | ReAct Agent Orchestrator | Multi-turn reasoning agent, tool execution runtime, pending approval cards, thought signature inspection. |
 | **`/agent/traces/[id]`** | Trace Profiler | OpenTelemetry span waterfall, step latencies, token usage, and USD cost decomposition. |
-| **`/memory`** | Memory Vault | Semantic memory records, category filters, interactive pgvector RAG similarity simulator. |
+| **`/memory`** | Memory Vault & Hybrid RAG | Semantic memory records, category filters, live pgvector HNSW + tsvector Hybrid RAG retrieval inspector. |
 | **`/security`** | Security Guardrails | Threat posture monitor, untrusted content shield status, live injection penetration testing. |
 | **`/calendar`** | Calendar & Agenda | Synchronized multi-calendar view, free-slot finder, direct event scheduling modal. |
-| **`/tasks`** | Task Manager & DAG | Action item radar, dependency blocker tracking, exponential urgency score ranking. |
+| **`/tasks`** | DAG Task Scheduler | Action item radar, dependency blocker tracking, exponential urgency score ranking. |
 | **`/digest`** | Executive Digest | Daily synthesized morning briefing, newsletter summaries, actionable highlights. |
-| **`/settings`** | System Settings | Google account connections, token status, sync intervals, and AI cost guard limits. |
+| **`/settings`** | System Settings | Google account connections, OAuth token lifecycle status, sync intervals, and AI cost guard limits. |
 
 ---
 

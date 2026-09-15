@@ -80,12 +80,14 @@ export default function MemoryVaultPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  // Interactive RAG Simulator state
+  // Hybrid RAG Retrieval Inspector state
   const [ragQuery, setRagQuery] = useState('');
   const [ragCategory, setRagCategory] = useState<'all' | 'preference' | 'decision' | 'project_fact'>('all');
   const [ragResults, setRagResults] = useState<MemorySearchResultData[]>([]);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [hasSimulated, setHasSimulated] = useState(false);
+  const [isRetrieving, setIsRetrieving] = useState(false);
+  const [hasRetrieved, setHasRetrieved] = useState(false);
+  const [retrievalLatencyMs, setRetrievalLatencyMs] = useState<number | null>(null);
+  const [activeViewMode, setActiveViewMode] = useState<'ranked' | 'prompt'>('ranked');
 
   // Notifications & Modals
   const [bannerMessage, setBannerMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -184,23 +186,25 @@ export default function MemoryVaultPage() {
     }
   };
 
-  // Handle Interactive RAG Hybrid Search Simulation
-  const handleSimulateRAG = async (e?: React.FormEvent) => {
+  // Handle Live pgvector + tsvector Hybrid RAG Retrieval Execution
+  const handleExecuteRetrieval = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!ragQuery.trim()) return;
 
+    const startTime = performance.now();
     try {
-      setIsSimulating(true);
-      setHasSimulated(true);
+      setIsRetrieving(true);
+      setHasRetrieved(true);
       const results = await searchUserMemories(ragQuery.trim(), ragCategory, 5);
       setRagResults(results);
+      setRetrievalLatencyMs(Math.round(performance.now() - startTime));
     } catch (err: any) {
       setBannerMessage({
         type: 'error',
-        text: `RAG search error: ${err.message}`,
+        text: `Hybrid RAG retrieval error: ${err.message}`,
       });
     } finally {
-      setIsSimulating(false);
+      setIsRetrieving(false);
     }
   };
 
@@ -508,38 +512,59 @@ export default function MemoryVaultPage() {
         </div>
       )}
 
-      {/* Interactive Hybrid RAG Simulator */}
+      {/* Hybrid RAG Retrieval Inspector & Semantic Context Profiler */}
       <div className="p-6 sm:p-8 rounded-3xl clean-card dark:dark-glass border border-slate-200 dark:border-slate-800/80 space-y-6 relative overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center space-x-2 px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold uppercase tracking-wider">
-              <Activity className="w-3 h-3" />
-              <span>Real-Time RAG Benchmarking</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Live Neon pgvector + tsvector Engine</span>
             </div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Interactive Hybrid RAG Simulator
+              Hybrid RAG Retrieval Inspector & Context Profiler
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Simulate how the agent injects relevant context into prompts via dense vector cosine distance + tsvector full-text search fused with RRF ($k=60$).
+              Inspect real-time dense vector retrieval via Neon pgvector HNSW cosine distance (<code className="font-mono text-indigo-500">&lt;=&gt;</code>) fused with sparse PostgreSQL <code className="font-mono text-purple-500">tsvector</code> search via Reciprocal Rank Fusion ($k=60$).
             </p>
           </div>
 
           <div className="flex items-center space-x-2 shrink-0">
-            <span className="text-[11px] text-slate-400 font-mono">
-              Top-K: 5 • Threshold: 0.70
+            <span className="text-[11px] text-slate-400 font-mono px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              pgvector HNSW • Top-K: 5 • Cosine Cutoff: 0.78
             </span>
           </div>
         </div>
 
-        {/* Simulation Search Bar */}
-        <form onSubmit={handleSimulateRAG} className="flex flex-col sm:flex-row gap-3">
+        {/* Quick Query Presets */}
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 text-[11px]">
+          <span className="text-slate-400 shrink-0 font-medium">Quick Queries:</span>
+          {[
+            'What are my communication preferences?',
+            'How is OAuth token refresh implemented?',
+            'What are the calendar meeting rules?',
+          ].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => {
+                setRagQuery(preset);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-slate-200 dark:border-slate-800 transition-colors shrink-0"
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+
+        {/* Retrieval Search Bar */}
+        <form onSubmit={handleExecuteRetrieval} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={ragQuery}
               onChange={(e) => setRagQuery(e.target.value)}
-              placeholder="Ask a question or enter prompt (e.g., 'What time can I take calls?' or 'How is auth implemented?')..."
+              placeholder="Query semantic memory (e.g., 'What time can I take calls?' or 'How is auth implemented?')..."
               className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
             />
           </div>
@@ -550,41 +575,94 @@ export default function MemoryVaultPage() {
               onChange={(e: any) => setRagCategory(e.target.value)}
               className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-3 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-indigo-500"
             >
-              <option value="all">All Types</option>
-              <option value="preference">Preferences</option>
-              <option value="decision">Decisions</option>
-              <option value="project_fact">Project Facts</option>
+              <option value="all">All Memory Types</option>
+              <option value="preference">Preferences Only</option>
+              <option value="decision">Decisions Only</option>
+              <option value="project_fact">Project Facts Only</option>
             </select>
 
             <button
               type="submit"
-              disabled={isSimulating || !ragQuery.trim()}
+              disabled={isRetrieving || !ragQuery.trim()}
               className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center space-x-2 transition-all shadow-md shadow-indigo-600/25 disabled:opacity-50 shrink-0"
             >
-              {isSimulating ? (
+              {isRetrieving ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Searching...</span>
+                  <span>Querying pgvector...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Test Retrieval</span>
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Execute Retrieval</span>
                 </>
               )}
             </button>
           </div>
         </form>
 
-        {/* Simulation Output Table / Cards */}
-        {hasSimulated && (
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span className="font-semibold">
-                Retrieved Context Items ({ragResults.length})
-              </span>
-              <span className="text-[11px] font-mono text-purple-500">
-                Hybrid Reciprocal Rank Fusion ($k=60$)
+        {/* Live Retrieval Telemetry & Context Inspector */}
+        {hasRetrieved && (
+          <div className="space-y-4 pt-2">
+            {/* Telemetry KPIs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Query Latency</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white font-mono mt-0.5">
+                  {retrievalLatencyMs !== null ? `${retrievalLatencyMs} ms` : '—'}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Retrieved Candidates</span>
+                <p className="text-sm font-bold text-slate-900 dark:text-white font-mono mt-0.5">
+                  {ragResults.length} records
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Max Cosine Match</span>
+                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+                  {ragResults.length > 0
+                    ? `${Math.max(0, Math.round((1 - Math.min(...ragResults.map((r) => r.distance))) * 100))}%`
+                    : '0%'}
+                </p>
+              </div>
+              <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Injected Context Load</span>
+                <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
+                  ~{ragResults.reduce((acc, r) => acc + Math.round(r.content.length / 4), 0)} tokens
+                </p>
+              </div>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveViewMode('ranked')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors ${
+                    activeViewMode === 'ranked'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Ranked Candidates ({ragResults.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveViewMode('prompt')}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors ${
+                    activeViewMode === 'prompt'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Agent Injected Prompt Preview
+                </button>
+              </div>
+
+              <span className="text-[11px] font-mono text-purple-500 hidden sm:inline">
+                Fused via RRF: RRF(d) = Σ [1 / (60 + rank)]
               </span>
             </div>
 
@@ -592,13 +670,13 @@ export default function MemoryVaultPage() {
               <div className="p-8 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-2">
                 <AlertCircle className="w-6 h-6 text-slate-400 mx-auto" />
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  No Relevant Context Exceeds Similarity Threshold
+                  No Relevant Context Exceeds Similarity Threshold (Distance &lt; 0.78)
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  Try broadening your query or record new memories relevant to this query.
+                  Try broadening your query terms or recording new long-term facts in the Memory Vault.
                 </p>
               </div>
-            ) : (
+            ) : activeViewMode === 'ranked' ? (
               <div className="space-y-2.5">
                 {ragResults.map((result, idx) => {
                   const similarityPct = Math.max(0, Math.round((1 - result.distance) * 100));
@@ -625,7 +703,7 @@ export default function MemoryVaultPage() {
                               {result.type.replace('_', ' ')}
                             </span>
                             <span className="text-[11px] font-mono text-slate-400">
-                              Rank Score: {result.score.toFixed(4)}
+                              RRF Rank Score: {result.score.toFixed(4)}
                             </span>
                           </div>
                           <p className="text-xs text-slate-800 dark:text-slate-200 font-medium leading-relaxed">
@@ -644,13 +722,34 @@ export default function MemoryVaultPage() {
                             {similarityPct}% match
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">
-                            dist: {result.distance.toFixed(4)}
+                            distance: {result.distance.toFixed(4)}
                           </span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
+              </div>
+            ) : (
+              /* Agent Context Injection XML Preview */
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Exact serialized context injected into ReAct Agent system prompt:</span>
+                  <span className="font-mono text-indigo-400">XML Encapsulation</span>
+                </div>
+                <pre className="p-4 rounded-2xl bg-slate-950 text-slate-300 font-mono text-xs overflow-x-auto border border-slate-800 leading-relaxed">
+                  {`<user_context>\n` +
+                    ragResults
+                      .map(
+                        (r, i) =>
+                          `  <${r.type} id="${r.id}" rank="${i + 1}" similarity="${Math.max(
+                            0,
+                            Math.round((1 - r.distance) * 100)
+                          )}%">\n    ${r.content}\n  </${r.type}>`
+                      )
+                      .join('\n') +
+                    `\n</user_context>`}
+                </pre>
               </div>
             )}
           </div>

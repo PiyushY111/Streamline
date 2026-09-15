@@ -176,7 +176,7 @@ Retrieve real-time token tracking, USD costs, and circuit breaker status.
 
 ---
 
-## 5. Autonomous Agent & Decision Studio (`/api/agent`)
+## 5. ReAct Agent Orchestrator & Tool Runtime (`/api/agent`)
 
 ### `POST /api/agent/chat`
 Execute a multi-turn conversation step with tool execution and policy interception.

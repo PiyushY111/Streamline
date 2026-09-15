@@ -88,6 +88,15 @@ async findByUserId(userId: string) {
 * **State Parameter Verification**: Embeds authenticated user session verification in the `state` parameter to prevent cross-site request forgery during OAuth callbacks.
 * **Refresh Token Preservation**: Prevents overwriting valid long-lived refresh tokens when repeat Google consent flows omit a new refresh token.
 
+### 4.1 OAuth Token Lifecycle & Concurrency Mutex (`GoogleTokenManager`)
+
+Multi-account background synchronization (Gmail sync, Calendar sync, Contacts sync) frequently executes in parallel across decoupled BullMQ worker threads. If an account's token is near expiry, multiple concurrent workers could simultaneously trigger token refresh calls against Google's OAuth endpoints.
+
+To guarantee zero race conditions and eliminate token churn:
+1. **Proactive 5-Minute Expiry Buffer**: `GoogleTokenManager` tests if `tokenExpiresAt < Date.now() + 5 * 60 * 1000`. Tokens are refreshed before long-running batch operations start, preventing mid-flight `401 Unauthorized` errors.
+2. **Single-Flight Concurrency Mutex**: An in-memory promise map keyed by `accountId` (`activeOperations`) intercepts concurrent requests for the same account. The first caller initiates the Google refresh request; subsequent callers synchronously join and await the identical in-flight promise.
+3. **Terminal Error Recovery**: Catches `invalid_grant` or revoked token responses, automatically marking `connectedAccounts.status = 'error'` and `syncStates.status = 'error'`, triggering an audit alert for user re-authentication without crashing worker pipelines.
+
 ---
 
 ## 5. Threat Model & Mitigation Matrix
