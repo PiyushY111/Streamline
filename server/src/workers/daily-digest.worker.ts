@@ -5,7 +5,6 @@ import { users, userAiPreferences, dailyDigests } from '../db/schema/index.js';
 import { eq, and, gte } from 'drizzle-orm';
 import { generateDailyDigestForUser } from '../services/ai/features/newsletter-digest.service.js';
 import { logger } from '../utils/logger.js';
-import { toError } from '../utils/errors.js';
 
 export function createDailyDigestWorker() {
   logger.info('🚀 Initializing BullMQ Daily Digest Worker...');
@@ -90,9 +89,8 @@ export function startDailyDigestScheduler() {
           }
         }
       }
-    } catch (err: unknown) {
-      const error = toError(err);
-      logger.error({ err: error.message, stack: error.stack }, 'Error in Daily Digest Cron Scheduler');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Error in Daily Digest Cron Scheduler');
     }
   }, 5 * 60 * 1000);
 }

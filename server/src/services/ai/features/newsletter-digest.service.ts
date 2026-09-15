@@ -4,7 +4,6 @@ import { Type } from '@google/genai';
 import { aiRepository } from '../../../repositories/ai.repository.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { logger } from '../../../utils/logger.js';
-import { toError } from '../../../utils/errors.js';
 import { NewsletterTopicSummary, DigestActionSummary } from '../../../db/schema/index.js';
 
 export async function generateDailyDigestForUser(userId: string): Promise<any> {
@@ -132,9 +131,8 @@ Requirements:
 
     logger.info({ userId, digestId: saved.id }, 'Daily Digest generated and saved successfully');
     return saved;
-  } catch (err: unknown) {
-    const error = toError(err);
-    logger.error({ err: error.message, userId }, 'Failed to generate Gemini daily digest, falling back');
+  } catch (err: any) {
+    logger.error({ err: err.message, userId }, 'Failed to generate Gemini daily digest, falling back');
     return generateFallbackDigest(userId, newsletters, urgentEmails);
   }
 }

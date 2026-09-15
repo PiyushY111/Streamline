@@ -3,7 +3,6 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
-import { toError } from './utils/errors.js';
 import apiRouter from './routes/index.js';
 import { startWorkers, stopWorkers } from './workers/index.js';
 import { startSyncScheduler } from './workers/scheduler.js';
@@ -106,9 +105,8 @@ async function bootstrap() {
           await redisConnection.quit();
           logger.info('Redis connection cleanly terminated.');
         }
-      } catch (err: unknown) {
-        const error = toError(err);
-        logger.error({ err: error.message, stack: error.stack }, 'Error during graceful shutdown');
+      } catch (err: any) {
+        logger.error({ err: err?.message }, 'Error during graceful shutdown');
       } finally {
         clearTimeout(forceExitTimer);
         logger.info('✨ Graceful shutdown completed cleanly. Exiting.');

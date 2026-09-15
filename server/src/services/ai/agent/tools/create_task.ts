@@ -9,7 +9,6 @@ const createTaskSchema = z.object({
   importance: z.number().min(0).max(1).optional(),
   estimatedMinutes: z.number().min(1).optional(),
   projectId: z.string().uuid().optional(),
-  idempotencyKey: z.string().optional(),
 });
 
 type CreateTaskArgs = z.infer<typeof createTaskSchema>;
@@ -29,7 +28,6 @@ export const createTaskTool: ToolDefinition<CreateTaskArgs, any> = {
       importance: { type: 'number', description: 'Strategic importance score between 0.0 and 1.0' },
       estimatedMinutes: { type: 'number', description: 'Estimated time required to complete the task in minutes' },
       projectId: { type: 'string', description: 'Optional project UUID to associate task with' },
-      idempotencyKey: { type: 'string', description: 'Optional unique client-provided idempotency key' },
     },
     required: ['title'],
   },
@@ -42,27 +40,6 @@ export const createTaskTool: ToolDefinition<CreateTaskArgs, any> = {
     dueAt: args.dueAt || 'No deadline',
   }),
   execute: async (userId, args) => {
-    if (args.idempotencyKey) {
-      const { getCache, setCache } = await import('../../../../services/cache.service.js');
-      const cacheKey = `idempotency:tool:create_task:${userId}:${args.idempotencyKey}`;
-      const cached = await getCache<any>(cacheKey);
-      if (cached) return cached;
-
-      const { tasksRepository } = await import('../../../../repositories/tasks.repository.js');
-      const result = await tasksRepository.create({
-        userId,
-        title: args.title,
-        description: args.description,
-        priority: args.priority,
-        dueAt: args.dueAt ? new Date(args.dueAt) : undefined,
-        importance: args.importance ?? 0.5,
-        estimatedMinutes: args.estimatedMinutes,
-        projectId: args.projectId,
-      });
-      await setCache(cacheKey, result, 86400);
-      return result;
-    }
-
     const { tasksRepository } = await import('../../../../repositories/tasks.repository.js');
     return tasksRepository.create({
       userId,

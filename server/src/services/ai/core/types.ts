@@ -11,15 +11,12 @@ export interface AiStructuredJsonOptions<T = any> {
   systemPrompt?: string;
   schema?: any;
   models?: string[];
-  temperature?: number;
-  maxTokens?: number;
 }
 
 export interface AiStreamTextOptions {
   prompt: string;
   systemPrompt?: string;
   temperature?: number;
-  maxTokens?: number;
   models?: string[];
 }
 

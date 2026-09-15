@@ -7,7 +7,6 @@ const createCalendarEventSchema = z.object({
   endTime: z.string().refine((val) => !isNaN(Date.parse(val)), 'End time must be a valid ISO datetime'),
   description: z.string().optional(),
   location: z.string().optional(),
-  idempotencyKey: z.string().optional(),
 });
 
 type CreateCalendarEventArgs = z.infer<typeof createCalendarEventSchema>;
@@ -25,7 +24,6 @@ export const createCalendarEventTool: ToolDefinition<CreateCalendarEventArgs, an
       endTime: { type: 'string', description: 'ISO 8601 formatted datetime string (e.g. 2026-09-10T15:00:00Z)' },
       description: { type: 'string', description: 'Optional description or agenda for the meeting' },
       location: { type: 'string', description: 'Optional location or video call meeting link' },
-      idempotencyKey: { type: 'string', description: 'Optional unique client-provided idempotency key' },
     },
     required: ['title', 'startTime', 'endTime'],
   },
@@ -45,24 +43,6 @@ export const createCalendarEventTool: ToolDefinition<CreateCalendarEventArgs, an
     };
   },
   execute: async (userId, args) => {
-    if (args.idempotencyKey) {
-      const { getCache, setCache } = await import('../../../../services/cache.service.js');
-      const cacheKey = `idempotency:tool:create_calendar_event:${userId}:${args.idempotencyKey}`;
-      const cached = await getCache<any>(cacheKey);
-      if (cached) return cached;
-
-      const { eventsService } = await import('../../../../services/events.service.js');
-      const result = await eventsService.createEvent(userId, {
-        title: args.title,
-        startTime: args.startTime,
-        endTime: args.endTime,
-        description: args.description,
-        location: args.location,
-      });
-      await setCache(cacheKey, result, 86400);
-      return result;
-    }
-
     const { eventsService } = await import('../../../../services/events.service.js');
     return eventsService.createEvent(userId, {
       title: args.title,

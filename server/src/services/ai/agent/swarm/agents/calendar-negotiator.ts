@@ -1,5 +1,5 @@
 import { db } from '../../../../../db/index.js';
-import { events, connectedAccounts } from '../../../../../db/schema/index.js';
+import { events, calendars } from '../../../../../db/schema/index.js';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { logger } from '../../../../../utils/logger.js';
 
@@ -33,10 +33,10 @@ export class CalendarNegotiatorAgent {
         endTime: events.endTime,
       })
       .from(events)
-      .innerJoin(connectedAccounts, eq(events.accountId, connectedAccounts.id))
+      .innerJoin(calendars, eq(events.calendarId, calendars.id))
       .where(
         and(
-          eq(connectedAccounts.userId, userId),
+          eq(calendars.userId, userId),
           gte(events.startTime, now),
           lte(events.startTime, nextWeek)
         )

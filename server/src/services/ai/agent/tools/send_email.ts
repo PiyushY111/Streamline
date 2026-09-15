@@ -6,7 +6,6 @@ const sendEmailSchema = z.object({
   subject: z.string().min(1, 'Subject line is required'),
   body: z.string().min(1, 'Email body is required'),
   accountId: z.string().uuid().optional(),
-  idempotencyKey: z.string().optional(),
 });
 
 type SendEmailArgs = z.infer<typeof sendEmailSchema>;
@@ -23,7 +22,6 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
       subject: { type: 'string', description: 'Subject line of the email' },
       body: { type: 'string', description: 'The body text content to be sent to the recipient' },
       accountId: { type: 'string', description: 'Optional connected account UUID to send from' },
-      idempotencyKey: { type: 'string', description: 'Optional unique client-provided idempotency key' },
     },
     required: ['to', 'subject', 'body'],
   },
@@ -36,23 +34,6 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
     consequence: 'External email will be sent from your connected account immediately upon approval.',
   }),
   execute: async (userId, args) => {
-    if (args.idempotencyKey) {
-      const { getCache, setCache } = await import('../../../../services/cache.service.js');
-      const cacheKey = `idempotency:tool:send_email:${userId}:${args.idempotencyKey}`;
-      const cached = await getCache<any>(cacheKey);
-      if (cached) return cached;
-
-      const { emailsService } = await import('../../../../services/emails.service.js');
-      const result = await emailsService.sendEmail(userId, {
-        to: args.to,
-        subject: args.subject,
-        body: args.body,
-        accountId: args.accountId,
-      });
-      await setCache(cacheKey, result, 86400);
-      return result;
-    }
-
     const { emailsService } = await import('../../../../services/emails.service.js');
     return emailsService.sendEmail(userId, {
       to: args.to,

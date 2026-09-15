@@ -11,7 +11,6 @@ import { db } from '../db/index.js';
 import { eq, and, asc, desc, inArray } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
 import { Type } from '@google/genai';
-import { toError } from '../utils/errors.js';
 import { aiCostGuardService } from '../services/ai/core/cost-guard.service.js';
 import { UnauthorizedError, NotFoundError } from '../errors/index.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
@@ -219,8 +218,8 @@ ${conversationText}`;
         required: ['summary', 'keyTakeaways', 'actionItems'],
       },
     });
-  } catch (err: unknown) {
-    logger.warn({ err: toError(err).message }, 'AI thread summarize attempt failed, using fallback');
+  } catch (err: any) {
+    logger.warn({ err: err.message }, 'AI thread summarize attempt failed, using fallback');
   }
 
   if (!summaryResult) {
@@ -291,8 +290,8 @@ export const triggerAutoLabelAll = asyncHandler(async (req: Request, res: Respon
             extractedTasks: result.extractedTasks,
           });
           labeledCount++;
-        } catch (err: unknown) {
-          logger.warn({ emailId: em.id, err: toError(err).message }, 'Individual email triage failed');
+        } catch (err: any) {
+          logger.warn({ emailId: em.id, err: err.message }, 'Individual email triage failed');
         }
       })
     );

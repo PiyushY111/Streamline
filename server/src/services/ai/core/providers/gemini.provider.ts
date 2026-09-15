@@ -1,8 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { env } from '../../../../config/env.js';
 import { logger } from '../../../../utils/logger.js';
-import { toError } from '../../../../utils/errors.js';
-import { StructuredOutputValidationError } from '../../../../errors/index.js';
 import type {
   AiProvider,
   AiGenerateTextOptions,
@@ -71,16 +69,7 @@ export class GeminiProvider implements AiProvider {
       },
     });
 
-    const rawText = (response.text || '').trim();
-    const cleanedText = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    try {
-      return JSON.parse(cleanedText || '{}') as T;
-    } catch (parseErr: unknown) {
-      throw new StructuredOutputValidationError(
-        `Failed to parse structured JSON from Gemini response: ${toError(parseErr).message}`,
-        { rawText }
-      );
-    }
+    return JSON.parse(response.text || '{}') as T;
   }
 
   async streamText(
@@ -101,7 +90,7 @@ export class GeminiProvider implements AiProvider {
 
     let fullText = '';
     let succeeded = false;
-    let lastError: Error | null = null;
+    let lastError: any = null;
 
     for (const model of candidateModels) {
       try {
@@ -110,7 +99,6 @@ export class GeminiProvider implements AiProvider {
           contents: [{ role: 'user', parts: [{ text: options.prompt }] }],
           config: {
             temperature: options.temperature,
-            maxOutputTokens: options.maxTokens,
           },
         });
 
@@ -122,9 +110,9 @@ export class GeminiProvider implements AiProvider {
         }
         succeeded = true;
         break;
-      } catch (err: unknown) {
-        lastError = toError(err);
-        logger.warn({ model, err: lastError.message }, 'Gemini streaming attempt failed, trying next candidate');
+      } catch (err: any) {
+        lastError = err;
+        logger.warn({ model, err: err.message }, 'Gemini streaming attempt failed, trying next candidate');
       }
     }
 
@@ -140,8 +128,8 @@ export class GeminiProvider implements AiProvider {
           onChunk(response.text);
           return fullText;
         }
-      } catch (fallbackErr: unknown) {
-        throw lastError || toError(fallbackErr);
+      } catch (fallbackErr: any) {
+        throw lastError || fallbackErr;
       }
     }
 
@@ -161,7 +149,7 @@ export class GeminiProvider implements AiProvider {
       'text-embedding-004',
     ];
 
-    let lastError: Error | null = null;
+    let lastError: any = null;
     for (const model of modelCandidates) {
       try {
         const response: any = await client.models.embedContent({
@@ -176,8 +164,8 @@ export class GeminiProvider implements AiProvider {
         if (values && values.length > 0) {
           return values.length > targetDims ? values.slice(0, targetDims) : values;
         }
-      } catch (err: unknown) {
-        lastError = toError(err);
+      } catch (err: any) {
+        lastError = err;
       }
     }
 

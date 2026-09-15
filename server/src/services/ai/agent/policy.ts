@@ -5,7 +5,6 @@ import { TOOL_REGISTRY } from './tools/index.js';
 import { auditService } from '../../audit.service.js';
 import { logger } from '../../../utils/logger.js';
 import { extractMemoryFromInteraction } from '../memory/extraction.service.js';
-import { toError } from '../../../utils/errors.js';
 
 export interface ProposedToolCall {
   id?: string;
@@ -58,10 +57,9 @@ export async function enforcePolicy(
       const result = await tool.execute(userId, validatedArgs);
       await auditService.logAction(userId, `agent.tool.read.${call.name}`, { args: validatedArgs });
       return { kind: 'executed', result };
-    } catch (err: unknown) {
-      const error = toError(err);
-      logger.error({ err: error.message, toolName: call.name }, 'Read tool execution error');
-      return { kind: 'rejected', reason: `Tool execution failed: ${error.message}` };
+    } catch (err: any) {
+      logger.error({ err: err.message, toolName: call.name }, 'Read tool execution error');
+      return { kind: 'rejected', reason: `Tool execution failed: ${err.message}` };
     }
   }
 
@@ -117,14 +115,7 @@ export async function executeApprovedAction(
     throw new Error('Pending action not found or not owned by user');
   }
 
-  // 2. State verification & Idempotency replay check
-  if (action.status === 'executed') {
-    if (options.idempotencyKey && action.idempotencyKey === options.idempotencyKey) {
-      return action.resultJson;
-    }
-    throw new Error(`Action already resolved with status: "${action.status}"`);
-  }
-
+  // 2. State verification
   if (action.status !== 'pending') {
     throw new Error(`Action already resolved with status: "${action.status}"`);
   }
@@ -150,11 +141,8 @@ export async function executeApprovedAction(
   }
 
   try {
-    // 6. Execute real service with idempotencyKey if provided
-    const effectiveArgs = options.idempotencyKey
-      ? { ...action.toolArgs, idempotencyKey: options.idempotencyKey }
-      : action.toolArgs;
-    const result = await tool.execute(userId, effectiveArgs);
+    // 6. Execute real service
+    const result = await tool.execute(userId, action.toolArgs);
 
     // 7. Atomic state update
     await db
@@ -179,28 +167,27 @@ export async function executeApprovedAction(
         `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
         JSON.stringify(result),
         `pending_action:${pendingActionId}`
-      ).catch((err: unknown) => logger.warn({ err: toError(err).message }, 'Background memory extraction failed, non-fatal'));
+      ).catch((err) => logger.warn({ err: err.message }, 'Background memory extraction failed, non-fatal'));
     });
 
     return result;
-  } catch (err: unknown) {
+  } catch (err: any) {
     // 9. Error recording
-    const error = toError(err);
     await db
       .update(pendingActions)
       .set({
         status: 'failed',
-        errorJson: { message: error.message, stack: error.stack },
+        errorJson: { message: err.message, stack: err.stack },
         resolvedAt: new Date(),
       })
       .where(eq(pendingActions.id, pendingActionId));
 
     await auditService.logAction(userId, `agent.tool.failed.${action.toolName}`, {
       pendingActionId,
-      error: error.message,
+      error: err.message,
     });
 
-    throw error;
+    throw err;
   }
 }
 

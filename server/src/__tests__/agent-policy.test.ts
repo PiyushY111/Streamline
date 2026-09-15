@@ -8,14 +8,11 @@ import { eventsRepository } from '../repositories/events.repository.js';
 import { agentOrchestratorService } from '../services/ai/agent/orchestrator.service.js';
 import { aiCostGuardService } from '../services/ai/core/cost-guard.service.js';
 import { setAiProvider, getAiProvider } from '../services/ai/core/factory.js';
-import * as cacheService from '../services/cache.service.js';
 
 describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setAiProvider(null);
-    vi.spyOn(cacheService, 'getCache').mockResolvedValue(null);
-    vi.spyOn(cacheService, 'setCache').mockResolvedValue(undefined);
   });
 
   describe('enforcePolicy - Dual Boundary Dispatch', () => {
@@ -242,34 +239,6 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       await expect(
         executeApprovedAction('user-1', 'action-101')
       ).rejects.toThrow('Action already resolved with status: "executed"');
-    });
-
-    it('returns cached resultJson on idempotent replay when action already executed with matching idempotencyKey', async () => {
-      const cachedResult = { id: 'task-done-123', title: 'Idempotent Task' };
-      const mockAction = {
-        id: 'action-idem-1',
-        userId: 'user-1',
-        toolName: 'create_task',
-        toolArgs: { title: 'Idempotent Task' },
-        status: 'executed',
-        resultJson: cachedResult,
-        idempotencyKey: 'idem-key-abc',
-        expiresAt: new Date(Date.now() + 10000),
-      };
-
-      vi.spyOn(db, 'select').mockReturnValue({
-        from: () => ({
-          where: () => ({
-            limit: vi.fn().mockResolvedValue([mockAction]),
-          }),
-        }),
-      } as any);
-
-      const createSpy = vi.spyOn(tasksRepository, 'create');
-      const result = await executeApprovedAction('user-1', 'action-idem-1', { idempotencyKey: 'idem-key-abc' });
-
-      expect(result).toEqual(cachedResult);
-      expect(createSpy).not.toHaveBeenCalled();
     });
 
     it('rejects approval if action has expired (> 24h TTL)', async () => {

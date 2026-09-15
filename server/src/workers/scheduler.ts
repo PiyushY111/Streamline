@@ -3,7 +3,6 @@ import { db } from '../db/client.js';
 import { connectedAccounts } from '../db/schema/index.js';
 import { accountSyncQueue } from '../queues/index.js';
 import { logger } from '../utils/logger.js';
-import { toError } from '../utils/errors.js';
 
 let syncIntervalHandle: NodeJS.Timeout | null = null;
 
@@ -42,9 +41,8 @@ export function startSyncScheduler() {
           { jobId }
         );
       }
-    } catch (err: unknown) {
-      const error = toError(err);
-      logger.error({ err: error.message, stack: error.stack }, 'Error in Background Sync Scheduler');
+    } catch (err: any) {
+      logger.error({ err: err.message }, 'Error in Background Sync Scheduler');
     }
   }, 2 * 60 * 1000);
 }
