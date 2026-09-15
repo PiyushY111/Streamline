@@ -18,7 +18,9 @@ import {
   ShieldCheck,
   X,
   Clock,
+  Share2,
 } from 'lucide-react';
+import { KnowledgeGraphVisualizer } from '@/components/memory/KnowledgeGraphVisualizer';
 import {
   fetchUserMemories,
   createUserMemory,
@@ -69,6 +71,7 @@ export default function MemoryVaultPage() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'all' | 'preference' | 'decision' | 'project_fact'>('all');
   const [searchFilter, setSearchFilter] = useState('');
+  const [mainTab, setMainTab] = useState<'memories' | 'graph'>('memories');
   
   // AI Provider state
   const [providerInfo, setProviderInfo] = useState<AiProviderInfoData | null>(null);
@@ -317,8 +320,39 @@ export default function MemoryVaultPage() {
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-purple-600/10 dark:bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
       </div>
 
-      {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Top View Mode Switcher: Semantic Vault vs Knowledge Graph */}
+      <div className="flex items-center space-x-3 border-b border-slate-200/80 dark:border-slate-800 pb-3">
+        <button
+          onClick={() => setMainTab('memories')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+            mainTab === 'memories'
+              ? 'bg-purple-600 text-white shadow-md shadow-purple-600/30'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Brain className="w-4 h-4" />
+          <span>Semantic Vault & Hybrid RAG</span>
+        </button>
+
+        <button
+          onClick={() => setMainTab('graph')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+            mainTab === 'graph'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Share2 className="w-4 h-4" />
+          <span>Knowledge Graph (GraphRAG)</span>
+        </button>
+      </div>
+
+      {mainTab === 'graph' ? (
+        <KnowledgeGraphVisualizer />
+      ) : (
+        <>
+          {/* Metric Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Memories */}
         <div
           onClick={() => setActiveCategory('all')}
@@ -937,6 +971,8 @@ export default function MemoryVaultPage() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

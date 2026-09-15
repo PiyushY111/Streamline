@@ -21,7 +21,10 @@ import {
   ArrowUpRight,
   Sliders,
   ExternalLink,
+  GitBranch,
 } from 'lucide-react';
+import { ReasoningDAGVisualizer, SwarmSubTaskData } from '@/components/agent/ReasoningDAGVisualizer';
+import { safeFetch } from '@/lib/api/client';
 import {
   fetchAgentSessions,
   fetchSessionMessages,
@@ -46,6 +49,13 @@ export default function AgentStudioPage() {
   // Telemetry & Stats
   const [stats, setStats] = useState<AgentStatsResponseData | null>(null);
   const [providerInfo, setProviderInfo] = useState<AiProviderInfoData | null>(null);
+
+  // Multi-Agent Swarm state
+  const [isSwarmMode, setIsSwarmMode] = useState(true);
+  const [swarmTasks, setSwarmTasks] = useState<SwarmSubTaskData[]>([]);
+  const [criticPassed, setCriticPassed] = useState<boolean | undefined>(undefined);
+  const [criticFeedback, setCriticFeedback] = useState<string | undefined>(undefined);
+  const [isSwarmRunning, setIsSwarmRunning] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -136,6 +146,56 @@ export default function AgentStudioPage() {
     setMessages((prev) => [...prev, tempUserMsg]);
     setTimeout(scrollToBottom, 50);
 
+    if (isSwarmMode) {
+      setIsSwarmRunning(true);
+      setSwarmTasks([
+        { id: 'step-plan', role: 'supervisor', title: 'Goal Decomposition', status: 'running' },
+      ]);
+      try {
+        const res = await safeFetch('/agent/swarm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: clean, sessionId: selectedSessionId }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (!selectedSessionId && data.sessionId) {
+            setSelectedSessionId(data.sessionId);
+            fetchAgentSessions().then(setSessions);
+          }
+          setSwarmTasks(data.subTasks || []);
+          setCriticPassed(data.criticPassed);
+          setCriticFeedback(data.criticFeedback);
+
+          const modelMsg: AgentMessageData = {
+            id: `swarm-res-${Date.now()}`,
+            sessionId: data.sessionId || selectedSessionId || '',
+            role: 'model',
+            content: data.answer || 'Swarm execution completed successfully.',
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, modelMsg]);
+        }
+      } catch (err: any) {
+        console.error('Swarm execution error', err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            sessionId: selectedSessionId || '',
+            role: 'model',
+            content: `⚠️ Swarm error: ${err.message || 'Please retry.'}`,
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+      } finally {
+        setIsSwarmRunning(false);
+        setSending(false);
+        setTimeout(scrollToBottom, 100);
+      }
+      return;
+    }
+
     try {
       const response = await sendAgentMessage(clean, selectedSessionId || undefined);
 
@@ -195,6 +255,19 @@ export default function AgentStudioPage() {
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setIsSwarmMode(!isSwarmMode)}
+            className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all ${
+              isSwarmMode
+                ? 'bg-purple-950/40 text-purple-300 border-purple-500/50 shadow-sm shadow-purple-500/20 ring-1 ring-purple-500/30'
+                : 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+            title="Toggle between Multi-Agent Swarm Mode and Single ReAct Loop"
+          >
+            <GitBranch className="h-3.5 w-3.5 text-purple-400" />
+            <span>{isSwarmMode ? 'Swarm Mode Active' : 'Standard ReAct'}</span>
+          </button>
+
           <button
             onClick={loadInitialData}
             title="Refresh Studio Data"
@@ -314,6 +387,16 @@ export default function AgentStudioPage() {
 
           {/* Messages Scroll Area */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Real-time Multi-Agent Swarm Reasoning DAG Visualizer */}
+            {isSwarmMode && (swarmTasks.length > 0 || isSwarmRunning) && (
+              <ReasoningDAGVisualizer
+                subTasks={swarmTasks}
+                criticPassed={criticPassed}
+                criticFeedback={criticFeedback}
+                isRunning={isSwarmRunning}
+              />
+            )}
+
             {loadingMessages ? (
               <div className="flex items-center justify-center h-full text-xs text-slate-400">
                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />

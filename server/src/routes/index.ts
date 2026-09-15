@@ -15,6 +15,7 @@ import projectsRouter from './projects.routes.js';
 import plannerRouter from './planner.routes.js';
 import aiRouter from './ai.routes.js';
 import agentRouter from './agent.routes.js';
+import graphRouter from './graph.routes.js';
 import healthRouter from './health.routes.js';
 
 const router = Router();
@@ -44,6 +45,7 @@ router.use('/projects', projectsRouter);
 router.use('/planner', plannerRouter);
 router.use('/ai', aiRouter);
 router.use('/agent', agentRouter);
+router.use('/graph', graphRouter);
 
 // Calendar / Agenda Convenience Aliases
 router.get('/agenda', authenticate, listEvents);

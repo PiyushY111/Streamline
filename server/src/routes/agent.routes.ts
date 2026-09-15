@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   chat,
   chatStream,
+  chatSwarm,
   listPendingActions,
   approveAction,
   rejectAction,
@@ -34,6 +35,7 @@ router.use(authenticate);
 // Agent Assistant & Human-in-the-Loop Routes (Stage 2)
 router.post('/chat', validateBody(agentChatSchema), chat);
 router.post('/chat/stream', validateBody(agentChatSchema), chatStream);
+router.post('/swarm', validateBody(agentChatSchema), chatSwarm);
 router.get('/actions/pending', listPendingActions);
 router.post('/actions/:id/approve', validateParams(pendingActionIdParamSchema), approveAction);
 router.post('/actions/:id/reject', validateParams(pendingActionIdParamSchema), rejectAction);

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
 import { agentOrchestratorService, agentTraceEmitter } from '../services/ai/agent/orchestrator.service.js';
+import { swarmSupervisor } from '../services/ai/agent/swarm/supervisor.js';
 import { executeApprovedAction, rejectAction as rejectPolicyAction } from '../services/ai/agent/policy.js';
 import { db } from '../db/index.js';
 import { agentSessions } from '../db/schema/index.js';
@@ -53,6 +54,42 @@ export const chat = asyncHandler(async (req: AuthenticatedRequest, res: Response
   );
 
   res.json(result);
+});
+
+export const chatSwarm = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (!req.user?.id) {
+    throw new UnauthorizedError();
+  }
+
+  let { sessionId, message } = req.body;
+  if (!message || typeof message !== 'string' || !message.trim()) {
+    throw new BadRequestError('Message is required');
+  }
+
+  if (!sessionId) {
+    const [newSession] = await db
+      .insert(agentSessions)
+      .values({ userId: req.user.id })
+      .returning();
+    sessionId = newSession.id;
+  }
+
+  const swarmResult = await swarmSupervisor.orchestrate(
+    req.user.id,
+    sessionId,
+    message.trim()
+  );
+
+  res.json({
+    success: true,
+    sessionId,
+    answer: swarmResult.finalAnswer,
+    criticPassed: swarmResult.criticPassed,
+    criticFeedback: swarmResult.criticFeedback,
+    subTasks: swarmResult.subTasks,
+    intermediateResults: swarmResult.intermediateResults,
+    executionLog: swarmResult.executionLog,
+  });
 });
 
 export const chatStream = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
