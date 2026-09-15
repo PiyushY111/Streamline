@@ -4,6 +4,8 @@ import { authenticate } from '../middlewares/auth.js';
 import { csrfProtection } from '../middlewares/security.js';
 
 import authRouter from './auth.routes.js';
+import webhooksRouter from './webhooks.routes.js';
+import liveRouter from './live.routes.js';
 import accountsRouter from './accounts.routes.js';
 import syncRouter from './sync.routes.js';
 import emailsRouter from './emails.routes.js';
@@ -23,8 +25,14 @@ router.use('/health', healthRouter);
 // Authentication & OAuth Flow Routes
 router.use('/auth', authRouter);
 
+// Webhook Endpoints (unauthenticated, signature/token verified by provider payload)
+router.use('/webhooks', webhooksRouter);
+
 // Apply CSRF Protection to all downstream state-changing API endpoints
 router.use(csrfProtection);
+
+// Live Real-Time Server-Sent Events (SSE) Stream
+router.use('/live', liveRouter);
 
 // Core Resource & Domain Sub-Routers
 router.use('/accounts', accountsRouter);

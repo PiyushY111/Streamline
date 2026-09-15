@@ -7,6 +7,7 @@ export * from './projects.js';
 export * from './ai.js';
 export * from './agent.js';
 export * from './memories.js';
+export * from './style-profiles.js';
 
 
 

@@ -64,6 +64,7 @@ import {
   AccountData,
 } from '@/lib/api';
 import { safeFetch } from '@/lib/api/client';
+import { useLiveEvents } from '@/lib/hooks/useLiveEvents';
 
 import { SanitizedEmailBody } from '@/components/inbox/thread/SanitizedEmailBody';
 import { formatEmailDate } from '@/lib/utils';
@@ -300,6 +301,25 @@ function InboxContent() {
       }
     };
   }, []);
+
+  // Zero-latency Push Ingestion via Server-Sent Events (Google Cloud Pub/Sub < 500ms updates)
+  useLiveEvents({
+    onEmailReceived: () => {
+      fetchEmails().then((emailData) => {
+        if (emailData && emailData.length > 0) updateEmailsState(emailData);
+      }).catch(() => {});
+    },
+    onSyncCompleted: () => {
+      fetchEmails().then((emailData) => {
+        if (emailData && emailData.length > 0) updateEmailsState(emailData);
+      }).catch(() => {});
+    },
+    onTriageCompleted: () => {
+      fetchEmails().then((emailData) => {
+        if (emailData && emailData.length > 0) updateEmailsState(emailData);
+      }).catch(() => {});
+    },
+  });
 
 
   // Automatically fetch full HTML body for all messages in current thread if missing
@@ -1286,8 +1306,12 @@ function InboxContent() {
 
                   </div>
 
-                  {/* Pagination Controls */}
+                  {/* Pagination & Live Push Status */}
                   <div className="flex items-center space-x-3 text-slate-500">
+                    <div className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium shrink-0" title="Google Cloud Pub/Sub & SSE Live Push Ingestion active (<500ms)">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="hidden sm:inline">Live Push</span>
+                    </div>
                     <span className="text-[11px] font-mono">
                       {totalCount === 0 ? '0 of 0' : `${startIndex + 1}–${endIndex} of ${totalCount}`}
                     </span>

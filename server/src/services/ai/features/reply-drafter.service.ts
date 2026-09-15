@@ -6,6 +6,7 @@ import { eq, and, asc, desc, or } from 'drizzle-orm';
 import { logger } from '../../../utils/logger.js';
 import { aiRepository } from '../../../repositories/ai.repository.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
+import { styleProfilerService } from './style-profiler.service.js';
 import { Response } from 'express';
 
 export interface DraftOptions {
@@ -172,10 +173,14 @@ ${cleanBody}`;
   }
 
   const prefs = await aiRepository.getUserPreferences(userId);
+  const styleProfile = await styleProfilerService.getStyleProfile(userId);
+  const styleInstructionBlock = styleProfilerService.formatStylePromptSection(styleProfile);
   const aiProvider = getAiProvider();
 
   if (!aiProvider.isAvailable()) {
-    const fallbackText = `Hi,\n\nThank you for reaching out. I have reviewed the details and will follow up shortly.\n\nBest regards,`;
+    const fallbackGreeting = styleProfile.preferredGreeting || 'Hi';
+    const fallbackSignoff = styleProfile.preferredSignoff || 'Best';
+    const fallbackText = `${fallbackGreeting},\n\nThank you for reaching out. I have reviewed the details and will follow up shortly.\n\n${fallbackSignoff},`;
     res.write(`data: ${JSON.stringify({ text: fallbackText })}\n\n`);
     res.write('data: [DONE]\n\n');
     res.end();
@@ -191,8 +196,10 @@ ${cleanBody}`;
   };
 
   const isMultiMessage = threadMessages.length > 1;
-  const prompt = `You are an expert AI email assistant drafting a response on behalf of the user (${userAccountEmail}).
+  const prompt = `You are an expert AI email ghost-writer drafting a context-aware response on behalf of the user (${userAccountEmail}).
 ${isMultiMessage ? 'Analyze the entire conversation thread history below to understand the full context, previous agreements, and outstanding questions, then draft a context-aware reply to the latest message.' : 'Draft a context-aware reply to the email below.'}
+
+${styleInstructionBlock}
 
 Selected Tone: ${tone} (${toneInstructions[tone] || toneInstructions.professional})
 User Custom Direction: "${customPrompt || 'Respond appropriately to the latest message in the thread'}"
@@ -202,7 +209,7 @@ Instructions:
 - Output ONLY the reply email body text.
 - Do NOT include Subject headers, Markdown code blocks (\`\`\`email), or introductory meta-chatter.
 - Address specific details or requests raised in the latest email.
-- Use a polite greeting and professional sign-off.
+- Mirror the user's authentic greeting, brevity, and sign-off patterns from the style profile above.
 
 Email Conversation:
 <conversation>
