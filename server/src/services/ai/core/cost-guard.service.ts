@@ -19,11 +19,12 @@ export const MODEL_PRICING_TABLE: Record<string, ModelPricing> = {
 
 // Default budget limits per user
 export const AI_BUDGET_LIMITS = {
-  DAILY_TOKEN_LIMIT: 250_000,      // 250,000 tokens / day
-  DAILY_COST_LIMIT_USD: 0.50,     // $0.50 / day per user
+  DAILY_TOKEN_LIMIT: 250_000,        // 250,000 tokens / day
+  DAILY_COST_LIMIT_USD: 0.50,       // $0.50 / day per user
+  SINGLE_TURN_TOKEN_LIMIT: 50_000,   // 50,000 tokens max per single turn / invocation
 };
 
-export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn';
+export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn' | 'tool_call';
 
 export class AiCostGuardService {
   /**
@@ -90,6 +91,36 @@ export class AiCostGuardService {
   }
 
   /**
+   * Guards against runaway single-turn prompts or completions exceeding turn budget limit
+   */
+  checkSingleTurnLimit(tokensInTurn: number): { isExceeded: boolean; limit: number; tokensInTurn: number } {
+    return {
+      isExceeded: tokensInTurn >= AI_BUDGET_LIMITS.SINGLE_TURN_TOKEN_LIMIT,
+      limit: AI_BUDGET_LIMITS.SINGLE_TURN_TOKEN_LIMIT,
+      tokensInTurn,
+    };
+  }
+
+  /**
+   * Persists fine-grained per-tool execution token usage
+   */
+  async recordToolCallUsage(params: {
+    userId: string;
+    model: string;
+    toolName: string;
+    promptTokens: number;
+    completionTokens: number;
+  }): Promise<{ totalTokens: number; costUsd: number; formattedCost: string }> {
+    return this.recordUsage({
+      userId: params.userId,
+      model: params.model,
+      operation: 'tool_call',
+      promptTokens: params.promptTokens,
+      completionTokens: params.completionTokens,
+    });
+  }
+
+  /**
    * Checks if a user has exceeded their daily AI token or cost budget
    */
   async checkCircuitBreaker(userId: string): Promise<{
@@ -102,9 +133,7 @@ export class AiCostGuardService {
       const startOfDay = new Date();
       startOfDay.setUTCHours(0, 0, 0, 0);
 
-
       const records = await db
-
         .select({
           totalTokens: sql<number>`COALESCE(SUM(${aiTokenUsage.totalTokens}), 0)`,
           totalCost: sql<string>`COALESCE(SUM(CAST(${aiTokenUsage.estimatedCostUsd} AS NUMERIC)), 0)`,
@@ -151,7 +180,7 @@ export class AiCostGuardService {
   }
 
   /**
-   * Retrieves aggregated token and cost analytics for a user
+   * Retrieves aggregated token and cost analytics with unit economics for a user
    */
   async getUserUsageStats(userId: string) {
     const startOfDay = new Date();
@@ -178,6 +207,7 @@ export class AiCostGuardService {
       db
         .select({
           operation: aiTokenUsage.operation,
+          count: sql<number>`count(*)::int`,
           tokens: sql<number>`COALESCE(SUM(${aiTokenUsage.totalTokens}), 0)`,
           cost: sql<string>`COALESCE(SUM(CAST(${aiTokenUsage.estimatedCostUsd} AS NUMERIC)), 0)`,
         })
@@ -191,12 +221,30 @@ export class AiCostGuardService {
     const tokens30Days = Number(monthlyStats[0]?.tokens || 0);
     const cost30DaysUsd = parseFloat(monthlyStats[0]?.cost || '0');
 
+    // Calculate Unit Economics
+    const triageOp = operationsBreakdown.find((b) => b.operation === 'triage');
+    const sessionOp = operationsBreakdown.find((b) => b.operation === 'agent_turn');
+    const toolOp = operationsBreakdown.find((b) => b.operation === 'tool_call');
+
+    const triageCount = triageOp?.count || 0;
+    const triageCost = parseFloat(triageOp?.cost || '0');
+    const costPerEmailTriage = triageCount > 0 ? (triageCost / triageCount) : 0.0001;
+
+    const sessionTurnCount = sessionOp?.count || 0;
+    const sessionCost = parseFloat(sessionOp?.cost || '0');
+    const costPerSession = sessionTurnCount > 0 ? (sessionCost / sessionTurnCount) : 0.0005;
+
+    const toolCallCount = toolOp?.count || 0;
+    const toolTokens = Number(toolOp?.tokens || 0);
+    const tokensPerToolCall = toolCallCount > 0 ? Math.round(toolTokens / toolCallCount) : 150;
+
     return {
       today: {
         tokens: tokensToday,
         costUsd: costTodayUsd,
         tokenLimit: AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT,
         costLimitUsd: AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD,
+        singleTurnLimit: AI_BUDGET_LIMITS.SINGLE_TURN_TOKEN_LIMIT,
         percentUsed: Math.min(100, (tokensToday / AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT) * 100),
       },
       last30Days: {
@@ -205,9 +253,15 @@ export class AiCostGuardService {
       },
       breakdown: operationsBreakdown.map((b) => ({
         operation: b.operation,
+        count: b.count,
         tokens: Number(b.tokens),
         costUsd: parseFloat(b.cost),
       })),
+      unitEconomics: {
+        costPerEmailTriage: Number(costPerEmailTriage.toFixed(6)),
+        costPerSession: Number(costPerSession.toFixed(6)),
+        tokensPerToolCall,
+      },
       circuitBreaker: {
         isTripped: tokensToday >= AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT || costTodayUsd >= AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD,
       },

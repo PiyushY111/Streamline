@@ -1,3 +1,5 @@
+import type { ZodType } from 'zod';
+
 export interface AiGenerateTextOptions {
   prompt: string;
   systemPrompt?: string;
@@ -10,6 +12,8 @@ export interface AiStructuredJsonOptions<T = any> {
   prompt: string;
   systemPrompt?: string;
   schema?: any;
+  zodSchema?: ZodType<T>;
+  maxRetries?: number;
   temperature?: number;
   maxTokens?: number;
   models?: string[];

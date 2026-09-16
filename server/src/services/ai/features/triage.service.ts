@@ -10,6 +10,8 @@ import { toError } from '../../../utils/errors.js';
 export interface TriageResult {
   priority: 'p1_urgent' | 'p2_important' | 'p3_updates' | 'p4_newsletter' | 'p5_low';
   urgencyScore: number;
+  confidenceScore: number;
+  requiresHumanReview: boolean;
   category: 'action_required' | 'direct' | 'notification' | 'newsletter' | 'promotional';
   oneSentenceSummary: string;
   newsletterTopic?: string;
@@ -69,6 +71,7 @@ Rules for Classification:
   * "p5_low": Marketing spam, promotional discounts, cold sales pitches.
 - Category: "action_required" | "direct" | "notification" | "newsletter" | "promotional"
 - UrgencyScore: Integer 1 to 100 (100 = critical/immediate action, 1 = low).
+- ConfidenceScore: Float 0.0 to 1.0 representing classification confidence (e.g. >= 0.85 for clear emails, < 0.70 for ambiguous/uncertain content).
 - NewsletterTopic / Smart Tag: Short 2-3 word smart topic tag (e.g. "🎓 Academics", "💼 DevClub / Career", "🚀 Tech & AI", "💳 Finance", "⚠️ Urgent", "📰 Newsletter", "👥 Community").
 - OneSentenceSummary: A concise 1-sentence TL;DR of the core message or request.
 - Tasks: Extract concrete action items. Directional types:
@@ -98,6 +101,7 @@ ${(email.bodyText || '').substring(0, 4000)}
             enum: ['p1_urgent', 'p2_important', 'p3_updates', 'p4_newsletter', 'p5_low'],
           },
           urgencyScore: { type: Type.INTEGER },
+          confidenceScore: { type: Type.NUMBER },
           category: {
             type: Type.STRING,
             enum: ['action_required', 'direct', 'notification', 'newsletter', 'promotional'],
@@ -136,6 +140,12 @@ ${(email.bodyText || '').substring(0, 4000)}
       priority = 'p1_urgent';
     }
 
+    const confidenceScore =
+      typeof parsed.confidenceScore === 'number'
+        ? Math.max(0, Math.min(1, parsed.confidenceScore))
+        : 0.88;
+    const requiresHumanReview = confidenceScore < 0.70;
+
     const tasks: ExtractedTaskItem[] = (parsed.tasks || []).map((t: any) => ({
       id: crypto.randomUUID(),
       title: t.title,
@@ -165,6 +175,8 @@ ${(email.bodyText || '').substring(0, 4000)}
     return {
       priority: priority || 'p2_important',
       urgencyScore: Math.min(100, Math.max(1, parsed.urgencyScore || 50)),
+      confidenceScore,
+      requiresHumanReview,
       category: parsed.category || 'direct',
       oneSentenceSummary: parsed.oneSentenceSummary || email.subject || 'Email conversation',
       newsletterTopic: parsed.newsletterTopic,
@@ -233,6 +245,8 @@ function heuristicFallbackTriage(email: any, isVip: boolean): TriageResult {
   return {
     priority,
     urgencyScore,
+    confidenceScore: 0.65,
+    requiresHumanReview: true,
     category,
     oneSentenceSummary: email.subject || 'Message from ' + email.sender,
     newsletterTopic: isNewsletter ? 'General' : undefined,

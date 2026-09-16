@@ -55,22 +55,66 @@ export class GeminiProvider implements AiProvider {
     }
 
     const models = options.models || [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS];
-    const contents: any[] = [];
-    if (options.systemPrompt) {
-      contents.push({ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.prompt}` }] });
-    } else {
-      contents.push({ role: 'user', parts: [{ text: options.prompt }] });
+    const maxRetries = options.maxRetries ?? 2;
+    let currentPrompt = options.prompt;
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const contents: any[] = [];
+        if (options.systemPrompt) {
+          contents.push({ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${currentPrompt}` }] });
+        } else {
+          contents.push({ role: 'user', parts: [{ text: currentPrompt }] });
+        }
+
+        const response = await generateContentWithFallback(client, models, {
+          contents,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: options.schema,
+            temperature: options.temperature,
+            maxOutputTokens: options.maxTokens,
+          },
+        });
+
+        const rawText = response.text || '{}';
+        let parsedJson: unknown;
+        try {
+          parsedJson = JSON.parse(rawText);
+        } catch (jsonErr: any) {
+          if (attempt < maxRetries) {
+            logger.warn({ attempt, error: jsonErr.message }, 'Gemini JSON parse failed, retrying with correction feedback');
+            currentPrompt = `${options.prompt}\n\n[FEEDBACK ERROR]: Your previous output was malformed JSON: ${jsonErr.message}. Output strictly valid JSON conforming to the schema.`;
+            continue;
+          }
+          throw jsonErr;
+        }
+
+        if (options.zodSchema) {
+          const parseResult = options.zodSchema.safeParse(parsedJson);
+          if (!parseResult.success) {
+            const formattedIssues = JSON.stringify(parseResult.error.format());
+            if (attempt < maxRetries) {
+              logger.warn({ attempt, formattedIssues }, 'Gemini output failed Zod schema validation, retrying with feedback');
+              currentPrompt = `${options.prompt}\n\n[FEEDBACK ERROR]: Your previous JSON output failed schema validation:\n${formattedIssues}\nPlease correct all validation errors and return strictly valid JSON matching the schema.`;
+              continue;
+            }
+            throw new Error(`Structured JSON validation failed after ${maxRetries} retries: ${formattedIssues}`);
+          }
+          return parseResult.data;
+        }
+
+        return parsedJson as T;
+      } catch (err: any) {
+        lastError = err;
+        if (attempt >= maxRetries) {
+          throw lastError;
+        }
+      }
     }
 
-    const response = await generateContentWithFallback(client, models, {
-      contents,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: options.schema,
-      },
-    });
-
-    return JSON.parse(response.text || '{}') as T;
+    throw lastError || new Error('Structured JSON generation failed');
   }
 
   async streamText(

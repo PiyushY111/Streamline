@@ -15,6 +15,25 @@ import { searchMemory } from '../memory/memory.service.js';
 
 export const agentTraceEmitter = new EventEmitter();
 
+export class AgentLoopDetectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AgentLoopDetectedError';
+  }
+}
+
+export function computeToolFingerprint(toolName: string, args: Record<string, unknown>): string {
+  const sortedArgs: Record<string, unknown> = {};
+  if (args && typeof args === 'object') {
+    for (const key of Object.keys(args).sort()) {
+      sortedArgs[key] = args[key];
+    }
+  }
+  const normalized = JSON.stringify(sortedArgs);
+  const hash = crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 12);
+  return `${toolName}:${hash}`;
+}
+
 function generateSpanId(): string {
   return crypto.randomBytes(4).toString('hex');
 }
@@ -133,6 +152,8 @@ export class AgentOrchestratorService {
     const pendingActionsThisTurn: string[] = [];
     let finalText = '';
     let untrustedContentContext: { source: string; sender?: string } | null = null;
+    const seenFingerprints = new Map<string, number>();
+    let loopDetected = false;
 
     const tools = getAiToolDeclarations();
 
@@ -196,6 +217,26 @@ export class AgentOrchestratorService {
         completionTokens,
       });
 
+      // Check single-turn token circuit breaker limit
+      const singleTurnGuard = aiCostGuardService.checkSingleTurnLimit(promptTokens + completionTokens);
+      if (singleTurnGuard.isExceeded) {
+        logger.warn({ userId, sessionId, tokens: promptTokens + completionTokens }, 'Single-turn token limit exceeded');
+        finalText = `⚠️ Single-turn AI token limit exceeded (${singleTurnGuard.tokensInTurn} tokens). Execution stopped.`;
+        await db.insert(agentMessages).values({
+          sessionId,
+          role: 'model',
+          content: finalText,
+          spanId: modelSpanId,
+          parentSpanId: rootSpanId,
+          latencyMs: modelLatencyMs,
+          tokenPromptCount: promptTokens,
+          tokenCandidateCount: completionTokens,
+          costUsd: costResult.formattedCost,
+        });
+        options.onStreamEvent?.({ type: 'text_chunk', chunk: finalText });
+        break;
+      }
+
       // Case A: Model responded with final natural language text (no tool calls)
       if (!response.toolCalls || response.toolCalls.length === 0) {
         finalText = response.text || 'I have completed your request.';
@@ -252,6 +293,39 @@ export class AgentOrchestratorService {
         }
 
         const toolSpanId = generateSpanId();
+        const fingerprint = computeToolFingerprint(tc.name, tc.args);
+        const prevCount = seenFingerprints.get(fingerprint) || 0;
+        const newCount = prevCount + 1;
+        seenFingerprints.set(fingerprint, newCount);
+
+        if (newCount >= 2) {
+          logger.warn({ userId, sessionId, toolName: tc.name, fingerprint, count: newCount }, 'Agent tool loop detected');
+          options.onStreamEvent?.({
+            type: 'tool_rejected',
+            toolName: tc.name,
+            reason: `Loop detected: tool '${tc.name}' called repeatedly with identical parameters (${fingerprint})`,
+            spanId: toolSpanId,
+          });
+
+          await db.insert(agentMessages).values({
+            sessionId,
+            role: 'tool',
+            toolName: tc.name,
+            toolResult: {
+              status: 'rejected_loop_detected',
+              error: 'Loop detected: identical tool call repeated. Stopping execution.',
+              fingerprint,
+            },
+            spanId: toolSpanId,
+            parentSpanId: modelSpanId,
+            latencyMs: 0,
+          });
+
+          finalText = `I detected a repetitive action loop for tool '${tc.name}' with identical arguments and stopped execution to prevent unbounded resource consumption.`;
+          loopDetected = true;
+          break;
+        }
+
         options.onStreamEvent?.({
           type: 'tool_proposing',
           toolName: tc.name,
@@ -388,6 +462,10 @@ export class AgentOrchestratorService {
             reason: outcome.reason,
           });
         }
+      }
+
+      if (loopDetected) {
+        break;
       }
     }
 

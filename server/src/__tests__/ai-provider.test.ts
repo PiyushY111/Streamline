@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { z } from 'zod';
+import * as geminiClientModule from '../services/ai/core/gemini.client.js';
 import { getAiProvider, setAiProvider } from '../services/ai/core/factory.js';
 import { GeminiProvider } from '../services/ai/core/providers/gemini.provider.js';
 import { OpenAiCompatibleProvider } from '../services/ai/core/providers/openai-compatible.provider.js';
@@ -87,6 +89,41 @@ describe('Provider-Agnostic AI Architecture', () => {
       thoughtSignature: 'cryptographic_opaque_signature_token',
     };
     expect(mockToolCall.thoughtSignature).toBe('cryptographic_opaque_signature_token');
+  });
+
+  describe('GeminiProvider generateStructuredJson feedback retries', () => {
+    it('validates response against Zod schema and recovers when first attempt fails', async () => {
+      const gemini = new GeminiProvider();
+      vi.spyOn(gemini, 'isAvailable').mockReturnValue(true);
+      vi.spyOn(geminiClientModule, 'getGeminiClient').mockReturnValue({} as any);
+
+      const targetSchema = z.object({
+        status: z.enum(['urgent', 'normal']),
+        score: z.number().min(0).max(100),
+      });
+
+      let attempt = 0;
+      const fallbackSpy = vi.spyOn(geminiClientModule, 'generateContentWithFallback').mockImplementation(async (_client, _models, request) => {
+        attempt++;
+        if (attempt === 1) {
+          // First attempt returns invalid data (invalid status enum)
+          return { text: JSON.stringify({ status: 'invalid_status', score: 85 }) };
+        }
+        // Check that retry prompt contained error feedback
+        const promptText = request.contents[0].parts[0].text;
+        expect(promptText).toContain('[FEEDBACK ERROR]');
+        return { text: JSON.stringify({ status: 'urgent', score: 85 }) };
+      });
+
+      const result = await gemini.generateStructuredJson({
+        prompt: 'Classify this task',
+        zodSchema: targetSchema,
+        maxRetries: 2,
+      });
+
+      expect(attempt).toBe(2);
+      expect(result).toEqual({ status: 'urgent', score: 85 });
+    });
   });
 });
 

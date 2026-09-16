@@ -1,6 +1,6 @@
 import { sql, eq, and, inArray, desc } from 'drizzle-orm';
 import { db } from '../../../db/index.js';
-import { memories } from '../../../db/schema/index.js';
+import { memories, DEFAULT_EMBEDDING_MODEL_VERSION } from '../../../db/schema/index.js';
 import { getAiProvider } from '../core/factory.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { logger } from '../../../utils/logger.js';
@@ -11,6 +11,7 @@ export type MemoryStatus = 'active' | 'superseded' | 'archived';
 
 export interface SaveMemoryOptions {
   checkContradiction?: boolean;
+  embeddingModelVersion?: string;
 }
 
 export interface SearchMemoryOptions {
@@ -18,6 +19,7 @@ export interface SearchMemoryOptions {
   topK?: number;
   maxDistance?: number;
   mode?: 'hybrid' | 'vector' | 'keyword';
+  embeddingModelVersion?: string;
 }
 
 export interface MemoryResult {
@@ -29,6 +31,7 @@ export interface MemoryResult {
   sourceRef: string | null;
   status: string;
   createdAt: Date;
+  embeddingModelVersion?: string;
 }
 
 export class MemoryService {
@@ -42,7 +45,7 @@ export class MemoryService {
     content: string,
     sourceRef?: string,
     options: SaveMemoryOptions = {}
-  ): Promise<{ id: string; type: MemoryType; content: string; status: string } | null> {
+  ): Promise<{ id: string; type: MemoryType; content: string; status: string; embeddingModelVersion?: string } | null> {
     if (!content || content.trim().length < 3) {
       logger.warn({ userId }, 'Memory content too short to persist');
       return null;
@@ -61,12 +64,14 @@ export class MemoryService {
       return null;
     }
 
+    const modelVersion = options.embeddingModelVersion || DEFAULT_EMBEDDING_MODEL_VERSION;
+
     try {
       const cleanContent = content.trim();
       const embedding = await provider.generateEmbedding(cleanContent, { dimensions: 768 });
       const vectorLiteral = `'[${embedding.join(',')}]'`;
 
-      // 1. Deduplication check: near-exact match (< 0.12 distance)
+      // 1. Deduplication check: near-exact match (< 0.12 distance) with same embedding model version
       const existingNearDuplicates = await db
         .select({
           id: memories.id,
@@ -77,7 +82,8 @@ export class MemoryService {
           and(
             eq(memories.userId, userId),
             eq(memories.type, type),
-            eq(memories.status, 'active')
+            eq(memories.status, 'active'),
+            eq(memories.embeddingModelVersion, modelVersion)
           )
         )
         .orderBy(sql`${memories.embedding} <=> ${sql.raw(vectorLiteral)}::vector`)
@@ -100,6 +106,7 @@ export class MemoryService {
           type,
           content: cleanContent,
           status: 'active',
+          embeddingModelVersion: modelVersion,
         };
       }
 
@@ -117,7 +124,8 @@ export class MemoryService {
             and(
               eq(memories.userId, userId),
               eq(memories.type, type),
-              eq(memories.status, 'active')
+              eq(memories.status, 'active'),
+              eq(memories.embeddingModelVersion, modelVersion)
             )
           )
           .orderBy(sql`${memories.embedding} <=> ${sql.raw(vectorLiteral)}::vector`)
@@ -141,6 +149,7 @@ export class MemoryService {
           content: cleanContent,
           sourceRef: sourceRef || 'explicit_user_request',
           embedding,
+          embeddingModelVersion: modelVersion,
           status: 'active',
         })
         .returning({ id: memories.id });
@@ -164,6 +173,7 @@ export class MemoryService {
         type,
         content: cleanContent,
         status: 'active',
+        embeddingModelVersion: modelVersion,
       };
     } catch (rawErr: unknown) {
       const err = toError(rawErr);
@@ -191,6 +201,7 @@ export class MemoryService {
     const topK = opts.topK ?? 3;
     const maxDistance = opts.maxDistance ?? 0.78;
     const mode = opts.mode ?? 'hybrid';
+    const modelVersion = opts.embeddingModelVersion || DEFAULT_EMBEDDING_MODEL_VERSION;
     const cleanQuery = query.trim();
 
     try {
@@ -201,6 +212,7 @@ export class MemoryService {
       const denseConditions = [
         eq(memories.userId, userId),
         eq(memories.status, 'active'),
+        eq(memories.embeddingModelVersion, modelVersion),
       ];
       if (opts.type) {
         denseConditions.push(eq(memories.type, opts.type));
@@ -214,6 +226,7 @@ export class MemoryService {
           sourceRef: memories.sourceRef,
           status: memories.status,
           createdAt: memories.createdAt,
+          embeddingModelVersion: memories.embeddingModelVersion,
           distance: sql<number>`${memories.embedding} <=> ${sql.raw(vectorLiteral)}::vector`,
         })
         .from(memories)
@@ -236,6 +249,7 @@ export class MemoryService {
           sourceRef: r.sourceRef,
           status: r.status,
           createdAt: r.createdAt,
+          embeddingModelVersion: r.embeddingModelVersion,
         }));
 
         this.recordAccessAsync(results.map((r) => r.id));
@@ -250,6 +264,7 @@ export class MemoryService {
         sourceRef: string | null;
         status: string;
         createdAt: Date;
+        embeddingModelVersion: string;
         rank: number;
       }> = [];
 
@@ -257,6 +272,7 @@ export class MemoryService {
         const sparseConditions = [
           eq(memories.userId, userId),
           eq(memories.status, 'active'),
+          eq(memories.embeddingModelVersion, modelVersion),
           sql`to_tsvector('english', ${memories.content}) @@ plainto_tsquery('english', ${cleanQuery})`,
         ];
         if (opts.type) {
@@ -271,6 +287,7 @@ export class MemoryService {
             sourceRef: memories.sourceRef,
             status: memories.status,
             createdAt: memories.createdAt,
+            embeddingModelVersion: memories.embeddingModelVersion,
             rank: sql<number>`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`,
           })
           .from(memories)
@@ -284,9 +301,25 @@ export class MemoryService {
 
       // 3. Reciprocal Rank Fusion (RRF) with constant k=60
       const k = 60;
-      const scoreMap = new Map<string, { item: typeof denseRows[0]; rrfScore: number; distance: number }>();
+      const scoreMap = new Map<
+        string,
+        {
+          item: {
+            id: string;
+            type: string;
+            content: string;
+            sourceRef: string | null;
+            status: string;
+            createdAt: Date;
+            embeddingModelVersion: string;
+            distance?: number;
+          };
+          rrfScore: number;
+          distance: number;
+        }
+      >();
 
-      // Dense ranking
+      // Dense ranking fusion
       validDenseRows.forEach((item, index) => {
         const denseScore = 1 / (k + (index + 1));
         scoreMap.set(item.id, {
@@ -311,6 +344,7 @@ export class MemoryService {
               sourceRef: item.sourceRef,
               status: item.status,
               createdAt: item.createdAt,
+              embeddingModelVersion: item.embeddingModelVersion,
               distance: 0.5, // Default mid-range semantic distance for pure keyword matches
             },
             rrfScore: sparseScore,
@@ -333,6 +367,7 @@ export class MemoryService {
         sourceRef: item.sourceRef,
         status: item.status,
         createdAt: item.createdAt,
+        embeddingModelVersion: item.embeddingModelVersion,
       }));
 
       // Async access tracking

@@ -95,4 +95,51 @@ describe('AI Triage Service', () => {
 
     expect(result.priority).toBe('p1_urgent');
   });
+
+  it('should flag low confidence triage classifications for human review', async () => {
+    setAiProvider({
+      name: 'mock',
+      isAvailable: () => true,
+      generateStructuredJson: vi.fn().mockResolvedValue({
+        priority: 'p2_important',
+        urgencyScore: 55,
+        confidenceScore: 0.52,
+        category: 'direct',
+        oneSentenceSummary: 'Ambiguous short message.',
+        tasks: [],
+      }),
+      generateText: vi.fn(),
+      streamText: vi.fn(),
+      generateEmbedding: vi.fn(),
+      chatWithTools: vi.fn(),
+    } as any);
+
+    const email = {
+      id: 'test-ambiguous',
+      subject: 'Fwd:',
+      sender: 'someone@example.com',
+      recipients: 'user@example.com',
+      bodyText: 'See attached.',
+      receivedAt: new Date(),
+    };
+
+    const result = await triageEmail(email);
+    expect(result.confidenceScore).toBe(0.52);
+    expect(result.requiresHumanReview).toBe(true);
+  });
+
+  it('should mark high confidence classifications as not requiring human review', async () => {
+    const email = {
+      id: 'test-clear',
+      subject: 'Urgent: Please review and sign contract ASAP',
+      sender: 'client@company.com',
+      recipients: 'user@example.com',
+      bodyText: 'We need your signature before tomorrow 5 PM deadline.',
+      receivedAt: new Date(),
+    };
+
+    const result = await triageEmail(email);
+    expect(result.confidenceScore).toBeGreaterThanOrEqual(0.70);
+    expect(result.requiresHumanReview).toBe(false);
+  });
 });

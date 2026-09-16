@@ -436,10 +436,14 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         }),
       } as any);
 
-      // Model keeps proposing a tool on every turn
-      const mockChatWithTools = vi.fn().mockResolvedValue({
-        toolCalls: [{ name: 'get_tasks', args: {} }],
-        finishReason: 'tool_calls',
+      // Model keeps proposing a tool with varying arguments on every turn
+      let callTurn = 0;
+      const mockChatWithTools = vi.fn().mockImplementation(async () => {
+        callTurn++;
+        return {
+          toolCalls: [{ name: 'get_tasks', args: { page: callTurn } }],
+          finishReason: 'tool_calls',
+        };
       });
 
       setAiProvider({

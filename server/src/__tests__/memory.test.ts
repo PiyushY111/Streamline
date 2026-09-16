@@ -200,5 +200,28 @@ describe('Stage 3 Memory Service & Hybrid RAG Engine', () => {
       const deleted = await deleteMemory(userId, memoryId);
       expect(deleted).toBe(true);
     });
+
+    it('should associate saved memory with embeddingModelVersion', async () => {
+      const userId = '00000000-0000-0000-0000-000000000001';
+      vi.spyOn(db, 'select').mockImplementation(() => ({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      } as any));
+
+      vi.spyOn(db, 'insert').mockImplementation(() => ({
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'new-mem-versioned' }]),
+        }),
+      } as any));
+
+      const saved = await saveMemory(userId, 'project_fact', 'Backend is written in TypeScript and Node.js', 'explicit', {
+        embeddingModelVersion: 'text-embedding-004',
+      });
+
+      expect(saved).not.toBeNull();
+      expect(saved?.embeddingModelVersion).toBe('text-embedding-004');
+    });
   });
 });

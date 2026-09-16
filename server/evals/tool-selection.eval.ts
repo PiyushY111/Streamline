@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runSuite } from './runner.js';
 import { TOOL_REGISTRY } from '../src/services/ai/agent/tools/index.js';
 import { enforcePolicy, ProposedToolCall, PolicyOutcome } from '../src/services/ai/agent/policy.js';
@@ -5,6 +8,8 @@ import { db } from '../src/db/index.js';
 import { auditService } from '../src/services/audit.service.js';
 import { TasksRepository } from '../src/repositories/tasks.repository.js';
 import { EventsRepository } from '../src/repositories/events.repository.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 interface ToolSelectionScenarioInput {
   userMessage: string;
@@ -52,7 +57,8 @@ export async function runToolSelectionEval() {
   EventsRepository.prototype.findSmartFreeSlots = async () => [];
 
   try {
-    return await runSuite<ToolSelectionScenarioInput, ToolSelectionScenarioExpected>(
+
+    const report = await runSuite<ToolSelectionScenarioInput, ToolSelectionScenarioExpected>(
       'agent-tool-selection-and-policy-engine',
       'tool-selection.json',
       async (input) => {
@@ -97,6 +103,37 @@ export async function runToolSelectionEval() {
         return true;
       }
     );
+
+    // Regression Snapshot Verification
+    const baselinePath = path.join(__dirname, 'results', 'baseline-tool-selection.json');
+    if (!fs.existsSync(baselinePath)) {
+      console.log('  📸 Creating baseline tool selection snapshot...');
+      fs.writeFileSync(baselinePath, JSON.stringify(report, null, 2));
+    } else {
+      try {
+        const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'));
+        const baselinePassedMap = new Map(baseline.results.map((r: any) => [r.scenarioId, r.passed]));
+        const regressions = report.results.filter(
+          (r) => !r.passed && baselinePassedMap.get(r.scenarioId) === true
+        );
+
+        if (regressions.length > 0) {
+          console.error(`  ⚠️ Regression detected in ${regressions.length} scenarios compared to baseline!`);
+          regressions.forEach((reg) => console.error(`    - Regressed scenario: ${reg.scenarioId}`));
+        } else {
+          console.log('  ✅ Zero regressions detected against baseline snapshot.');
+        }
+      } catch (err: any) {
+        console.warn('  ⚠️ Failed to parse baseline snapshot for comparison:', err.message);
+      }
+    }
+
+    const passRate = report.total > 0 ? (report.passed / report.total) * 100 : 0;
+    if (passRate < 95) {
+      console.error(`  ❌ Tool selection pass rate ${passRate.toFixed(1)}% is below 95% threshold.`);
+    }
+
+    return report;
   } finally {
     // Restore db.insert
     db.insert = originalInsert;

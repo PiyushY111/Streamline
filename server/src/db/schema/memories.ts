@@ -1,6 +1,8 @@
 import { pgTable, uuid, text, timestamp, vector, index, integer } from 'drizzle-orm/pg-core';
 import { users } from './users.js';
 
+export const DEFAULT_EMBEDDING_MODEL_VERSION = 'text-embedding-004';
+
 export const memories = pgTable(
   'memories',
   {
@@ -10,6 +12,7 @@ export const memories = pgTable(
     content: text('content').notNull(),
     sourceRef: text('source_ref'), // 'agent_session:<uuid>', 'pending_action:<uuid>', or 'explicit_user_request'
     embedding: vector('embedding', { dimensions: 768 }),
+    embeddingModelVersion: text('embedding_model_version').default('text-embedding-004').notNull(),
     status: text('status').default('active').notNull(), // 'active' | 'superseded' | 'archived'
     supersededBy: uuid('superseded_by'),
     accessCount: integer('access_count').default(0).notNull(),
@@ -19,5 +22,6 @@ export const memories = pgTable(
   },
   (table) => ({
     userStatusTypeIdx: index('memories_user_status_type_idx').on(table.userId, table.status, table.type),
+    userModelVersionIdx: index('memories_user_model_version_idx').on(table.userId, table.embeddingModelVersion),
   })
 );
