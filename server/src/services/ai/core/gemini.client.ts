@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
+import { toError, AllModelsExhaustedError } from '../../../utils/errors.js';
+import { withRetryAndTimeout } from '../../../utils/resilience.js';
 
 let geminiClientInstance: GoogleGenAI | null = null;
 
@@ -24,7 +26,8 @@ export function getGeminiClient(): GoogleGenAI | null {
     geminiClientInstance = new GoogleGenAI({ apiKey });
     logger.info('✨ Google Gen AI (Gemini) client initialized successfully');
     return geminiClientInstance;
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.error({ err: err.message }, '❌ Failed to initialize Google Gen AI client');
     return null;
   }
@@ -35,18 +38,41 @@ export async function generateContentWithFallback(
   models: string[],
   request: any
 ): Promise<any> {
-  let lastError: any = null;
+  let lastError: Error | null = null;
+  const attemptedModels: string[] = [];
+
   for (const model of models) {
+    attemptedModels.push(model);
     try {
-      const response = await ai.models.generateContent({
-        ...request,
-        model,
-      });
+      const response = await withRetryAndTimeout(
+        async (_signal) => {
+          return await ai.models.generateContent({
+            ...request,
+            model,
+          });
+        },
+        {
+          timeoutMs: 15000,
+          maxRetries: 1,
+          backoffBaseMs: 400,
+          operationName: `gemini_generate_${model}`,
+        }
+      );
       return response;
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       lastError = err;
-      logger.warn({ model, err: err.message }, 'Gemini model invocation failed, trying next candidate');
+      logger.warn(
+        { model, err: err.message },
+        'Gemini model invocation failed or timed out, trying next candidate in cascade'
+      );
     }
   }
-  throw lastError;
+
+  // All cascade tiers failed: degrade to typed domain error with clear user-facing explanation
+  logger.error(
+    { attemptedModels, lastError: lastError?.message },
+    'All Gemini cascade fallback candidate tiers failed'
+  );
+  throw new AllModelsExhaustedError(attemptedModels, lastError?.message);
 }

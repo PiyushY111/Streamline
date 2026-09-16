@@ -3,6 +3,7 @@ import { entities, entityRelations } from '../../../db/schema/index.js';
 import { eq, and, sql } from 'drizzle-orm';
 import { getAiProvider } from '../core/factory.js';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface ExtractedEntity {
   name: string;
@@ -159,7 +160,8 @@ ${text.slice(0, 3000)}
       );
 
       return { entitiesCount: entityIdMap.size, relationsCount };
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.warn({ userId, err: err.message }, 'Failed to extract entities, continuing non-fatally');
       return { entitiesCount: 0, relationsCount: 0 };
     }

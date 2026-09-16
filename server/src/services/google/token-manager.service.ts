@@ -7,6 +7,8 @@ import { logger } from '../../utils/logger.js';
 import { createOAuth2Client } from '../../utils/google-oauth.js';
 import { decrypt, encrypt } from '../../utils/encryption.js';
 import { auditService } from '../audit.service.js';
+import { toError } from '../../utils/errors.js';
+import { withRetryAndTimeout } from '../../utils/resilience.js';
 
 export interface AuthenticatedClientResult {
   oauth2Client: OAuth2Client;
@@ -103,7 +105,22 @@ export class GoogleTokenManager {
     logger.info({ accountId, email: account.email }, 'Google OAuth access token expired or expiring soon. Refreshing...');
 
     try {
-      const { credentials } = await oauth2Client.refreshAccessToken();
+      const { credentials } = await withRetryAndTimeout(
+        async () => oauth2Client.refreshAccessToken(),
+        {
+          timeoutMs: 10000,
+          maxRetries: 2,
+          backoffBaseMs: 500,
+          operationName: `google_oauth_refresh_${accountId}`,
+          shouldRetry: (err) => {
+            const msg = toError(err).message.toLowerCase();
+            if (msg.includes('invalid_grant') || msg.includes('revoked')) {
+              return false;
+            }
+            return true;
+          },
+        }
+      );
 
       if (credentials.access_token) {
         oauth2Client.setCredentials(credentials);
@@ -141,15 +158,17 @@ export class GoogleTokenManager {
       }
 
       return { oauth2Client, account, refreshed: false };
-    } catch (refreshErr: any) {
-      logger.error({ refreshErr, accountId }, 'Failed to refresh Google OAuth token');
-      const errString = String(refreshErr?.message || refreshErr || '');
+    } catch (rawRefreshErr: unknown) {
+      const refreshErr = toError(rawRefreshErr);
+      logger.error({ err: refreshErr.message, accountId }, 'Failed to refresh Google OAuth token');
+      const errString = refreshErr.message;
+      const status = (rawRefreshErr as { status?: number })?.status;
 
       if (
         errString.includes('invalid_grant') ||
         errString.includes('revoked') ||
-        refreshErr?.status === 400 ||
-        refreshErr?.status === 401
+        status === 400 ||
+        status === 401
       ) {
         logger.warn({ accountId }, 'Detected revoked or invalid Google OAuth grant. Marking account as error');
 

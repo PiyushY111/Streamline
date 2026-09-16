@@ -1,6 +1,7 @@
 import { getAiProvider } from '../../core/factory.js';
 import { SwarmExecutionState } from './types.js';
 import { logger } from '../../../../utils/logger.js';
+import { toError } from '../../../../utils/errors.js';
 
 export interface CriticReviewResult {
   passed: boolean;
@@ -67,7 +68,8 @@ Respond with JSON matching this exact structure:
         );
         return result;
       }
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.warn({ err: err.message }, 'Critic review error, allowing execution to proceed');
     }
 

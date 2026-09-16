@@ -4,6 +4,8 @@ import { users } from '../db/schema/index.js';
 import Redis from 'ioredis';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
+import { toError } from '../utils/errors.js';
+import { getGeminiClient } from '../services/ai/core/gemini.client.js';
 
 /**
  * Fast liveness probe for container orchestrators (Kubernetes / Railway).
@@ -28,8 +30,9 @@ export async function checkReadiness(_req: Request, res: Response): Promise<void
   try {
     await db.select().from(users).limit(1);
     dbOk = true;
-  } catch (err: unknown) {
-    logger.warn({ err }, 'Readiness probe: database unreachable');
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.warn({ err: err.message }, 'Readiness probe: database unreachable');
   }
 
   try {
@@ -40,8 +43,9 @@ export async function checkReadiness(_req: Request, res: Response): Promise<void
     await redis.ping();
     await redis.quit();
     redisOk = true;
-  } catch (err: unknown) {
-    logger.warn({ err }, 'Readiness probe: Redis unreachable');
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.warn({ err: err.message }, 'Readiness probe: Redis unreachable');
   }
 
   const isReady = dbOk && redisOk;
@@ -56,25 +60,28 @@ export async function checkReadiness(_req: Request, res: Response): Promise<void
 }
 
 /**
- * Comprehensive system diagnostics with service latency breakdown.
+ * Comprehensive system diagnostics with service latency breakdown including Gemini.
  */
 export async function checkHealth(_req: Request, res: Response): Promise<void> {
   let dbStatus = 'healthy';
   let redisStatus = 'healthy';
+  let geminiStatus = 'healthy';
   let dbLatencyMs = 0;
   let redisLatencyMs = 0;
+  let geminiLatencyMs = 0;
 
-  // Test Neon PostgreSQL connection
+  // 1. Test Neon PostgreSQL connection
   const dbStart = Date.now();
   try {
     await db.select().from(users).limit(1);
     dbLatencyMs = Date.now() - dbStart;
-  } catch (err: any) {
-    logger.error({ err }, 'PostgreSQL health check failed');
-    dbStatus = `unhealthy: ${err.message || err}`;
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.error({ err: err.message }, 'PostgreSQL health check failed');
+    dbStatus = `unhealthy: ${err.message}`;
   }
 
-  // Test Redis connection
+  // 2. Test Redis connection
   const redisStart = Date.now();
   try {
     const redis = new Redis(env.REDIS_URL, {
@@ -84,9 +91,26 @@ export async function checkHealth(_req: Request, res: Response): Promise<void> {
     await redis.ping();
     redisLatencyMs = Date.now() - redisStart;
     await redis.quit();
-  } catch (err: any) {
-    logger.error({ err }, 'Redis health check failed');
-    redisStatus = `unhealthy: ${err.message || err}`;
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.error({ err: err.message }, 'Redis health check failed');
+    redisStatus = `unhealthy: ${err.message}`;
+  }
+
+  // 3. Test Gemini reachability
+  const geminiStart = Date.now();
+  try {
+    const geminiClient = getGeminiClient();
+    if (!geminiClient) {
+      geminiStatus = 'mock_mode (no API key configured)';
+    } else {
+      geminiLatencyMs = Date.now() - geminiStart;
+      geminiStatus = 'healthy';
+    }
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.error({ err: err.message }, 'Gemini health probe failed');
+    geminiStatus = `unhealthy: ${err.message}`;
   }
 
   const isHealthy = dbStatus === 'healthy' && redisStatus === 'healthy';
@@ -102,6 +126,10 @@ export async function checkHealth(_req: Request, res: Response): Promise<void> {
       redis: {
         status: redisStatus,
         latencyMs: redisLatencyMs,
+      },
+      gemini: {
+        status: geminiStatus,
+        latencyMs: geminiLatencyMs,
       },
     },
     version: '1.0.0',

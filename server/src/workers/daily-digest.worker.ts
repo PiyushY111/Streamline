@@ -5,6 +5,7 @@ import { users, userAiPreferences, dailyDigests } from '../db/schema/index.js';
 import { eq, and, gte } from 'drizzle-orm';
 import { generateDailyDigestForUser } from '../services/ai/features/newsletter-digest.service.js';
 import { logger } from '../utils/logger.js';
+import { toError } from '../utils/errors.js';
 
 export function createDailyDigestWorker() {
   logger.info('🚀 Initializing BullMQ Daily Digest Worker...');
@@ -21,8 +22,10 @@ export function createDailyDigestWorker() {
     { connection: redisConnection, concurrency: 2 }
   );
 
-  worker.on('failed', (job, err) => {
+  worker.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Daily Digest Worker job failed');
+    const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');
+    await routeToDeadLetterQueue('daily-digest-cron-queue', job, err);
   });
 
   return worker;
@@ -89,7 +92,8 @@ export function startDailyDigestScheduler() {
           }
         }
       }
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.error({ err: err.message }, 'Error in Daily Digest Cron Scheduler');
     }
   }, 5 * 60 * 1000);

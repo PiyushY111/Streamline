@@ -12,6 +12,7 @@ import { apiRateLimiter } from './middlewares/rateLimiter.js';
 import { requestId } from './middlewares/requestId.js';
 import { notFoundHandler } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { toError } from './utils/errors.js';
 
 
 const app = express();
@@ -105,8 +106,9 @@ async function bootstrap() {
           await redisConnection.quit();
           logger.info('Redis connection cleanly terminated.');
         }
-      } catch (err: any) {
-        logger.error({ err: err?.message }, 'Error during graceful shutdown');
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
+        logger.error({ err: err.message }, 'Error during graceful shutdown');
       } finally {
         clearTimeout(forceExitTimer);
         logger.info('✨ Graceful shutdown completed cleanly. Exiting.');

@@ -3,6 +3,7 @@ import { emails, connectedAccounts } from '../../../../../db/schema/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { getAiProvider } from '../../../core/factory.js';
 import { logger } from '../../../../../utils/logger.js';
+import { toError } from '../../../../../utils/errors.js';
 
 export interface InboxSentryOutput {
   threadsAnalyzed: number;
@@ -69,7 +70,8 @@ Output JSON:
           summary = res.summary;
           keyCommitments = res.commitments || [];
         }
-      } catch (err: any) {
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
         logger.warn({ err: err.message }, 'Inbox Sentry LLM parsing fallback');
       }
     }

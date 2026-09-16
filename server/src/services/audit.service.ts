@@ -7,15 +7,21 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 export class AuditService {
   /**
    * Records an immutable audit log entry in the database.
+   * Accepts an optional database or transaction client.
    */
-  async logAction(userId: string, action: string, meta?: Record<string, any>): Promise<void> {
+  async logAction(
+    userId: string,
+    action: string,
+    meta?: Record<string, any>,
+    executor: any = db
+  ): Promise<void> {
     if (!userId || !UUID_REGEX.test(userId)) {
       logger.debug({ userId, action }, 'Audit log skipped: userId is not a valid UUID');
       return;
     }
 
     try {
-      await db.insert(auditLogs).values({
+      await executor.insert(auditLogs).values({
         userId,
         action,
         meta: meta || {},

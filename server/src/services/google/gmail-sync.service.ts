@@ -9,6 +9,7 @@ import { emailsRepository } from '../../repositories/emails.repository.js';
 import { delCache } from '../cache.service.js';
 import { auditService } from '../audit.service.js';
 import { aiTriageQueue } from '../../queues/index.js';
+import { toError } from '../../utils/errors.js';
 
 
 function decodeBase64(data: string): string {
@@ -229,7 +230,8 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
     try {
       await aiTriageQueue.add('triage-batch', { emailIds: newEmailIds, accountId });
       logger.info({ accountId, count: newEmailIds.length }, 'Enqueued newly synced emails for AI triage');
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.warn({ err: err.message }, 'Failed to enqueue emails to AI triage queue');
     }
 
@@ -417,8 +419,9 @@ export async function syncGmailSendEmail(
         extMessageId = res.data.id;
       }
       logger.info({ to: data.to, messageId: extMessageId }, 'Successfully delivered email via Gmail API');
-    } catch (err: any) {
-      logger.error({ err, to: data.to }, 'Gmail API send email error');
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
+      logger.error({ err: err.message, to: data.to }, 'Gmail API send email error');
       throw new Error(`Gmail API failed to send email: ${err.message}`);
     }
   }

@@ -6,6 +6,7 @@ import { eq, inArray } from 'drizzle-orm';
 import { triageEmail } from '../services/ai/features/triage.service.js';
 import { aiRepository } from '../repositories/ai.repository.js';
 import { logger } from '../utils/logger.js';
+import { toError } from '../utils/errors.js';
 
 export function createAiTriageWorker() {
   logger.info('🚀 Initializing BullMQ AI Triage Background Worker...');
@@ -82,7 +83,8 @@ export function createAiTriageWorker() {
             { emailId: email.id, priority: triage.priority, tasksCount: triage.extractedTasks.length },
             '✅ Email triaged & metadata stored'
           );
-        } catch (err: any) {
+        } catch (rawErr: unknown) {
+          const err = toError(rawErr);
           logger.error({ err: err.message, emailId: email.id }, 'Error triaging email in worker');
         }
       }
@@ -90,8 +92,10 @@ export function createAiTriageWorker() {
     { connection: redisConnection, concurrency: 3 }
   );
 
-  worker.on('failed', (job, err) => {
+  worker.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ AI Triage Worker job failed');
+    const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');
+    await routeToDeadLetterQueue('ai-email-triage-queue', job, err);
   });
 
   return worker;

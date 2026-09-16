@@ -17,6 +17,7 @@ import {
   NotFoundError,
   InternalServerError,
 } from '../errors/index.js';
+import { toError } from '../utils/errors.js';
 
 export const chat = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   if (!req.user?.id) {
@@ -150,7 +151,8 @@ export const chatStream = asyncHandler(async (req: AuthenticatedRequest, res: Re
       res.write('event: done\ndata: {}\n\n');
       res.end();
     }
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.error({ err: err.message }, 'Agent chat stream error');
     if (!res.headersSent) {
       throw err;
@@ -179,7 +181,8 @@ export const approveAction = asyncHandler(async (req: AuthenticatedRequest, res:
   try {
     const result = await executeApprovedAction(req.user.id, id, { idempotencyKey });
     res.json({ success: true, result });
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.warn({ err: err.message }, 'Approve action failed');
     throw new BadRequestError(err.message);
   }
@@ -193,7 +196,8 @@ export const rejectAction = asyncHandler(async (req: AuthenticatedRequest, res: 
   try {
     const result = await rejectPolicyAction(req.user.id, id);
     res.json({ success: true, action: result });
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.warn({ err: err.message }, 'Reject action failed');
     throw new BadRequestError(err.message);
   }

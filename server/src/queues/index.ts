@@ -14,3 +14,4 @@ export const accountSyncQueue = new Queue('account-sync-queue', {
 });
 
 export * from './ai.queue.js';
+export * from './dlq.queue.js';

@@ -7,6 +7,7 @@ import { swarmCriticNode } from './critic.js';
 import { getAiProvider } from '../../core/factory.js';
 import { sseService } from '../../../sse.service.js';
 import { logger } from '../../../../utils/logger.js';
+import { toError } from '../../../../utils/errors.js';
 
 export class SwarmSupervisor {
   /**
@@ -89,7 +90,8 @@ export class SwarmSupervisor {
           title: task.title,
           intermediateData: output,
         });
-      } catch (err: any) {
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
         task.status = 'failed';
         task.error = err.message;
         state.executionLog.push(`Failed [${task.role}]: ${err.message}`);

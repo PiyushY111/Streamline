@@ -31,8 +31,10 @@ export function startWorkers() {
     logger.info({ jobId: job.id }, '✅ Account Sync Worker job completed');
   });
 
-  accountSyncWorkerInstance.on('failed', (job, err) => {
+  accountSyncWorkerInstance.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Account Sync Worker job failed');
+    const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');
+    await routeToDeadLetterQueue('account-sync-queue', job, err);
   });
 
   // Start AI Triage and Daily Digest Workers

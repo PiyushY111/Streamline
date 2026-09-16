@@ -1,6 +1,7 @@
 import { getAiProvider } from '../core/factory.js';
 import { saveMemory, MemoryType } from './memory.service.js';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface ExtractedFactResult {
   hasFact: boolean;
@@ -68,7 +69,8 @@ ${agentResponse}`;
         logger.info({ userId, type: parsed.type, fact: parsed.content }, 'Extracted durable memory fact');
         await saveMemory(userId, parsed.type, parsed.content, sourceRef, { checkContradiction: true });
       }
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.warn({ err: err.message, userId }, 'Background memory extraction failed, non-fatal');
     }
   }

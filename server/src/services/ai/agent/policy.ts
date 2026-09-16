@@ -5,6 +5,7 @@ import { TOOL_REGISTRY } from './tools/index.js';
 import { auditService } from '../../audit.service.js';
 import { logger } from '../../../utils/logger.js';
 import { extractMemoryFromInteraction } from '../memory/extraction.service.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface ProposedToolCall {
   id?: string;
@@ -49,7 +50,7 @@ export async function enforcePolicy(
     };
   }
 
-  const validatedArgs = parseResult.data;
+  const validatedArgs = parseResult.data as Record<string, unknown>;
 
   // 3. Read Tool — Safe to execute inline immediately
   if (tool.permissionClass === 'read') {
@@ -57,13 +58,37 @@ export async function enforcePolicy(
       const result = await tool.execute(userId, validatedArgs);
       await auditService.logAction(userId, `agent.tool.read.${call.name}`, { args: validatedArgs });
       return { kind: 'executed', result };
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.error({ err: err.message, toolName: call.name }, 'Read tool execution error');
       return { kind: 'rejected', reason: `Tool execution failed: ${err.message}` };
     }
   }
 
-  // 4. Write or Send Tool — Consequential side effect. NEVER auto-execute.
+  // 4. Idempotency check: if tool call has an idempotency key, check for duplicate submission
+  const providedIdempotencyKey = (validatedArgs?.idempotencyKey as string | undefined) || null;
+  if (providedIdempotencyKey) {
+    try {
+      const [existing] = await db
+        .select()
+        .from(pendingActions)
+        .where(and(eq(pendingActions.idempotencyKey, providedIdempotencyKey), eq(pendingActions.userId, userId)))
+        .limit(1);
+
+      if (existing) {
+        logger.info({ idempotencyKey: providedIdempotencyKey, pendingActionId: existing.id }, 'Deduplicated tool call via idempotency key');
+        return {
+          kind: 'pending',
+          pendingActionId: existing.id,
+          impactPreview: (existing.impactPreview as Record<string, unknown>) || {},
+        };
+      }
+    } catch (checkErr: unknown) {
+      logger.debug({ err: toError(checkErr).message }, 'Non-fatal error checking idempotency key');
+    }
+  }
+
+  // 5. Write or Send Tool — Consequential side effect. NEVER auto-execute.
   // Generate structured impact preview for human review
   const impactPreview = tool.generateImpactPreview(validatedArgs);
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24-hour TTL
@@ -78,6 +103,7 @@ export async function enforcePolicy(
       status: 'pending',
       reasoning: call.reasoning || null,
       impactPreview,
+      idempotencyKey: providedIdempotencyKey,
       expiresAt,
     })
     .returning();
@@ -115,7 +141,18 @@ export async function executeApprovedAction(
     throw new Error('Pending action not found or not owned by user');
   }
 
-  // 2. State verification
+  // 2. Idempotent replay: if the action is already executed and the idempotencyKey matches, return cached result
+  if (
+    action.status === 'executed' &&
+    options.idempotencyKey &&
+    action.idempotencyKey &&
+    action.idempotencyKey === options.idempotencyKey
+  ) {
+    logger.info({ pendingActionId, idempotencyKey: options.idempotencyKey }, 'Returning cached action result for idempotent replay');
+    return action.resultJson;
+  }
+
+  // 3. State verification
   if (action.status !== 'pending') {
     throw new Error(`Action already resolved with status: "${action.status}"`);
   }
@@ -140,17 +177,49 @@ export async function executeApprovedAction(
     throw new Error(`Unknown tool: "${action.toolName}"`);
   }
 
+  // 6. Atomic state claim to prevent double-execution race condition
+  const effectiveIdempotencyKey = options.idempotencyKey || action.idempotencyKey || null;
+  const updateClaimQuery = db
+    .update(pendingActions)
+    .set({
+      status: 'executing',
+      idempotencyKey: effectiveIdempotencyKey,
+    })
+    .where(and(
+      eq(pendingActions.id, pendingActionId),
+      eq(pendingActions.userId, userId),
+      eq(pendingActions.status, 'pending')
+    ));
+
+  if (typeof (updateClaimQuery as any).returning === 'function') {
+    const [claimed] = await (updateClaimQuery as any).returning();
+    if (!claimed) {
+      // Another concurrent worker claimed or resolved it
+      const [current] = await db
+        .select()
+        .from(pendingActions)
+        .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)))
+        .limit(1);
+      if (current?.status === 'executed') {
+        return current.resultJson;
+      }
+      throw new Error(`Action already resolved with status: "${current?.status || 'executing'}"`);
+    }
+  } else {
+    await updateClaimQuery;
+  }
+
   try {
-    // 6. Execute real service
+    // 7. Execute real service
     const result = await tool.execute(userId, action.toolArgs);
 
-    // 7. Atomic state update
+    // 8. Atomic state update
     await db
       .update(pendingActions)
       .set({
         status: 'executed',
         resultJson: result,
-        idempotencyKey: options.idempotencyKey || action.idempotencyKey || null,
+        idempotencyKey: effectiveIdempotencyKey,
         resolvedAt: new Date(),
       })
       .where(eq(pendingActions.id, pendingActionId));
@@ -160,19 +229,20 @@ export async function executeApprovedAction(
       toolName: action.toolName,
     });
 
-    // 8. Fire-and-forget background memory extraction (decoupled from response latency)
+    // 9. Fire-and-forget background memory extraction (decoupled from response latency)
     setImmediate(() => {
       extractMemoryFromInteraction(
         userId,
         `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
         JSON.stringify(result),
         `pending_action:${pendingActionId}`
-      ).catch((err) => logger.warn({ err: err.message }, 'Background memory extraction failed, non-fatal'));
+      ).catch((rawErr: unknown) => logger.warn({ err: toError(rawErr).message }, 'Background memory extraction failed, non-fatal'));
     });
 
     return result;
-  } catch (err: any) {
-    // 9. Error recording
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    // 10. Error recording
     await db
       .update(pendingActions)
       .set({

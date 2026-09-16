@@ -8,6 +8,7 @@ import { aiRepository } from '../../../repositories/ai.repository.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { styleProfilerService } from './style-profiler.service.js';
 import { Response } from 'express';
+import { toError } from '../../../utils/errors.js';
 
 export interface DraftOptions {
   threadId?: string;
@@ -124,7 +125,8 @@ export async function streamDraftReply(
             .orderBy(asc(emails.receivedAt));
         }
       }
-    } catch (err: any) {
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
       logger.warn({ err: err.message, targetId }, 'Error during SQL thread resolution');
     }
   }
@@ -239,7 +241,8 @@ ${conversationHistory}
       res.end();
       streamSucceeded = true;
     }
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     if (abortSignal?.aborted) {
       logger.info({ userId }, 'Draft reply streaming aborted by client disconnect');
       return;

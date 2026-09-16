@@ -3,6 +3,7 @@ import { connectedAccounts, calendars } from '../db/schema/index.js';
 import { eq, and } from 'drizzle-orm';
 import { eventsRepository } from '../repositories/events.repository.js';
 import { logger } from '../utils/logger.js';
+import { toError } from '../utils/errors.js';
 
 export class EventsService {
   async getEvents(userId: string, startDate?: string, endDate?: string) {
@@ -116,7 +117,8 @@ export class EventsService {
           logger.info({ accountId, externalEventId, htmlLink }, 'Event successfully pushed live to Google Calendar');
         }
       }
-    } catch (gErr: any) {
+    } catch (rawErr: unknown) {
+      const gErr = toError(rawErr);
       logger.warn({ err: gErr.message, accountId }, 'Failed to push event directly to Google Calendar API, persisting to local DB');
     }
 

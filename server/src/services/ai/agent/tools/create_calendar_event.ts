@@ -7,6 +7,7 @@ const createCalendarEventSchema = z.object({
   endTime: z.string().refine((val) => !isNaN(Date.parse(val)), 'End time must be a valid ISO datetime'),
   description: z.string().optional(),
   location: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 type CreateCalendarEventArgs = z.infer<typeof createCalendarEventSchema>;
@@ -24,6 +25,7 @@ export const createCalendarEventTool: ToolDefinition<CreateCalendarEventArgs, an
       endTime: { type: 'string', description: 'ISO 8601 formatted datetime string (e.g. 2026-09-10T15:00:00Z)' },
       description: { type: 'string', description: 'Optional description or agenda for the meeting' },
       location: { type: 'string', description: 'Optional location or video call meeting link' },
+      idempotencyKey: { type: 'string', description: 'Unique idempotency key to prevent duplicate calendar event creation' },
     },
     required: ['title', 'startTime', 'endTime'],
   },

@@ -14,6 +14,7 @@ import { Type } from '@google/genai';
 import { aiCostGuardService } from '../services/ai/core/cost-guard.service.js';
 import { UnauthorizedError, NotFoundError } from '../errors/index.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
+import { toError } from '../utils/errors.js';
 
 function getUserId(req: Request): string {
   const id = (req as any).user?.id || (req as any).user?.userId || '';
@@ -218,7 +219,8 @@ ${conversationText}`;
         required: ['summary', 'keyTakeaways', 'actionItems'],
       },
     });
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.warn({ err: err.message }, 'AI thread summarize attempt failed, using fallback');
   }
 
@@ -290,7 +292,8 @@ export const triggerAutoLabelAll = asyncHandler(async (req: Request, res: Respon
             extractedTasks: result.extractedTasks,
           });
           labeledCount++;
-        } catch (err: any) {
+        } catch (rawErr: unknown) {
+          const err = toError(rawErr);
           logger.warn({ emailId: em.id, err: err.message }, 'Individual email triage failed');
         }
       })

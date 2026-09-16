@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { usersRepository } from '../repositories/users.repository.js';
 import { env } from '../config/env.js';
+import { db } from '../db/index.js';
+import { auditService } from './audit.service.js';
 
 export class AuthService {
   async register(email: string, password?: string, name?: string) {
@@ -9,7 +11,17 @@ export class AuthService {
     if (existing) throw new Error('User with this email already exists');
 
     const passwordHash = password ? await bcrypt.hash(password, 10) : '';
-    const user = await usersRepository.create({ email, name, passwordHash });
+
+    const runInTx = typeof db.transaction === 'function'
+      ? (fn: (tx: typeof db) => Promise<any>) => db.transaction(fn)
+      : (fn: (tx: typeof db) => Promise<any>) => fn(db);
+
+    const user = await runInTx(async (tx) => {
+      const newUser = await usersRepository.create({ email, name, passwordHash }, tx);
+      await auditService.logAction(newUser.id, 'user.registered', { email: newUser.email }, tx);
+      return newUser;
+    });
+
     const token = jwt.sign({ id: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });
 
     return { user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar }, token };

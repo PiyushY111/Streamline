@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { env } from '../../../../config/env.js';
 import { logger } from '../../../../utils/logger.js';
+import { toError } from '../../../../utils/errors.js';
 import type {
   AiProvider,
   AiGenerateTextOptions,
@@ -110,7 +111,8 @@ export class GeminiProvider implements AiProvider {
         }
         succeeded = true;
         break;
-      } catch (err: any) {
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
         lastError = err;
         logger.warn({ model, err: err.message }, 'Gemini streaming attempt failed, trying next candidate');
       }
@@ -128,7 +130,8 @@ export class GeminiProvider implements AiProvider {
           onChunk(response.text);
           return fullText;
         }
-      } catch (fallbackErr: any) {
+      } catch (rawFallbackErr: unknown) {
+        const fallbackErr = toError(rawFallbackErr);
         throw lastError || fallbackErr;
       }
     }
@@ -164,8 +167,8 @@ export class GeminiProvider implements AiProvider {
         if (values && values.length > 0) {
           return values.length > targetDims ? values.slice(0, targetDims) : values;
         }
-      } catch (err: any) {
-        lastError = err;
+      } catch (rawErr: unknown) {
+        lastError = toError(rawErr);
       }
     }
 

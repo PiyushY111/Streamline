@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { logger } from '../utils/logger.js';
+import { toError } from '../utils/errors.js';
 import { googlePubSubService, PubSubPushPayload } from '../services/google/pubsub.service.js';
 
 export const handleGmailPushWebhook = async (req: Request, res: Response): Promise<void> => {
@@ -48,7 +49,8 @@ export const handleGmailPushWebhook = async (req: Request, res: Response): Promi
       });
 
     res.status(200).json({ received: true });
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.error({ err: err.message }, 'Unexpected error in handleGmailPushWebhook');
     // Return 200 so Pub/Sub does not flood with retries
     res.status(200).send('Internal processing error, acknowledged');

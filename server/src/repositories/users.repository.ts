@@ -13,8 +13,8 @@ export class UsersRepository {
     return user || null;
   }
 
-  async create(data: { email: string; name?: string; passwordHash: string; avatar?: string }) {
-    const [newUser] = await db.insert(users).values({
+  async create(data: { email: string; name?: string; passwordHash: string; avatar?: string }, executor: any = db) {
+    const [newUser] = await executor.insert(users).values({
       email: data.email.toLowerCase().trim(),
       name: data.name,
       passwordHash: data.passwordHash,

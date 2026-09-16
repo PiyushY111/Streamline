@@ -5,6 +5,7 @@ import { memoryService } from './memory.service.js';
 import { rerankerService, RerankCandidate, RerankedResult } from './reranker.service.js';
 import { getAiProvider } from '../core/factory.js';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface GraphNode {
   id: string;
@@ -175,7 +176,8 @@ export class GraphRAGService {
             weight: Number(r.weight || 1.0),
           };
         });
-      } catch (cteErr: any) {
+      } catch (rawCteErr: unknown) {
+        const cteErr = toError(rawCteErr);
         logger.warn({ err: cteErr.message }, 'Recursive CTE failed, falling back to direct 1-hop query');
         const directEdges = await db
           .select({
@@ -252,7 +254,8 @@ export class GraphRAGService {
           timestamp: mem.createdAt,
         });
       }
-    } catch (memErr: any) {
+    } catch (rawMemErr: unknown) {
+      const memErr = toError(rawMemErr);
       logger.warn({ err: memErr.message }, 'Memory search failed in GraphRAG pass');
     }
 

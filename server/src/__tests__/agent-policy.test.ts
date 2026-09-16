@@ -304,6 +304,56 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         })
       );
     });
+
+    it('returns cached result idempotently when action was already executed with same idempotencyKey', async () => {
+      const mockAction = {
+        id: 'action-idem',
+        userId: 'user-1',
+        toolName: 'create_task',
+        toolArgs: { title: 'Idempotent Task' },
+        status: 'executed',
+        resultJson: { id: 'task-idem-1', title: 'Idempotent Task' },
+        expiresAt: new Date(Date.now() + 10000),
+        idempotencyKey: 'idem-key-999',
+      };
+
+      const createSpy = vi.spyOn(tasksRepository, 'create');
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
+          }),
+        }),
+      } as any);
+
+      const result = await executeApprovedAction('user-1', 'action-idem', { idempotencyKey: 'idem-key-999' });
+      expect(result).toEqual({ id: 'task-idem-1', title: 'Idempotent Task' });
+      expect(createSpy).not.toHaveBeenCalled();
+    });
+
+    it('rejects when idempotency key mismatches existing action key', async () => {
+      const mockAction = {
+        id: 'action-mismatch',
+        userId: 'user-1',
+        toolName: 'create_task',
+        toolArgs: { title: 'Mismatch Task' },
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 10000),
+        idempotencyKey: 'original-key',
+      };
+
+      vi.spyOn(db, 'select').mockReturnValue({
+        from: () => ({
+          where: () => ({
+            limit: vi.fn().mockResolvedValue([mockAction]),
+          }),
+        }),
+      } as any);
+
+      await expect(
+        executeApprovedAction('user-1', 'action-mismatch', { idempotencyKey: 'different-key' })
+      ).rejects.toThrow('Idempotency key mismatch.');
+    });
   });
 
   describe('rejectAction', () => {

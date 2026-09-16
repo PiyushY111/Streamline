@@ -2,6 +2,7 @@ import { db } from '../../../db/index.js';
 import { aiTokenUsage } from '../../../db/schema/index.js';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { logger } from '../../../utils/logger.js';
+import { toError } from '../../../utils/errors.js';
 
 export interface ModelPricing {
   promptPerMillion: number;
@@ -80,8 +81,9 @@ export class AiCostGuardService {
       );
 
       return { totalTokens, costUsd, formattedCost };
-    } catch (err: any) {
-      logger.warn({ err: err?.message }, 'Failed to record AI token usage in database');
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
+      logger.warn({ err: err.message }, 'Failed to record AI token usage in database');
       const { costUsd, formattedCost } = this.calculateCost(params.model, params.promptTokens, params.completionTokens);
       return { totalTokens: params.promptTokens + params.completionTokens, costUsd, formattedCost };
     }
@@ -141,8 +143,9 @@ export class AiCostGuardService {
         tokensToday,
         costTodayUsd,
       };
-    } catch (err: any) {
-      logger.warn({ err: err?.message }, 'Error checking AI circuit breaker, allowing request');
+    } catch (rawErr: unknown) {
+      const err = toError(rawErr);
+      logger.warn({ err: err.message }, 'Error checking AI circuit breaker, allowing request');
       return { isTripped: false, tokensToday: 0, costTodayUsd: 0 };
     }
   }

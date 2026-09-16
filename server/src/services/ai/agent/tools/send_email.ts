@@ -6,6 +6,7 @@ const sendEmailSchema = z.object({
   subject: z.string().min(1, 'Subject line is required'),
   body: z.string().min(1, 'Email body is required'),
   accountId: z.string().uuid().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 type SendEmailArgs = z.infer<typeof sendEmailSchema>;
@@ -22,6 +23,7 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
       subject: { type: 'string', description: 'Subject line of the email' },
       body: { type: 'string', description: 'The body text content to be sent to the recipient' },
       accountId: { type: 'string', description: 'Optional connected account UUID to send from' },
+      idempotencyKey: { type: 'string', description: 'Unique idempotency key to prevent duplicate email dispatch' },
     },
     required: ['to', 'subject', 'body'],
   },

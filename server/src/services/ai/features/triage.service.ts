@@ -5,6 +5,7 @@ import { logger } from '../../../utils/logger.js';
 import { ExtractedTaskItem } from '../../../db/schema/index.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import crypto from 'crypto';
+import { toError } from '../../../utils/errors.js';
 
 export interface TriageResult {
   priority: 'p1_urgent' | 'p2_important' | 'p3_updates' | 'p4_newsletter' | 'p5_low';
@@ -170,7 +171,8 @@ ${(email.bodyText || '').substring(0, 4000)}
       sentiment: parsed.sentiment || 'neutral',
       extractedTasks: tasks,
     };
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.warn({ err: err.message, emailId: email.id }, 'Gemini triage failed, falling back to heuristic');
     return heuristicFallbackTriage(email, isVip);
   }

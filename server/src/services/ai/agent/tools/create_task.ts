@@ -9,6 +9,7 @@ const createTaskSchema = z.object({
   importance: z.number().min(0).max(1).optional(),
   estimatedMinutes: z.number().min(1).optional(),
   projectId: z.string().uuid().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 type CreateTaskArgs = z.infer<typeof createTaskSchema>;
@@ -28,6 +29,7 @@ export const createTaskTool: ToolDefinition<CreateTaskArgs, any> = {
       importance: { type: 'number', description: 'Strategic importance score between 0.0 and 1.0' },
       estimatedMinutes: { type: 'number', description: 'Estimated time required to complete the task in minutes' },
       projectId: { type: 'string', description: 'Optional project UUID to associate task with' },
+      idempotencyKey: { type: 'string', description: 'Unique idempotency key to prevent double execution on retries' },
     },
     required: ['title'],
   },

@@ -5,6 +5,7 @@ import { aiRepository } from '../../../repositories/ai.repository.js';
 import { aiCostGuardService } from '../core/cost-guard.service.js';
 import { logger } from '../../../utils/logger.js';
 import { NewsletterTopicSummary, DigestActionSummary } from '../../../db/schema/index.js';
+import { toError } from '../../../utils/errors.js';
 
 export async function generateDailyDigestForUser(userId: string): Promise<any> {
   logger.info({ userId }, 'Generating Daily Executive & Newsletter Digest...');
@@ -131,7 +132,8 @@ Requirements:
 
     logger.info({ userId, digestId: saved.id }, 'Daily Digest generated and saved successfully');
     return saved;
-  } catch (err: any) {
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
     logger.error({ err: err.message, userId }, 'Failed to generate Gemini daily digest, falling back');
     return generateFallbackDigest(userId, newsletters, urgentEmails);
   }
