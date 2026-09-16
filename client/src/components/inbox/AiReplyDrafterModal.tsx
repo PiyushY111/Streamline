@@ -1,19 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Sparkles,
-  Send,
-  X,
-  RefreshCw,
-  Copy,
-  Check,
-  Briefcase,
-  Smile,
-  Zap,
-  Ban,
-  Calendar,
-} from 'lucide-react';
+import { Sparkles, Send, X, RefreshCw, Copy, Check, Briefcase, Smile, Zap, Ban, Calendar } from 'lucide-react';
 import { safeFetch } from '@/lib/api/client';
 
 interface AiReplyDrafterModalProps {
@@ -158,7 +146,6 @@ export function AiReplyDrafterModal({
     }
   };
 
-
   const handleCopy = () => {
     navigator.clipboard.writeText(generatedDraft);
     setCopied(true);
@@ -180,9 +167,7 @@ export function AiReplyDrafterModal({
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                Draft Reply with Gemini
-              </h3>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Draft Reply with Gemini</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md">
                 {threadSubject || 'Context-aware email reply assistant'}
               </p>
@@ -201,9 +186,7 @@ export function AiReplyDrafterModal({
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {/* Tone Selector */}
           <div>
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">
-              Choose Tone
-            </label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 block">Choose Tone</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {toneOptions.map((tone) => {
                 const Icon = tone.icon;
@@ -219,7 +202,9 @@ export function AiReplyDrafterModal({
                         : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                     }`}
                   >
-                    <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${isSelected ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'}`} />
+                    <Icon
+                      className={`h-4 w-4 mt-0.5 shrink-0 ${isSelected ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'}`}
+                    />
                     <div className="min-w-0">
                       <div className="text-xs font-semibold leading-none">{tone.label}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5 truncate">{tone.desc}</div>
@@ -266,9 +251,7 @@ export function AiReplyDrafterModal({
           {(generatedDraft || isGenerating) && (
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Generated Draft
-                </span>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Generated Draft</span>
                 {generatedDraft && (
                   <button
                     onClick={handleCopy}

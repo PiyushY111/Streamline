@@ -6,10 +6,7 @@ interface TraceWaterfallGanttProps {
   maxWaterfallDuration: number;
 }
 
-export const TraceWaterfallGantt: React.FC<TraceWaterfallGanttProps> = ({
-  waterfallSpans,
-  maxWaterfallDuration,
-}) => {
+export const TraceWaterfallGantt: React.FC<TraceWaterfallGanttProps> = ({ waterfallSpans, maxWaterfallDuration }) => {
   return (
     <div className="p-4 rounded-2xl bg-white/80 dark:bg-[#0B101D]/80 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md shadow-xs space-y-4">
       <div className="flex items-center justify-between text-xs text-slate-500 pb-2 border-b border-slate-200 dark:border-slate-800">
@@ -31,9 +28,7 @@ export const TraceWaterfallGantt: React.FC<TraceWaterfallGanttProps> = ({
           return (
             <div key={span.spanId} className="space-y-1">
               <div className="flex items-center justify-between text-[11px] font-mono">
-                <span className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-md">
-                  {span.name}
-                </span>
+                <span className="text-slate-800 dark:text-slate-200 font-semibold truncate max-w-md">{span.name}</span>
                 <span className="text-slate-400">
                   {span.startTimeMs}ms (+{span.durationMs}ms)
                 </span>

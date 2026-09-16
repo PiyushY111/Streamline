@@ -1,15 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  RefreshCw,
-  ChevronDown,
-  CheckCircle2,
-  LogOut,
-  User as UserIcon,
-  Sparkles,
-  Bot,
-} from 'lucide-react';
+import { RefreshCw, ChevronDown, CheckCircle2, LogOut, User as UserIcon, Sparkles, Bot } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
 import { fetchConnectedAccounts, AccountData } from '@/lib/api';
@@ -50,7 +42,11 @@ export function Header() {
       ? { label: 'All Accounts', email: 'Unified View', color: '#8b5cf6' }
       : { label: selectedAcc.label, email: selectedAcc.email, color: selectedAcc.color };
 
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : 'U';
+  const userInitial = user?.name
+    ? user.name.charAt(0).toUpperCase()
+    : user?.email
+      ? user.email.charAt(0).toUpperCase()
+      : 'U';
 
   return (
     <header className="h-16 shrink-0 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/80 dark:bg-[#0D1322]/80 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-20 transition-colors duration-200">
@@ -68,9 +64,7 @@ export function Header() {
             <span className="text-xs text-slate-800 dark:text-slate-200 font-semibold leading-tight">
               {selectedAccount.label}
             </span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
-              {selectedAccount.email}
-            </span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{selectedAccount.email}</span>
           </div>
           <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform" />
         </button>
@@ -118,10 +112,7 @@ export function Header() {
                 }`}
               >
                 <div className="flex items-center space-x-2.5">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: acc.color }}
-                  />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: acc.color }} />
                   <div className="flex flex-col text-left">
                     <span className="font-semibold text-slate-800 dark:text-slate-200">{acc.label}</span>
                     <span className="text-[10px] text-slate-400">{acc.email}</span>
@@ -163,10 +154,10 @@ export function Header() {
           className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-600/10 hover:bg-purple-100 dark:hover:bg-purple-600/20 border border-purple-200 dark:border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 transition-all active:scale-95 disabled:opacity-50 font-medium shadow-xs"
           title="Trigger Incremental Sync"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-purple-600 dark:text-purple-400' : ''}`} />
-          <span className="hidden sm:inline">
-            {isSyncing ? 'Syncing...' : 'Sync Now'}
-          </span>
+          <RefreshCw
+            className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-purple-600 dark:text-purple-400' : ''}`}
+          />
+          <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
         </button>
 
         <ThemeToggle />

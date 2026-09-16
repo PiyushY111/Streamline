@@ -164,7 +164,9 @@ export function KnowledgeGraphVisualizer() {
             <div className="h-64 flex flex-col items-center justify-center text-slate-500 text-xs space-y-2">
               <Share2 className="w-8 h-8 text-slate-600" />
               <p>No graph entities found matching criteria.</p>
-              <p className="text-[11px] text-slate-600">Entities are auto-extracted as emails and meetings are ingested.</p>
+              <p className="text-[11px] text-slate-600">
+                Entities are auto-extracted as emails and meetings are ingested.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -217,7 +219,9 @@ export function KnowledgeGraphVisualizer() {
                 <div>
                   <h4 className="text-sm font-bold text-white">{selectedNode.name}</h4>
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${getNodeColor(selectedNode.type)}`}>
+                    <span
+                      className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full border ${getNodeColor(selectedNode.type)}`}
+                    >
                       {selectedNode.type}
                     </span>
                     <span className="text-[11px] text-slate-500">ID: {selectedNode.id.slice(0, 8)}...</span>
@@ -234,7 +238,7 @@ export function KnowledgeGraphVisualizer() {
                     <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                       {connectedEdges.map((edge) => {
                         const targetNode = nodes.find(
-                          (n) => n.id === (edge.from === selectedNode.id ? edge.to : edge.from)
+                          (n) => n.id === (edge.from === selectedNode.id ? edge.to : edge.from),
                         );
                         const isOutgoing = edge.from === selectedNode.id;
 

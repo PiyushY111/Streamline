@@ -10,15 +10,9 @@ interface ScheduleViewProps {
   onOpenCreateModal: () => void;
 }
 
-export const ScheduleView: React.FC<ScheduleViewProps> = ({
-  events,
-  onSelectEvent,
-  onOpenCreateModal,
-}) => {
+export const ScheduleView: React.FC<ScheduleViewProps> = ({ events, onSelectEvent, onOpenCreateModal }) => {
   // Sort events chronologically
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  );
+  const sortedEvents = [...events].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
   // Group events by formatted date string (e.g. "Tuesday, August 25, 2026")
   const grouped: Record<string, EventData[]> = {};
@@ -54,9 +48,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
               {/* Date Group Sticky Header */}
               <div className="sticky top-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xs py-2 border-b border-slate-200 dark:border-slate-800 z-10 flex items-center space-x-3">
                 <span className="w-3 h-3 rounded-full bg-blue-600" />
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-sans">
-                  {dateHeader}
-                </h3>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white font-sans">{dateHeader}</h3>
               </div>
 
               {/* Event Cards */}
@@ -150,4 +142,3 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
     </div>
   );
 };
-

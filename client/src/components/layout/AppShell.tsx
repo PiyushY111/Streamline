@@ -39,12 +39,7 @@ export function AppShell({ children }: AppShellProps) {
       </div>
 
       {/* Global AI Copilot Drawer (Accessible from any page via ⌘K or buttons) */}
-      <AgentCopilotDrawer
-        isOpen={isOpen}
-        onClose={closeCopilot}
-        onActionExecuted={refreshPendingCount}
-      />
+      <AgentCopilotDrawer isOpen={isOpen} onClose={closeCopilot} onActionExecuted={refreshPendingCount} />
     </div>
   );
 }
-

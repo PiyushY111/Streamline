@@ -1,7 +1,6 @@
 const PRIMARY_API = '/api';
 const FALLBACK_API = 'http://127.0.0.1:5001/api';
 
-
 function getCsrfTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(/(^|;\s*)csrf_token=([^;]+)/);

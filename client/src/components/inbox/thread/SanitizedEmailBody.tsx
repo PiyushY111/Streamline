@@ -9,11 +9,7 @@ interface SanitizedEmailBodyProps {
   className?: string;
 }
 
-export const SanitizedEmailBody: React.FC<SanitizedEmailBodyProps> = ({
-  html,
-  text,
-  className = '',
-}) => {
+export const SanitizedEmailBody: React.FC<SanitizedEmailBodyProps> = ({ html, text, className = '' }) => {
   const sanitizedHtml = useMemo(() => {
     if (!html) return '';
     // Strict sanitization: permit formatting, styling, images, links, tables
@@ -37,7 +33,9 @@ export const SanitizedEmailBody: React.FC<SanitizedEmailBodyProps> = ({
 
   if (text) {
     return (
-      <div className={`whitespace-pre-wrap font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed ${className}`}>
+      <div
+        className={`whitespace-pre-wrap font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed ${className}`}
+      >
         {text}
       </div>
     );

@@ -148,9 +148,7 @@ export default function AgentStudioPage() {
 
     if (isSwarmMode) {
       setIsSwarmRunning(true);
-      setSwarmTasks([
-        { id: 'step-plan', role: 'supervisor', title: 'Goal Decomposition', status: 'running' },
-      ]);
+      setSwarmTasks([{ id: 'step-plan', role: 'supervisor', title: 'Goal Decomposition', status: 'running' }]);
       try {
         const res = await safeFetch('/agent/swarm', {
           method: 'POST',
@@ -250,7 +248,8 @@ export default function AgentStudioPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Multi-turn tool execution runtime with thought signature inspection, OpenTelemetry waterfall profiler, and dual-boundary policy safeguards.
+            Multi-turn tool execution runtime with thought signature inspection, OpenTelemetry waterfall profiler, and
+            dual-boundary policy safeguards.
           </p>
         </div>
 
@@ -303,9 +302,7 @@ export default function AgentStudioPage() {
               Live
             </span>
           </div>
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-            768-dim Vector Embeddings
-          </div>
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">768-dim Vector Embeddings</div>
         </div>
 
         {/* 7-Day Agent Turns Cost */}
@@ -331,9 +328,7 @@ export default function AgentStudioPage() {
           <div className="text-sm font-bold text-slate-900 dark:text-white">
             {stats?.totalSessions ?? sessions.length} Threads
           </div>
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-            Auditable decision histories
-          </div>
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Auditable decision histories</div>
         </div>
 
         {/* Dual-Boundary Policy Gate Status */}
@@ -343,16 +338,12 @@ export default function AgentStudioPage() {
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-              100% Interception
-            </div>
+            <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">100% Interception</div>
             <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-mono">
               HITL Active
             </span>
           </div>
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-            Zero direct write actions allowed
-          </div>
+          <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">Zero direct write actions allowed</div>
         </div>
       </div>
 
@@ -411,7 +402,8 @@ export default function AgentStudioPage() {
                   Start an Autonomous Agent Interaction
                 </h4>
                 <p className="text-xs text-slate-500 max-w-md">
-                  Send a prompt to observe semantic memory recall, OpenTelemetry span timing, and dual-boundary policy enforcement in real time.
+                  Send a prompt to observe semantic memory recall, OpenTelemetry span timing, and dual-boundary policy
+                  enforcement in real time.
                 </p>
                 <div className="flex flex-wrap gap-2 mt-4 max-w-lg justify-center">
                   {[
@@ -436,17 +428,14 @@ export default function AgentStudioPage() {
                 const isTool = msg.role === 'tool';
 
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-                  >
+                  <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                     <div
                       className={`max-w-[85%] rounded-2xl p-4 text-xs leading-relaxed shadow-xs ${
                         isUser
                           ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-none'
                           : isTool
-                          ? 'bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-slate-800 dark:text-slate-200 rounded-bl-none'
-                          : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 rounded-bl-none'
+                            ? 'bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-slate-800 dark:text-slate-200 rounded-bl-none'
+                            : 'bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 rounded-bl-none'
                       }`}
                     >
                       {/* Message Meta Pill */}
@@ -455,9 +444,7 @@ export default function AgentStudioPage() {
                           {isUser ? 'You' : isTool ? `Tool: ${msg.toolName || 'execute'}` : 'Streamline Copilot'}
                         </span>
                         <div className="flex items-center space-x-2">
-                          {msg.latencyMs !== undefined && (
-                            <span className="font-mono">{msg.latencyMs}ms</span>
-                          )}
+                          {msg.latencyMs !== undefined && <span className="font-mono">{msg.latencyMs}ms</span>}
                           <span>
                             {new Date(msg.createdAt).toLocaleTimeString([], {
                               hour: '2-digit',
@@ -468,11 +455,7 @@ export default function AgentStudioPage() {
                       </div>
 
                       {/* Message Content */}
-                      {msg.content && (
-                        <div className="whitespace-pre-wrap font-sans break-words">
-                          {msg.content}
-                        </div>
-                      )}
+                      {msg.content && <div className="whitespace-pre-wrap font-sans break-words">{msg.content}</div>}
 
                       {/* Tool Calls Planned */}
                       {msg.toolCalls && msg.toolCalls.length > 0 && (
@@ -554,9 +537,7 @@ export default function AgentStudioPage() {
               <History className="h-4 w-4 text-indigo-500" />
               <span>Session History</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">
-              {sessions.length} recorded
-            </span>
+            <span className="text-[10px] text-slate-400 font-mono">{sessions.length} recorded</span>
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -594,9 +575,7 @@ export default function AgentStudioPage() {
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800/50">
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {sess.id.slice(0, 8)}...
-                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">{sess.id.slice(0, 8)}...</span>
 
                       <Link
                         href={`/agent/traces/${sess.id}`}

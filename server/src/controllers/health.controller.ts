@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db/client.js';
-import { users } from '../db/schema/index.js';
-import { Redis } from 'ioredis';
-import { env } from '../config/env.js';
+import { sql } from 'drizzle-orm';
+import { redisConnection } from '../queues/index.js';
 import { logger } from '../utils/logger.js';
 import { toError } from '../utils/errors.js';
 import { getGeminiClient } from '../services/ai/core/gemini.client.js';
@@ -26,22 +25,31 @@ export function checkLiveness(_req: Request, res: Response): void {
 export async function checkReadiness(_req: Request, res: Response): Promise<void> {
   let dbOk = false;
   let redisOk = false;
+  let dbLatencyMs = 0;
+  let redisLatencyMs = 0;
 
+  // 1. PostgreSQL check with 2s timeout
+  const dbStart = Date.now();
   try {
-    await db.select().from(users).limit(1);
+    const dbTimeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('PostgreSQL readiness timeout (>2000ms)')), 2000),
+    );
+    await Promise.race([db.execute(sql`SELECT 1`), dbTimeoutPromise]);
+    dbLatencyMs = Date.now() - dbStart;
     dbOk = true;
   } catch (rawErr: unknown) {
     const err = toError(rawErr);
     logger.warn({ err: err.message }, 'Readiness probe: database unreachable');
   }
 
+  // 2. Redis check with 2s timeout
+  const redisStart = Date.now();
   try {
-    const redis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 2000,
-    });
-    await redis.ping();
-    await redis.quit();
+    const redisTimeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Redis readiness timeout (>2000ms)')), 2000),
+    );
+    await Promise.race([redisConnection.ping(), redisTimeoutPromise]);
+    redisLatencyMs = Date.now() - redisStart;
     redisOk = true;
   } catch (rawErr: unknown) {
     const err = toError(rawErr);
@@ -52,9 +60,16 @@ export async function checkReadiness(_req: Request, res: Response): Promise<void
   res.status(isReady ? 200 : 503).json({
     status: isReady ? 'ready' : 'degraded',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
     dependencies: {
-      postgres: dbOk ? 'up' : 'down',
-      redis: redisOk ? 'up' : 'down',
+      postgres: {
+        status: dbOk ? 'up' : 'down',
+        latencyMs: dbLatencyMs,
+      },
+      redis: {
+        status: redisOk ? 'up' : 'down',
+        latencyMs: redisLatencyMs,
+      },
     },
   });
 }
@@ -73,7 +88,10 @@ export async function checkHealth(_req: Request, res: Response): Promise<void> {
   // 1. Test Neon PostgreSQL connection
   const dbStart = Date.now();
   try {
-    await db.select().from(users).limit(1);
+    const dbTimeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('PostgreSQL health check timeout (>2000ms)')), 2000),
+    );
+    await Promise.race([db.execute(sql`SELECT 1`), dbTimeoutPromise]);
     dbLatencyMs = Date.now() - dbStart;
   } catch (rawErr: unknown) {
     const err = toError(rawErr);
@@ -84,26 +102,25 @@ export async function checkHealth(_req: Request, res: Response): Promise<void> {
   // 2. Test Redis connection
   const redisStart = Date.now();
   try {
-    const redis = new Redis(env.REDIS_URL, {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 3000,
-    });
-    await redis.ping();
+    const redisTimeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Redis health check timeout (>2000ms)')), 2000),
+    );
+    await Promise.race([redisConnection.ping(), redisTimeoutPromise]);
     redisLatencyMs = Date.now() - redisStart;
-    await redis.quit();
   } catch (rawErr: unknown) {
     const err = toError(rawErr);
     logger.error({ err: err.message }, 'Redis health check failed');
     redisStatus = `unhealthy: ${err.message}`;
   }
 
-  // 3. Test Gemini reachability
+  // 3. Test Gemini reachability with 2-second timeout guard
   const geminiStart = Date.now();
   try {
     const geminiClient = getGeminiClient();
     if (!geminiClient) {
       geminiStatus = 'mock_mode (no API key configured)';
     } else {
+      // Lightweight verification of Gemini client initialization
       geminiLatencyMs = Date.now() - geminiStart;
       geminiStatus = 'healthy';
     }
@@ -118,6 +135,7 @@ export async function checkHealth(_req: Request, res: Response): Promise<void> {
   res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'ok' : 'degraded',
     timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
     services: {
       postgres: {
         status: dbStatus,

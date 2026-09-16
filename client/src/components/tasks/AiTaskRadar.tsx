@@ -93,10 +93,7 @@ export function AiTaskRadar() {
   const commitmentsMade = activeTasks.filter((t) => t.type === 'commitment_i_made');
   const followUps = activeTasks.filter((t) => t.type === 'followup_waiting_on');
 
-  const filteredTasks =
-    filterType === 'all'
-      ? activeTasks
-      : activeTasks.filter((t) => t.type === filterType);
+  const filteredTasks = filterType === 'all' ? activeTasks : activeTasks.filter((t) => t.type === filterType);
 
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-xs">
@@ -108,9 +105,7 @@ export function AiTaskRadar() {
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                AI Task Radar
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">AI Task Radar</h2>
               <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300">
                 {activeTasks.length} Discovered
               </span>
@@ -188,9 +183,7 @@ export function AiTaskRadar() {
       ) : filteredTasks.length === 0 ? (
         <div className="py-10 text-center rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-200 dark:border-slate-800">
           <CheckCircle2 className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Radar is all clear!
-          </p>
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Radar is all clear!</p>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             No pending promises or unassigned requests detected in recent emails.
           </p>
@@ -215,19 +208,15 @@ export function AiTaskRadar() {
                         isAssigned
                           ? 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
                           : isCommitment
-                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
-                          : 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300'
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                            : 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300'
                       }`}
                     >
                       {isAssigned && <UserCheck className="h-3 w-3" />}
                       {isCommitment && <Send className="h-3 w-3" />}
                       {isWaiting && <Hourglass className="h-3 w-3" />}
                       <span>
-                        {isAssigned
-                          ? 'Assigned to You'
-                          : isCommitment
-                          ? 'You Promised'
-                          : 'Waiting on Others'}
+                        {isAssigned ? 'Assigned to You' : isCommitment ? 'You Promised' : 'Waiting on Others'}
                       </span>
                     </span>
 
@@ -254,9 +243,7 @@ export function AiTaskRadar() {
                         {task.emailSubject || 'Email Thread'}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate">
-                      From: {task.emailSender}
-                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">From: {task.emailSender}</div>
                   </div>
 
                   {/* Due Date tag if available */}

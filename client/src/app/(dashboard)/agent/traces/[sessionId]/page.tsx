@@ -3,20 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  CheckCircle2,
-  Copy,
-  Check,
-  RefreshCw,
-  AlertTriangle,
-} from 'lucide-react';
-import {
-  fetchAgentTrace,
-  approvePendingAction,
-  rejectPendingAction,
-  AgentTraceResponseData,
-} from '@/lib/api';
+import { ArrowLeft, CheckCircle2, Copy, Check, RefreshCw, AlertTriangle } from 'lucide-react';
+import { fetchAgentTrace, approvePendingAction, rejectPendingAction, AgentTraceResponseData } from '@/lib/api';
 import {
   TraceHeaderKPIs,
   TraceTimeline,
@@ -104,9 +92,10 @@ export default function DecisionTracePage() {
               ...step,
               label: step.label.replace('PENDING', 'EXECUTED'),
               metadata: { ...step.metadata, status: 'executed' },
-              detail: typeof step.detail === 'object' && step.detail !== null
-                ? { ...(step.detail as Record<string, unknown>), status: 'executed' }
-                : step.detail,
+              detail:
+                typeof step.detail === 'object' && step.detail !== null
+                  ? { ...(step.detail as Record<string, unknown>), status: 'executed' }
+                  : step.detail,
             };
           }
           return step;
@@ -143,9 +132,10 @@ export default function DecisionTracePage() {
               ...step,
               label: step.label.replace('PENDING', 'REJECTED'),
               metadata: { ...step.metadata, status: 'rejected' },
-              detail: typeof step.detail === 'object' && step.detail !== null
-                ? { ...(step.detail as Record<string, unknown>), status: 'rejected' }
-                : step.detail,
+              detail:
+                typeof step.detail === 'object' && step.detail !== null
+                  ? { ...(step.detail as Record<string, unknown>), status: 'rejected' }
+                  : step.detail,
             };
           }
           return step;
@@ -199,7 +189,7 @@ export default function DecisionTracePage() {
   const { summary, timelineSteps, waterfallSpans } = trace;
   const maxWaterfallDuration = Math.max(
     ...waterfallSpans.map((s) => s.startTimeMs + s.durationMs),
-    summary.totalLatencyMs || 100
+    summary.totalLatencyMs || 100,
   );
 
   return (
@@ -221,10 +211,7 @@ export default function DecisionTracePage() {
             )}
             <span>{bannerToast.message}</span>
           </div>
-          <button
-            onClick={() => setBannerToast(null)}
-            className="text-xs font-semibold hover:underline ml-4"
-          >
+          <button onClick={() => setBannerToast(null)} className="text-xs font-semibold hover:underline ml-4">
             Dismiss
           </button>
         </div>
@@ -261,7 +248,9 @@ export default function DecisionTracePage() {
                 : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
             }`}
           >
-            <span className={`w-2 h-2 rounded-full ${isLiveStreaming ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+            <span
+              className={`w-2 h-2 rounded-full ${isLiveStreaming ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`}
+            />
             <span>{isLiveStreaming ? 'Live Monitoring' : 'Stream Trace'}</span>
           </button>
 
@@ -347,28 +336,16 @@ export default function DecisionTracePage() {
 
       {/* TAB 2: WATERFALL GANTT CHART */}
       {activeTab === 'waterfall' && (
-        <TraceWaterfallGantt
-          waterfallSpans={waterfallSpans}
-          maxWaterfallDuration={maxWaterfallDuration}
-        />
+        <TraceWaterfallGantt waterfallSpans={waterfallSpans} maxWaterfallDuration={maxWaterfallDuration} />
       )}
 
       {/* TAB 3: TOKEN & COST DECOMPOSITION */}
       {activeTab === 'tokens' && (
-        <TokenDecompositionHeatmap
-          costDecomposition={summary.costDecomposition}
-          totalTokens={summary.totalTokens}
-        />
+        <TokenDecompositionHeatmap costDecomposition={summary.costDecomposition} totalTokens={summary.totalTokens} />
       )}
 
       {/* TAB 4: RAW JSON AUDIT LOG */}
-      {activeTab === 'raw' && (
-        <RawAuditLogViewer
-          trace={trace}
-          onCopy={handleCopyJson}
-          copied={copiedJson}
-        />
-      )}
+      {activeTab === 'raw' && <RawAuditLogViewer trace={trace} onCopy={handleCopyJson} copied={copiedJson} />}
     </div>
   );
 }

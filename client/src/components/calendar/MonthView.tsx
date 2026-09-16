@@ -11,12 +11,7 @@ interface MonthViewProps {
   onQuickCreate: (date: Date) => void;
 }
 
-export const MonthView: React.FC<MonthViewProps> = ({
-  selectedDate,
-  events,
-  onSelectEvent,
-  onQuickCreate,
-}) => {
+export const MonthView: React.FC<MonthViewProps> = ({ selectedDate, events, onSelectEvent, onQuickCreate }) => {
   const [overflowDay, setOverflowDay] = useState<{ day: number; events: EventData[] } | null>(null);
 
   const year = selectedDate.getFullYear();
@@ -26,10 +21,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
   const totalDaysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const prevMonthDays = Array.from(
-    { length: firstDayIndex },
-    (_, i) => totalDaysInPrevMonth - firstDayIndex + i + 1
-  );
+  const prevMonthDays = Array.from({ length: firstDayIndex }, (_, i) => totalDaysInPrevMonth - firstDayIndex + i + 1);
   const currentMonthDays = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
 
   const totalCellsSoFar = prevMonthDays.length + currentMonthDays.length;
@@ -76,11 +68,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
             // Filter events for this day
             const dayEvents = events.filter((e) => {
               const evDate = new Date(e.startTime);
-              return (
-                evDate.getFullYear() === year &&
-                evDate.getMonth() === month &&
-                evDate.getDate() === d
-              );
+              return evDate.getFullYear() === year && evDate.getMonth() === month && evDate.getDate() === d;
             });
 
             const maxVisibleEvents = 2;
@@ -101,9 +89,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 <div className="flex items-center justify-center relative pointer-events-none mb-1">
                   <span
                     className={`text-xs font-medium h-6 min-w-6 px-1 rounded-full flex items-center justify-center ${
-                      isTodayCell
-                        ? 'bg-[#1a73e8] text-white font-bold shadow-xs'
-                        : 'text-[#3c4043] dark:text-slate-200'
+                      isTodayCell ? 'bg-[#1a73e8] text-white font-bold shadow-xs' : 'text-[#3c4043] dark:text-slate-200'
                     }`}
                   >
                     {d === 1 ? `1 ${selectedDate.toLocaleDateString('en-US', { month: 'short' })}` : d}

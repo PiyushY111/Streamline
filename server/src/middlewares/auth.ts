@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { UnauthorizedError } from '../errors/index.js';
+import { requestContext } from '../utils/context.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -27,6 +28,10 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as { id: string; email: string };
     req.user = decoded;
+    const store = requestContext.getStore();
+    if (store) {
+      store.userId = decoded.id;
+    }
     next();
   } catch (err) {
     if (typeof next === 'function') {

@@ -8,7 +8,7 @@ interface CalendarViewSelectorProps {
 export function CalendarViewSelector({ viewMode, setViewMode }: CalendarViewSelectorProps) {
   return (
     <div className="flex items-center bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-0.5 text-xs font-semibold">
-      {(['day', 'week', 'month', 'year', 'schedule'] as const).map(mode => (
+      {(['day', 'week', 'month', 'year', 'schedule'] as const).map((mode) => (
         <button
           key={mode}
           onClick={() => setViewMode(mode)}

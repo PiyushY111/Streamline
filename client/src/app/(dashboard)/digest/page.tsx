@@ -74,7 +74,6 @@ export default function DailyDigestPage() {
     },
   });
 
-
   const toggleTopicExpand = (topic: string) => {
     setExpandedTopics((prev) => ({
       ...prev,
@@ -86,10 +85,7 @@ export default function DailyDigestPage() {
   const topics = digest?.newsletterTopics || [];
   const actionItems = digest?.actionSummary || [];
 
-  const filteredTopics =
-    selectedTopic === 'all'
-      ? topics
-      : topics.filter((t) => t.topic === selectedTopic);
+  const filteredTopics = selectedTopic === 'all' ? topics : topics.filter((t) => t.topic === selectedTopic);
 
   const formattedDate = digest?.digestDate
     ? new Date(digest.digestDate).toLocaleDateString('en-US', {
@@ -123,9 +119,7 @@ export default function DailyDigestPage() {
             </h1>
 
             {digest?.scheduleSummary && (
-              <p className="text-xs sm:text-sm text-purple-200/80 max-w-2xl font-medium">
-                {digest.scheduleSummary}
-              </p>
+              <p className="text-xs sm:text-sm text-purple-200/80 max-w-2xl font-medium">{digest.scheduleSummary}</p>
             )}
           </div>
 
@@ -136,9 +130,7 @@ export default function DailyDigestPage() {
               className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-semibold backdrop-blur-md transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
             >
               <RefreshCw
-                className={`w-3.5 h-3.5 ${
-                  generateNowMutation.isPending || isRefetching ? 'animate-spin' : ''
-                }`}
+                className={`w-3.5 h-3.5 ${generateNowMutation.isPending || isRefetching ? 'animate-spin' : ''}`}
               />
               <span>Generate Fresh Digest</span>
             </button>
@@ -166,13 +158,9 @@ export default function DailyDigestPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Newspaper className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Curated Subscriptions Digest
-                </h2>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white">Curated Subscriptions Digest</h2>
               </div>
-              <span className="text-xs text-slate-500 font-medium">
-                {topics.length} Topics Clustered
-              </span>
+              <span className="text-xs text-slate-500 font-medium">{topics.length} Topics Clustered</span>
             </div>
 
             {/* Topic Filter Pills */}
@@ -236,17 +224,11 @@ export default function DailyDigestPage() {
                               {item.topic}
                             </span>
                           </div>
-                          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                            {item.headline}
-                          </h3>
+                          <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{item.headline}</h3>
                         </div>
 
                         <button className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1">
-                          {isExpanded ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
+                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </button>
                       </div>
 
@@ -286,9 +268,7 @@ export default function DailyDigestPage() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Flame className="h-5 w-5 text-amber-500" />
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-                Urgent Action Items
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Urgent Action Items</h2>
             </div>
 
             <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs space-y-3.5">
@@ -309,16 +289,12 @@ export default function DailyDigestPage() {
                       className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-1.5"
                     >
                       <div className="flex items-center justify-between gap-1">
-                        <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
-                          {act.task}
-                        </span>
+                        <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">{act.task}</span>
                         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400 shrink-0">
                           {act.urgency}
                         </span>
                       </div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                        From: {act.from}
-                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">From: {act.from}</div>
                     </div>
                   ))}
                 </div>

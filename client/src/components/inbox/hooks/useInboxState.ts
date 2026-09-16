@@ -6,7 +6,9 @@ export function useInboxState(urlEmailId: string | null) {
   const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
-  const [activeFolder, setActiveFolder] = useState<'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'>('inbox');
+  const [activeFolder, setActiveFolder] = useState<
+    'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'
+  >('inbox');
   const [activeCategory, setActiveCategory] = useState<'primary' | 'promotions' | 'social' | 'updates' | 'all'>('all');
   const [selectedAccountFilter, setSelectedAccountFilter] = useState<string | 'all'>('all');
   const [selectedEmailId, setSelectedEmailId] = useState<string | null>(urlEmailId);
@@ -18,10 +20,7 @@ export function useInboxState(urlEmailId: string | null) {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [fetchedEmails, fetchedAccounts] = await Promise.all([
-        fetchEmails(),
-        fetchConnectedAccounts(),
-      ]);
+      const [fetchedEmails, fetchedAccounts] = await Promise.all([fetchEmails(), fetchConnectedAccounts()]);
       setEmails(fetchedEmails);
       setAccounts(fetchedAccounts);
       setLoading(false);
@@ -30,14 +29,14 @@ export function useInboxState(urlEmailId: string | null) {
   }, []);
 
   const toggleSelectEmail = (id: string) => {
-    setSelectedEmailIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+    setSelectedEmailIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   const toggleSelectAll = (filteredEmails: EmailData[]) => {
     if (selectedEmailIds.length === filteredEmails.length) {
       setSelectedEmailIds([]);
     } else {
-      setSelectedEmailIds(filteredEmails.map(e => e.id));
+      setSelectedEmailIds(filteredEmails.map((e) => e.id));
     }
   };
 

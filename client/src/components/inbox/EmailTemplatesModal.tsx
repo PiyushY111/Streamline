@@ -53,7 +53,10 @@ export function EmailTemplatesModal({
             <FileText className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
             <span>Email Templates & Canned Responses</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -69,7 +72,10 @@ export function EmailTemplatesModal({
               <span>Save New Template</span>
             </button>
           ) : (
-            <form onSubmit={handleCreate} className="p-3 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 bg-slate-50 dark:bg-slate-900">
+            <form
+              onSubmit={handleCreate}
+              className="p-3 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 bg-slate-50 dark:bg-slate-900"
+            >
               <input
                 type="text"
                 required
@@ -129,7 +135,9 @@ export function EmailTemplatesModal({
                 >
                   <div className="flex flex-col truncate space-y-0.5 pr-2">
                     <span className="font-bold text-slate-900 dark:text-white text-xs truncate">{tpl.title}</span>
-                    {tpl.subject && <span className="text-[10px] text-slate-500 font-mono truncate">{tpl.subject}</span>}
+                    {tpl.subject && (
+                      <span className="text-[10px] text-slate-500 font-mono truncate">{tpl.subject}</span>
+                    )}
                     <span className="text-[10px] text-slate-400 line-clamp-1 truncate">{tpl.body}</span>
                   </div>
 

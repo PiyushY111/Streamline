@@ -18,11 +18,15 @@ import aiRouter from './ai.routes.js';
 import agentRouter from './agent.routes.js';
 import graphRouter from './graph.routes.js';
 import healthRouter from './health.routes.js';
+import metricsRouter from './metrics.routes.js';
 
 const router = Router();
 
 // Health Check (unauthenticated, un-rate-limited: /, /liveness, /readiness)
 router.use('/health', healthRouter);
+
+// Prometheus Metrics Scrape Endpoint (unauthenticated, un-rate-limited)
+router.use('/metrics', metricsRouter);
 
 // Authentication & OAuth Flow Routes
 router.use('/auth', authRouter);

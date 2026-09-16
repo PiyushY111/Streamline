@@ -8,11 +8,7 @@ interface RawAuditLogViewerProps {
   copied: boolean;
 }
 
-export const RawAuditLogViewer: React.FC<RawAuditLogViewerProps> = ({
-  trace,
-  onCopy,
-  copied,
-}) => {
+export const RawAuditLogViewer: React.FC<RawAuditLogViewerProps> = ({ trace, onCopy, copied }) => {
   return (
     <div className="p-4 rounded-2xl bg-white/80 dark:bg-[#0B101D]/80 border border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md shadow-xs space-y-3">
       <div className="flex items-center justify-between text-xs">

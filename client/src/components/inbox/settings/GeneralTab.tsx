@@ -13,7 +13,7 @@ export function GeneralTab({ settings, setSettings }: GeneralTabProps) {
         <label className="block font-semibold mb-1">Undo Send Cancellation Period</label>
         <select
           value={settings.undoSendSeconds}
-          onChange={(e) => setSettings(prev => ({ ...prev, undoSendSeconds: Number(e.target.value) }))}
+          onChange={(e) => setSettings((prev) => ({ ...prev, undoSendSeconds: Number(e.target.value) }))}
           className="w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded focus:outline-none focus:border-blue-500 text-gray-900 dark:text-gray-100"
         >
           <option value={5}>5 seconds</option>
@@ -31,7 +31,7 @@ export function GeneralTab({ settings, setSettings }: GeneralTabProps) {
               type="radio"
               name="replyMode"
               checked={settings.defaultReplyMode === 'reply'}
-              onChange={() => setSettings(prev => ({ ...prev, defaultReplyMode: 'reply' }))}
+              onChange={() => setSettings((prev) => ({ ...prev, defaultReplyMode: 'reply' }))}
             />
             Reply
           </label>
@@ -40,7 +40,7 @@ export function GeneralTab({ settings, setSettings }: GeneralTabProps) {
               type="radio"
               name="replyMode"
               checked={settings.defaultReplyMode === 'replyAll'}
-              onChange={() => setSettings(prev => ({ ...prev, defaultReplyMode: 'replyAll' }))}
+              onChange={() => setSettings((prev) => ({ ...prev, defaultReplyMode: 'replyAll' }))}
             />
             Reply All
           </label>
@@ -51,7 +51,7 @@ export function GeneralTab({ settings, setSettings }: GeneralTabProps) {
         <label className="block font-semibold mb-1">Default Page Size</label>
         <select
           value={settings.defaultPageSize}
-          onChange={(e) => setSettings(prev => ({ ...prev, defaultPageSize: Number(e.target.value) }))}
+          onChange={(e) => setSettings((prev) => ({ ...prev, defaultPageSize: Number(e.target.value) }))}
           className="w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded focus:outline-none focus:border-blue-500 text-gray-900 dark:text-gray-100"
         >
           <option value={25}>25 conversations per page</option>

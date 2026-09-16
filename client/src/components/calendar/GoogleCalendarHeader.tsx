@@ -91,7 +91,11 @@ export const GoogleCalendarHeader: React.FC<GoogleCalendarHeaderProps> = ({
     agenda: 'Schedule',
   };
 
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : 'P';
+  const userInitial = user?.name
+    ? user.name.charAt(0).toUpperCase()
+    : user?.email
+      ? user.email.charAt(0).toUpperCase()
+      : 'P';
 
   return (
     <header className="h-16 px-4 bg-white dark:bg-slate-950 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 shrink-0 select-none font-sans">

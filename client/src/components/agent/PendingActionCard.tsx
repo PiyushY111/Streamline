@@ -13,11 +13,7 @@ import {
   ArrowRight,
   ExternalLink,
 } from 'lucide-react';
-import {
-  PendingActionData,
-  approvePendingAction,
-  rejectPendingAction,
-} from '@/lib/api';
+import { PendingActionData, approvePendingAction, rejectPendingAction } from '@/lib/api';
 
 interface PendingActionCardProps {
   action: PendingActionData;
@@ -128,12 +124,8 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
             <Icon className={`w-4 h-4 ${meta.color}`} />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-              {meta.label} Proposal
-            </h4>
-            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-              {meta.badge}
-            </span>
+            <h4 className="text-xs font-bold text-slate-900 dark:text-white">{meta.label} Proposal</h4>
+            <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{meta.badge}</span>
           </div>
         </div>
 
@@ -153,8 +145,10 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
             </div>
             <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed">
               This action proposal was prompted after ingesting external content from{' '}
-              <strong className="text-amber-700 dark:text-amber-300 font-semibold">{preview._securityNotice.sourceSender}</strong>.
-              Verify all parameters before confirming.
+              <strong className="text-amber-700 dark:text-amber-300 font-semibold">
+                {preview._securityNotice.sourceSender}
+              </strong>
+              . Verify all parameters before confirming.
             </p>
           </div>
         </div>
@@ -163,9 +157,7 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
       {/* AI Reasoning */}
       {action.reasoning && (
         <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300">
-          <span className="font-semibold text-slate-900 dark:text-white block mb-0.5">
-            Agent Stated Reasoning:
-          </span>
+          <span className="font-semibold text-slate-900 dark:text-white block mb-0.5">Agent Stated Reasoning:</span>
           <p className="leading-relaxed text-[11px]">{action.reasoning}</p>
         </div>
       )}

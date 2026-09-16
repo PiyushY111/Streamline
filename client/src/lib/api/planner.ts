@@ -1,11 +1,13 @@
 import { safeFetch } from './client';
 import { NextTaskResponse } from './types';
 
-export async function fetchNextTask(options: {
-  preset?: 'balanced' | 'deadline' | 'deep_work' | 'quick_wins';
-  availableMinutes?: number;
-  projectId?: string;
-} = {}): Promise<NextTaskResponse | null> {
+export async function fetchNextTask(
+  options: {
+    preset?: 'balanced' | 'deadline' | 'deep_work' | 'quick_wins';
+    availableMinutes?: number;
+    projectId?: string;
+  } = {},
+): Promise<NextTaskResponse | null> {
   try {
     const params = new URLSearchParams();
     if (options.preset) params.append('preset', options.preset);

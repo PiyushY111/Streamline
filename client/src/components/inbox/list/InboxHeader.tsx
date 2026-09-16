@@ -26,7 +26,7 @@ export function InboxHeader({
   setIsAccountDropdownOpen,
   onOpenCompose,
 }: InboxHeaderProps) {
-  const activeAccount = accounts.find(a => a.id === selectedAccountFilter);
+  const activeAccount = accounts.find((a) => a.id === selectedAccountFilter);
 
   return (
     <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
@@ -70,15 +70,21 @@ export function InboxHeader({
           {isAccountDropdownOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-900 rounded-md shadow-lg border border-gray-200 dark:border-gray-800 py-1 z-30">
               <button
-                onClick={() => { setSelectedAccountFilter('all'); setIsAccountDropdownOpen(false); }}
+                onClick={() => {
+                  setSelectedAccountFilter('all');
+                  setIsAccountDropdownOpen(false);
+                }}
                 className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 All Accounts
               </button>
-              {accounts.map(acc => (
+              {accounts.map((acc) => (
                 <button
                   key={acc.id}
-                  onClick={() => { setSelectedAccountFilter(acc.id); setIsAccountDropdownOpen(false); }}
+                  onClick={() => {
+                    setSelectedAccountFilter(acc.id);
+                    setIsAccountDropdownOpen(false);
+                  }}
                   className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
                 >
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: acc.color }} />

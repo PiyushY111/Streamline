@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import {
-  fetchEvents,
-  fetchConnectedAccounts,
-  createEventApi,
-  deleteEventApi,
-  EventData,
-  AccountData,
-} from '@/lib/api';
+import { fetchEvents, fetchConnectedAccounts, createEventApi, deleteEventApi, EventData, AccountData } from '@/lib/api';
 
 import { GoogleCalendarHeader, CalendarViewMode } from '@/components/calendar/GoogleCalendarHeader';
 import { GoogleCalendarSidebar } from '@/components/calendar/GoogleCalendarSidebar';
@@ -95,9 +88,7 @@ export default function CalendarPage() {
   }, [quickCreateModal.isOpen, selectedEvent, selectedDate]);
 
   const toggleAccountVisibility = (id: string) => {
-    setVisibleAccounts((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
+    setVisibleAccounts((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   };
 
   // Filter events by account, search query, and guest filter
@@ -193,10 +184,7 @@ export default function CalendarPage() {
         {/* Viewport Content */}
         <div className="flex-1 flex flex-col overflow-hidden relative">
           {/* Double-Booking Conflict Engine Banner */}
-          <ConflictBanner
-            conflictEvents={conflictEvents}
-            onSelectEvent={setSelectedEvent}
-          />
+          <ConflictBanner conflictEvents={conflictEvents} onSelectEvent={setSelectedEvent} />
 
           {/* Active View Switcher Component */}
           {viewMode === 'month' && (
@@ -260,11 +248,7 @@ export default function CalendarPage() {
       />
 
       {/* Event Details Drawer Modal */}
-      <EventDetailsModal
-        event={selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-        onDelete={handleDeleteEvent}
-      />
+      <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onDelete={handleDeleteEvent} />
     </div>
   );
 }

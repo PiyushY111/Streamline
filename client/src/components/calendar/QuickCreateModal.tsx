@@ -49,17 +49,13 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
 
   const [type, setType] = useState<'event' | 'task' | 'reminder'>(initialType);
   const [title, setTitle] = useState('');
-  const [selectedDateStr, setSelectedDateStr] = useState(
-    initialDate.toISOString().split('T')[0]
-  );
+  const [selectedDateStr, setSelectedDateStr] = useState(initialDate.toISOString().split('T')[0]);
 
   const formatHourStr = (h: number) => (h < 10 ? `0${h}:00` : `${h}:00`);
   const [startTimeStr, setStartTimeStr] = useState(formatHourStr(initialHour));
   const [endTimeStr, setEndTimeStr] = useState(formatHourStr(Math.min(23, initialHour + 1)));
 
-  const [selectedAccountId, setSelectedAccountId] = useState(
-    accounts[0]?.id || 'acc-1'
-  );
+  const [selectedAccountId, setSelectedAccountId] = useState(accounts[0]?.id || 'acc-1');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
@@ -192,11 +188,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
                   <Video className="w-4 h-4" />
                   <span>Add Google Meet video conferencing</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setAddMeetLink(false)}
-                  className="hover:text-blue-200 ml-2"
-                >
+                <button type="button" onClick={() => setAddMeetLink(false)} className="hover:text-blue-200 ml-2">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -232,11 +224,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({
                       className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-[11px] font-medium text-slate-800 dark:text-slate-200"
                     >
                       <span>{g}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveGuest(g)}
-                        className="hover:text-red-500"
-                      >
+                      <button type="button" onClick={() => handleRemoveGuest(g)} className="hover:text-red-500">
                         <X className="w-3 h-3" />
                       </button>
                     </span>

@@ -18,7 +18,6 @@ export function useUndoSend() {
     };
   }, []);
 
-
   const triggerUndoToast = (seconds: number, message: string, onUndo: () => void) => {
     if (undoTimerRef.current) clearInterval(undoTimerRef.current);
 
@@ -36,7 +35,7 @@ export function useUndoSend() {
         if (undoTimerRef.current) clearInterval(undoTimerRef.current);
         setUndoToast(null);
       } else {
-        setUndoToast(prev => prev ? { ...prev, countdown: current } : null);
+        setUndoToast((prev) => (prev ? { ...prev, countdown: current } : null));
       }
     }, 1000);
   };

@@ -25,11 +25,7 @@ export function SenderContactCard({
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div
-      className="relative inline-block"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-    >
+    <div className="relative inline-block" onMouseEnter={() => setIsOpen(true)} onMouseLeave={() => setIsOpen(false)}>
       {children}
 
       {isOpen && (

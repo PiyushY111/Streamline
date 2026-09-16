@@ -4,13 +4,7 @@ import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
-export default function RootErrorBoundary({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function RootErrorBoundary({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     // Log unexpected client-side error cleanly
     console.error('Unhandled Root App Error caught by Streamline Error Boundary:', error);
@@ -24,11 +18,10 @@ export default function RootErrorBoundary({
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-            Something went wrong
-          </h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Something went wrong</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Streamline encountered an unexpected render issue. The application state has been safely isolated to protect your data.
+            Streamline encountered an unexpected render issue. The application state has been safely isolated to protect
+            your data.
           </p>
           {error?.message && (
             <div className="p-3 mt-3 bg-slate-100 dark:bg-slate-800/60 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 text-left overflow-x-auto max-h-24">

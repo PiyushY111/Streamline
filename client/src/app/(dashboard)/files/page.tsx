@@ -65,7 +65,9 @@ export default function FilesPage() {
                   <span>•</span>
                   <span className="inline-flex items-center space-x-1 text-purple-300">
                     <Mail className="w-3 h-3" />
-                    <span>{file.sourceEmail} ({file.accountName})</span>
+                    <span>
+                      {file.sourceEmail} ({file.accountName})
+                    </span>
                   </span>
                 </div>
               </div>

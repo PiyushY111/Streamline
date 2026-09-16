@@ -36,9 +36,7 @@ export default function SearchPage() {
 
       {/* Results Groups */}
       <div className="space-y-4 pt-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">
-          Recent Search Matches
-        </h3>
+        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Recent Search Matches</h3>
 
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center space-x-2 text-xs text-purple-400 font-semibold">

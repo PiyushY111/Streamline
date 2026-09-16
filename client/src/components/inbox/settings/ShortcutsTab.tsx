@@ -14,7 +14,7 @@ export function ShortcutsTab({ settings, setSettings }: ShortcutsTabProps) {
           type="checkbox"
           id="shortcutsActive"
           checked={settings.keyboardShortcutsEnabled}
-          onChange={(e) => setSettings(prev => ({ ...prev, keyboardShortcutsEnabled: e.target.checked }))}
+          onChange={(e) => setSettings((prev) => ({ ...prev, keyboardShortcutsEnabled: e.target.checked }))}
         />
         <label htmlFor="shortcutsActive" className="font-semibold cursor-pointer">
           Enable Keyboard Shortcuts (c = compose, / = search, e = archive)

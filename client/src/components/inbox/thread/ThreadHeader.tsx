@@ -33,7 +33,10 @@ export function ThreadHeader({ email, onBack, onStar, onDelete }: ThreadHeaderPr
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <button onClick={() => window.print()} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-500">
+          <button
+            onClick={() => window.print()}
+            className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-500"
+          >
             <Printer className="w-4 h-4" />
           </button>
         </div>

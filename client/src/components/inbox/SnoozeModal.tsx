@@ -39,7 +39,10 @@ export function SnoozeModal({ isOpen, onClose, onSnooze }: SnoozeModalProps) {
     e.preventDefault();
     if (!customDate) return;
     const combined = new Date(`${customDate}T${customTime || '09:00'}`);
-    onSnooze(combined, combined.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }));
+    onSnooze(
+      combined,
+      combined.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+    );
     onClose();
   };
 
@@ -52,7 +55,10 @@ export function SnoozeModal({ isOpen, onClose, onSnooze }: SnoozeModalProps) {
             <Clock className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
             <span>Snooze until...</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -130,10 +136,7 @@ export function SnoozeModal({ isOpen, onClose, onSnooze }: SnoozeModalProps) {
               >
                 Back
               </button>
-              <button
-                type="submit"
-                className="px-4 py-1.5 rounded-xl bg-[#0b57d0] text-white font-semibold shadow-sm"
-              >
+              <button type="submit" className="px-4 py-1.5 rounded-xl bg-[#0b57d0] text-white font-semibold shadow-sm">
                 Save
               </button>
             </div>

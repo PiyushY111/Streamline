@@ -12,7 +12,7 @@ import {
 
 export async function sendAgentMessage(
   message: string,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<{ sessionId: string; text: string; pendingActions: string[] }> {
   const res = await safeFetch('/agent/chat', {
     method: 'POST',
@@ -39,7 +39,7 @@ export async function fetchPendingActions(): Promise<PendingActionData[]> {
 
 export async function approvePendingAction(
   id: string,
-  idempotencyKey?: string
+  idempotencyKey?: string,
 ): Promise<{ success: boolean; result: any }> {
   const res = await safeFetch(`/agent/actions/${id}/approve`, {
     method: 'POST',
@@ -107,7 +107,7 @@ export async function deleteUserMemory(id: string): Promise<boolean> {
 
 export async function createUserMemory(
   type: 'preference' | 'decision' | 'project_fact',
-  content: string
+  content: string,
 ): Promise<{ success: boolean; memory: UserMemoryData }> {
   const res = await safeFetch('/agent/memories', {
     method: 'POST',
@@ -124,7 +124,7 @@ export async function createUserMemory(
 export async function searchUserMemories(
   query: string,
   type?: string,
-  limit?: number
+  limit?: number,
 ): Promise<MemorySearchResultData[]> {
   try {
     const params = new URLSearchParams();
@@ -163,7 +163,7 @@ export async function fetchSecurityStatus(): Promise<import('./types').SecurityS
 
 export async function simulateInjectionAttack(
   payload: string,
-  attackType?: string
+  attackType?: string,
 ): Promise<import('./types').InjectionSimulationResultData> {
   const res = await safeFetch('/agent/security/simulate-injection', {
     method: 'POST',
@@ -196,4 +196,3 @@ export async function fetchAgentStats(): Promise<AgentStatsResponseData | null> 
     return null;
   }
 }
-

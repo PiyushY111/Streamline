@@ -30,8 +30,12 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
 
   useEffect(() => {
     if (isOpen) {
-      fetchEvents().then(setEvents).catch(() => {});
-      fetchTasks().then(setTasks).catch(() => {});
+      fetchEvents()
+        .then(setEvents)
+        .catch(() => {});
+      fetchTasks()
+        .then(setTasks)
+        .catch(() => {});
     }
     const savedNotes = localStorage.getItem('gmail_quick_notes');
     if (savedNotes) setNotesText(savedNotes);
@@ -150,7 +154,13 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
               {activeTab === 'calendar' && <CalendarIcon className="w-4 h-4 text-blue-600" />}
               {activeTab === 'tasks' && <TaskIcon className="w-4 h-4 text-[#0b57d0]" />}
               {activeTab === 'notes' && <NoteIcon className="w-4 h-4 text-amber-500" />}
-              <span>{activeTab === 'calendar' ? 'Calendar Agenda' : activeTab === 'tasks' ? 'Tasks & To-Dos' : 'Quick Notes'}</span>
+              <span>
+                {activeTab === 'calendar'
+                  ? 'Calendar Agenda'
+                  : activeTab === 'tasks'
+                    ? 'Tasks & To-Dos'
+                    : 'Quick Notes'}
+              </span>
             </h3>
 
             <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -175,7 +185,10 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
                       className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 space-y-1"
                     >
                       <div className="flex items-center space-x-2">
-                        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: evt.accountColor }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: evt.accountColor }}
+                        />
                         <h4 className="font-bold text-slate-900 dark:text-white truncate">{evt.title}</h4>
                       </div>
                       <div className="flex items-center space-x-1 text-[10px] text-slate-400 font-mono">
@@ -236,7 +249,9 @@ export function WorkspaceRightPanel({ currentEmailSubject, currentEmailId }: Wor
                           ) : (
                             <Circle className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                           )}
-                          <span className={`text-xs ${isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200 font-medium'}`}>
+                          <span
+                            className={`text-xs ${isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200 font-medium'}`}
+                          >
                             {task.title}
                           </span>
                         </div>

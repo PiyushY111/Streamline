@@ -1,0 +1,72 @@
+{
+  "version": "1.0.0",
+  "service": "streamline-server",
+  "environment": "production",
+  "rules": [
+    {
+      "id": "DLQ_SPIKE_CRITICAL",
+      "alert": "DeadLetterQueueSpike",
+      "metric": "streamline_dlq_size",
+      "threshold": 0,
+      "operator": ">",
+      "severity": "critical",
+      "period": "instant",
+      "description": "One or more BullMQ background jobs exhausted retry budget and were routed to DLQ.",
+      "runbook": "docs/operations/alerting.md#dlq-spike"
+    },
+    {
+      "id": "AI_CIRCUIT_BREAKER_TRIPPED",
+      "alert": "AiCircuitBreakerTripped",
+      "metric": "streamline_circuit_breaker_trips_total",
+      "threshold": 5,
+      "operator": ">=",
+      "window": "1h",
+      "severity": "warning",
+      "description": "User daily budget or single-turn token limits exceeded frequently, indicating a possible runaway agent loop.",
+      "runbook": "docs/operations/alerting.md#circuit-breaker-trips"
+    },
+    {
+      "id": "OAUTH_REFRESH_FAILURE_RATE_HIGH",
+      "alert": "OAuthRefreshFailureRateHigh",
+      "metric": "streamline_oauth_refresh_errors_total",
+      "threshold": 0.05,
+      "operator": ">",
+      "window": "5m",
+      "severity": "critical",
+      "description": "Google OAuth token refreshes failing for >5% of attempts due to network degradation or invalid grants.",
+      "runbook": "docs/operations/alerting.md#oauth-refresh-failures"
+    },
+    {
+      "id": "AGENT_TOOL_LOOP_DETECTED",
+      "alert": "AgentToolLoopDetected",
+      "metric": "streamline_policy_decisions_total{decision=\"loop_rejected\"}",
+      "threshold": 1,
+      "operator": ">=",
+      "severity": "warning",
+      "description": "ReAct agent executed identical tool arguments repeatedly within a single turn.",
+      "runbook": "docs/operations/alerting.md#agent-loop-detected"
+    },
+    {
+      "id": "DATABASE_LATENCY_ELEVATED",
+      "alert": "DatabaseLatencyElevated",
+      "metric": "streamline_db_query_latency_ms",
+      "threshold": 500,
+      "operator": ">",
+      "window": "5m",
+      "severity": "warning",
+      "description": "PostgreSQL round-trip execution latency exceeded 500ms.",
+      "runbook": "docs/operations/alerting.md#database-latency"
+    },
+    {
+      "id": "REDIS_CONNECTION_DEGRADED",
+      "alert": "RedisConnectionDegraded",
+      "metric": "streamline_redis_ping_latency_ms",
+      "threshold": 200,
+      "operator": ">",
+      "window": "2m",
+      "severity": "warning",
+      "description": "Redis round-trip ping latency elevated or timing out.",
+      "runbook": "docs/operations/alerting.md#redis-latency"
+    }
+  ]
+}

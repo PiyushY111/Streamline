@@ -10,12 +10,7 @@ interface YearViewProps {
   onSwitchToMonthView: () => void;
 }
 
-export const YearView: React.FC<YearViewProps> = ({
-  selectedDate,
-  events,
-  onSelectDate,
-  onSwitchToMonthView,
-}) => {
+export const YearView: React.FC<YearViewProps> = ({ selectedDate, events, onSelectDate, onSwitchToMonthView }) => {
   const currentYear = selectedDate.getFullYear();
   const months = Array.from({ length: 12 }, (_, i) => i);
   const today = new Date();
@@ -54,7 +49,13 @@ export const YearView: React.FC<YearViewProps> = ({
 
                 {/* Day headers */}
                 <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-semibold text-slate-400 mb-1">
-                  <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                  <span>S</span>
+                  <span>M</span>
+                  <span>T</span>
+                  <span>W</span>
+                  <span>T</span>
+                  <span>F</span>
+                  <span>S</span>
                 </div>
 
                 {/* Days matrix */}
@@ -65,18 +66,12 @@ export const YearView: React.FC<YearViewProps> = ({
 
                   {currentDays.map((d) => {
                     const isTodayCell =
-                      today.getFullYear() === currentYear &&
-                      today.getMonth() === monthIdx &&
-                      today.getDate() === d;
+                      today.getFullYear() === currentYear && today.getMonth() === monthIdx && today.getDate() === d;
 
                     // Check if there are events on this day
                     const hasEvts = events.some((e) => {
                       const st = new Date(e.startTime);
-                      return (
-                        st.getFullYear() === currentYear &&
-                        st.getMonth() === monthIdx &&
-                        st.getDate() === d
-                      );
+                      return st.getFullYear() === currentYear && st.getMonth() === monthIdx && st.getDate() === d;
                     });
 
                     return (

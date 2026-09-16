@@ -20,11 +20,7 @@ export function EmailListTable({
   loading,
 }: EmailListTableProps) {
   if (loading) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-12 text-sm text-gray-500">
-        Loading emails...
-      </div>
-    );
+    return <div className="flex-1 flex items-center justify-center p-12 text-sm text-gray-500">Loading emails...</div>;
   }
 
   if (emails.length === 0) {
@@ -39,7 +35,7 @@ export function EmailListTable({
     <div className="flex-1 overflow-y-auto">
       <table className="w-full text-left border-collapse">
         <tbody>
-          {emails.map(email => (
+          {emails.map((email) => (
             <EmailRow
               key={email.id}
               email={email}

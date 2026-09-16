@@ -18,14 +18,8 @@ import {
   Sparkles,
   Lock,
 } from 'lucide-react';
-import {
-  fetchConnectedAccounts,
-  updateAccountDetails,
-  disconnectAccountApi,
-  AccountData,
-} from '@/lib/api';
+import { fetchConnectedAccounts, updateAccountDetails, disconnectAccountApi, AccountData } from '@/lib/api';
 import { AiSettingsSection } from '@/components/settings/AiSettingsSection';
-
 
 const COLOR_OPTIONS = [
   '#3b82f6', // Electric Blue
@@ -170,7 +164,8 @@ function SettingsContent() {
             Connected Accounts
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-            Link and manage multiple Google accounts to unify your Gmail messages, Google Calendar events, and daily action items into Streamline.
+            Link and manage multiple Google accounts to unify your Gmail messages, Google Calendar events, and daily
+            action items into Streamline.
           </p>
         </div>
 
@@ -279,7 +274,9 @@ function SettingsContent() {
 
                         {/* Color Picker Swatches */}
                         <div className="flex items-center space-x-2 pt-1">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Badge Color:</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Badge Color:
+                          </span>
                           <div className="flex items-center space-x-1.5">
                             {COLOR_OPTIONS.map((c) => (
                               <button
@@ -400,13 +397,13 @@ function SettingsContent() {
 
       {/* Security & Privacy Guarantee Footer Card */}
       <div className="p-6 rounded-3xl clean-card dark:dark-glass border border-slate-200 dark:border-slate-800/80 space-y-3">
-
         <div className="flex items-center space-x-2 text-xs font-bold text-slate-900 dark:text-white">
           <Lock className="w-4 h-4 text-purple-500" />
           <span>Security & Data Encryption Standard</span>
         </div>
         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-          Streamline uses industry-standard OAuth 2.0 authentication. Access tokens and refresh tokens are encrypted at rest using AES-256-GCM. We never store or sell your emails or private calendar details.
+          Streamline uses industry-standard OAuth 2.0 authentication. Access tokens and refresh tokens are encrypted at
+          rest using AES-256-GCM. We never store or sell your emails or private calendar details.
         </p>
       </div>
 
@@ -419,7 +416,8 @@ function SettingsContent() {
               <h3 className="text-base font-bold text-slate-900 dark:text-white">Confirm Disconnect Account</h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Are you sure you want to disconnect this account? Synced emails, calendar events, and tokens for this Google account will be purged from Streamline.
+              Are you sure you want to disconnect this account? Synced emails, calendar events, and tokens for this
+              Google account will be purged from Streamline.
             </p>
             <div className="flex justify-end space-x-2 pt-2">
               <button
@@ -449,4 +447,3 @@ export default function SettingsPage() {
     </Suspense>
   );
 }
-

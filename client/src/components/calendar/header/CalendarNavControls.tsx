@@ -35,9 +35,7 @@ export function CalendarNavControls({ onToday, onPrev, onNext, currentDateTitle 
         </button>
       </div>
 
-      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 ml-2 tracking-tight">
-        {currentDateTitle}
-      </h2>
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 ml-2 tracking-tight">{currentDateTitle}</h2>
     </div>
   );
 }

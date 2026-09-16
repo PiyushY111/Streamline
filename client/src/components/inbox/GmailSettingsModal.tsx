@@ -93,7 +93,10 @@ export function GmailSettingsModal({
             <SettingsIcon className="w-5 h-5 text-[#0b57d0] dark:text-purple-400" />
             <span>Gmail Client Settings</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -137,7 +140,9 @@ export function GmailSettingsModal({
                   <Clock className="w-4 h-4 text-[#0b57d0]" />
                   <span>Undo Send Cancellation Window</span>
                 </label>
-                <p className="text-slate-400 text-[11px]">Set the delay time before email is dispatched to allow instant Undo.</p>
+                <p className="text-slate-400 text-[11px]">
+                  Set the delay time before email is dispatched to allow instant Undo.
+                </p>
                 <select
                   value={settings.undoSendSeconds}
                   onChange={(e) => onUpdateSettings({ undoSendSeconds: Number(e.target.value) })}
@@ -232,7 +237,10 @@ export function GmailSettingsModal({
 
               <div className="space-y-4">
                 {accounts.map((acc) => (
-                  <div key={acc.id} className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50 dark:bg-slate-900">
+                  <div
+                    key={acc.id}
+                    className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50 dark:bg-slate-900"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2.5">
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: acc.color }} />
@@ -245,7 +253,9 @@ export function GmailSettingsModal({
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">Account Signature</label>
+                      <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                        Account Signature
+                      </label>
                       <textarea
                         rows={2}
                         value={signaturesMap[acc.id] || `--\nSent from ${acc.label}`}
@@ -310,8 +320,12 @@ export function GmailSettingsModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white">Custom Color Labels ({customLabels.length})</h4>
-                  <p className="text-slate-400 text-[11px]">Create and manage label badges for organizing email threads.</p>
+                  <h4 className="font-bold text-slate-900 dark:text-white">
+                    Custom Color Labels ({customLabels.length})
+                  </h4>
+                  <p className="text-slate-400 text-[11px]">
+                    Create and manage label badges for organizing email threads.
+                  </p>
                 </div>
               </div>
 
@@ -338,7 +352,10 @@ export function GmailSettingsModal({
                   onChange={(e) => setNewLabelColor(e.target.value)}
                   className="w-8 h-8 rounded-lg cursor-pointer border-0"
                 />
-                <button type="submit" className="px-4 py-2 rounded-xl bg-[#0b57d0] text-white font-semibold text-xs shadow-xs">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-[#0b57d0] text-white font-semibold text-xs shadow-xs"
+                >
                   Create
                 </button>
               </form>
@@ -346,15 +363,15 @@ export function GmailSettingsModal({
               {/* Labels List */}
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {customLabels.map((lbl) => (
-                  <div key={lbl.id} className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                  <div
+                    key={lbl.id}
+                    className="flex items-center justify-between p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
+                  >
                     <div className="flex items-center space-x-2.5">
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: lbl.color }} />
                       <span className="font-bold text-slate-900 dark:text-white">{lbl.name}</span>
                     </div>
-                    <button
-                      onClick={() => onDeleteLabel(lbl.id)}
-                      className="p-1 text-slate-400 hover:text-rose-600"
-                    >
+                    <button onClick={() => onDeleteLabel(lbl.id)} className="p-1 text-slate-400 hover:text-rose-600">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>

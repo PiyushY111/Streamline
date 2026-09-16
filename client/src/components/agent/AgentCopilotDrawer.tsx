@@ -34,11 +34,7 @@ interface AgentCopilotDrawerProps {
   onActionExecuted?: () => void;
 }
 
-export function AgentCopilotDrawer({
-  isOpen,
-  onClose,
-  onActionExecuted,
-}: AgentCopilotDrawerProps) {
+export function AgentCopilotDrawer({ isOpen, onClose, onActionExecuted }: AgentCopilotDrawerProps) {
   const [activeTab, setActiveTab] = useState<'chat' | 'memories'>('chat');
   const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const [messages, setMessages] = useState<
@@ -208,9 +204,7 @@ export function AgentCopilotDrawer({
               </div>
               <div>
                 <div className="flex items-center space-x-1.5">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Streamline Copilot
-                  </h3>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">Streamline Copilot</h3>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                     Human-in-the-Loop Safe
                   </span>
@@ -276,11 +270,10 @@ export function AgentCopilotDrawer({
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      How can I help you today?
-                    </h4>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">How can I help you today?</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                      I can check your schedule, manage priorities, remember your preferences, and propose calendar events with your approval.
+                      I can check your schedule, manage priorities, remember your preferences, and propose calendar
+                      events with your approval.
                     </p>
                   </div>
 
@@ -315,7 +308,8 @@ export function AgentCopilotDrawer({
                         >
                           <Brain className="w-3 h-3 text-purple-600 dark:text-purple-400" />
                           <span>
-                            🧠 Recalled {m.recalledMemories.length} memory context {m.recalledMemories.length === 1 ? 'item' : 'items'}
+                            🧠 Recalled {m.recalledMemories.length} memory context{' '}
+                            {m.recalledMemories.length === 1 ? 'item' : 'items'}
                           </span>
                         </button>
 
@@ -348,11 +342,7 @@ export function AgentCopilotDrawer({
                     {m.pendingActions && m.pendingActions.length > 0 && (
                       <div className="w-full space-y-2 pt-1">
                         {m.pendingActions.map((act) => (
-                          <PendingActionCard
-                            key={act.id}
-                            action={act}
-                            onResolved={() => onActionExecuted?.()}
-                          />
+                          <PendingActionCard key={act.id} action={act} onResolved={() => onActionExecuted?.()} />
                         ))}
                       </div>
                     )}
@@ -417,10 +407,10 @@ export function AgentCopilotDrawer({
                     {filter === 'all'
                       ? 'All'
                       : filter === 'preference'
-                      ? 'Preferences'
-                      : filter === 'decision'
-                      ? 'Decisions'
-                      : 'Project Facts'}
+                        ? 'Preferences'
+                        : filter === 'decision'
+                          ? 'Decisions'
+                          : 'Project Facts'}
                   </button>
                 ))}
               </div>
@@ -448,11 +438,10 @@ export function AgentCopilotDrawer({
                     <Brain className="w-6 h-6" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      No memories stored yet
-                    </h4>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">No memories stored yet</h4>
                     <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
-                      As you use the assistant or explicitly say &quot;Remember that I...&quot;, facts will be stored here and used for personalized recommendations.
+                      As you use the assistant or explicitly say &quot;Remember that I...&quot;, facts will be stored
+                      here and used for personalized recommendations.
                     </p>
                   </div>
                 </div>
@@ -462,8 +451,8 @@ export function AgentCopilotDrawer({
                     mem.type === 'preference'
                       ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border-amber-200 dark:border-amber-800'
                       : mem.type === 'decision'
-                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800'
-                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800';
 
                   return (
                     <div
@@ -471,14 +460,12 @@ export function AgentCopilotDrawer({
                       className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xs space-y-2 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <span
-                          className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${badgeColor}`}
-                        >
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${badgeColor}`}>
                           {mem.type === 'preference'
                             ? 'Preference'
                             : mem.type === 'decision'
-                            ? 'Past Decision'
-                            : 'Project Fact'}
+                              ? 'Past Decision'
+                              : 'Project Fact'}
                         </span>
                         <div className="flex items-center space-x-2">
                           <span className="text-[10px] text-slate-400">
@@ -493,9 +480,7 @@ export function AgentCopilotDrawer({
                           </button>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">
-                        {mem.content}
-                      </p>
+                      <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">{mem.content}</p>
                     </div>
                   );
                 })

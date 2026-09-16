@@ -53,10 +53,7 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
   const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
   const totalDaysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const prevMonthDays = Array.from(
-    { length: firstDayIndex },
-    (_, i) => totalDaysInPrevMonth - firstDayIndex + i + 1
-  );
+  const prevMonthDays = Array.from({ length: firstDayIndex }, (_, i) => totalDaysInPrevMonth - firstDayIndex + i + 1);
   const currentMonthDays = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
   const totalCellsSoFar = prevMonthDays.length + currentMonthDays.length;
   const nextMonthDaysCount = totalCellsSoFar % 7 === 0 ? 0 : 7 - (totalCellsSoFar % 7);
@@ -143,7 +140,13 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
           </div>
 
           <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-slate-500">
-            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+            <span>S</span>
+            <span>M</span>
+            <span>T</span>
+            <span>W</span>
+            <span>T</span>
+            <span>F</span>
+            <span>S</span>
           </div>
 
           <div className="grid grid-cols-7 text-center text-xs font-medium gap-y-0.5">
@@ -168,8 +171,8 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
                     isSelected
                       ? 'bg-[#1a73e8] text-white font-bold shadow-xs'
                       : isTodayCell
-                      ? 'bg-blue-100 text-blue-700 font-bold dark:bg-blue-900/40 dark:text-blue-300'
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+                        ? 'bg-blue-100 text-blue-700 font-bold dark:bg-blue-900/40 dark:text-blue-300'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
                   }`}
                 >
                   {d}
@@ -213,7 +216,11 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
             className="flex items-center justify-between py-1 text-xs font-semibold text-[#3c4043] dark:text-slate-200 cursor-pointer group"
           >
             <span>My calendars</span>
-            {myCalsExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            {myCalsExpanded ? (
+              <ChevronUp className="w-4 h-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            )}
           </div>
 
           {myCalsExpanded && (
@@ -235,9 +242,7 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
                     >
                       {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
                     </span>
-                    <span className="font-medium text-[#3c4043] dark:text-slate-200 truncate text-xs">
-                      {acc.label}
-                    </span>
+                    <span className="font-medium text-[#3c4043] dark:text-slate-200 truncate text-xs">{acc.label}</span>
                   </button>
                 );
               })}
@@ -255,7 +260,11 @@ export const GoogleCalendarSidebar: React.FC<GoogleCalendarSidebarProps> = ({
               <span>Other calendars</span>
               <Plus className="w-3.5 h-3.5 text-slate-500" />
             </div>
-            {otherCalsExpanded ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+            {otherCalsExpanded ? (
+              <ChevronUp className="w-4 h-4 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            )}
           </div>
 
           {otherCalsExpanded && (

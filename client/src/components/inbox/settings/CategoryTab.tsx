@@ -8,7 +8,7 @@ interface CategoryTabProps {
 
 export function CategoryTab({ settings, setSettings }: CategoryTabProps) {
   const toggleCat = (cat: keyof GmailAppSettings['enabledCategories']) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       enabledCategories: {
         ...prev.enabledCategories,

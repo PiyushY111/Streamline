@@ -9,13 +9,7 @@ interface ComposeHeaderProps {
   onClose: () => void;
 }
 
-export function ComposeHeader({
-  isMinimized,
-  isMaximized,
-  onMinimize,
-  onMaximize,
-  onClose,
-}: ComposeHeaderProps) {
+export function ComposeHeader({ isMinimized, isMaximized, onMinimize, onMaximize, onClose }: ComposeHeaderProps) {
   return (
     <div className="flex items-center justify-between px-4 py-2.5 bg-gray-900 text-white rounded-t-lg select-none">
       <span className="text-xs font-semibold">New Message</span>

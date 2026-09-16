@@ -10,6 +10,7 @@ import {
 } from './retention-purge.worker.js';
 import { stopSyncScheduler } from './scheduler.js';
 import { logger } from '../utils/logger.js';
+import { runWithContext } from '../utils/context.js';
 
 let accountSyncWorkerInstance: Worker | null = null;
 let aiTriageWorkerInstance: Worker | null = null;
@@ -22,9 +23,17 @@ export function startWorkers() {
   accountSyncWorkerInstance = new Worker(
     'account-sync-queue',
     async (job: Job) => {
-      const { accountId } = job.data;
-      logger.info({ jobId: job.id, accountId }, '⚙️ Background Worker processing Account Sync job...');
-      await syncGoogleAccountData(accountId);
+      return runWithContext(
+        {
+          requestId: (job.data?.requestId as string) || `job-sync-${job.id}`,
+          source: 'account_sync_worker',
+        },
+        async () => {
+          const { accountId } = job.data;
+          logger.info({ jobId: job.id, accountId }, '⚙️ Background Worker processing Account Sync job...');
+          await syncGoogleAccountData(accountId);
+        },
+      );
     },
     { connection: redisConnection, concurrency: 2 },
   );

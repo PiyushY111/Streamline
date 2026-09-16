@@ -49,9 +49,7 @@ export default function RegisterPage() {
             <Layers className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-              Streamline
-            </span>
+            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Streamline</span>
             <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono tracking-wider uppercase">
               Personal OS
             </span>
@@ -64,9 +62,7 @@ export default function RegisterPage() {
       {/* Register Card */}
       <main className="w-full max-w-md my-auto space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Create an Account
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Create an Account</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Sign up for your personal productivity OS to unify email and calendars.
           </p>
@@ -82,9 +78,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Full Name
-              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
               <div className="relative">
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -99,9 +93,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Email Address
-              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -116,9 +108,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Password
-              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -133,9 +123,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Confirm Password
-              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Confirm Password</label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -162,10 +150,7 @@ export default function RegisterPage() {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Already have an account?{' '}
-              <Link
-                href="/login"
-                className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
-              >
+              <Link href="/login" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">
                 Sign In
               </Link>
             </p>

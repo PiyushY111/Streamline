@@ -18,12 +18,7 @@ import {
   Target,
   ArrowRight,
 } from 'lucide-react';
-import {
-  fetchNextTask,
-  NextTaskResponse,
-  RankedTaskData,
-  updateTaskApi,
-} from '@/lib/api';
+import { fetchNextTask, NextTaskResponse, RankedTaskData, updateTaskApi } from '@/lib/api';
 
 interface NextTaskCardProps {
   onTaskUpdated?: () => void;
@@ -79,7 +74,10 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
   const slot = data?.availableSlot;
   const summary = data?.summary;
 
-  const presetLabels: Record<'balanced' | 'deadline' | 'deep_work' | 'quick_wins', { label: string; icon: any; desc: string }> = {
+  const presetLabels: Record<
+    'balanced' | 'deadline' | 'deep_work' | 'quick_wins',
+    { label: string; icon: any; desc: string }
+  > = {
     balanced: { label: 'Balanced', icon: SlidersHorizontal, desc: '5-factor equilibrium' },
     deadline: { label: 'Deadlines First', icon: Flame, desc: 'Exponential decay urgency' },
     deep_work: { label: 'Deep Work', icon: Target, desc: 'High importance & focus' },
@@ -109,9 +107,7 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
-                  Next Best Action
-                </h2>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">Next Best Action</h2>
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60">
                   DAG Ranked • Zero LLM
                 </span>
@@ -179,7 +175,9 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
           <div className="flex items-center space-x-2 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px]">
             <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span>
-              Next Free Slot: <strong>{slot.durationMinutes}m</strong> ({new Date(slot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(slot.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}) with 10m buffers
+              Next Free Slot: <strong>{slot.durationMinutes}m</strong> (
+              {new Date(slot.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
+              {new Date(slot.end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}) with 10m buffers
             </span>
           </div>
         )}
@@ -217,8 +215,8 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
                       task.priority === 'high'
                         ? 'bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
                         : task.priority === 'medium'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
-                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30'
+                          : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400'
                     }`}
                   >
                     {task.priority}
@@ -233,9 +231,7 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
                   )}
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-                  {task.title}
-                </h3>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{task.title}</h3>
 
                 {task.description && (
                   <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl line-clamp-2">
@@ -391,12 +387,13 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
               <div className="flex items-center space-x-2">
                 <Lock className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
                 <span>
-                  <strong>{data.blockedTasks.length} task{data.blockedTasks.length > 1 ? 's' : ''}</strong> blocked by incomplete prerequisites (DAG cycle checked)
+                  <strong>
+                    {data.blockedTasks.length} task{data.blockedTasks.length > 1 ? 's' : ''}
+                  </strong>{' '}
+                  blocked by incomplete prerequisites (DAG cycle checked)
                 </span>
               </div>
-              <ChevronRight
-                className={`w-3.5 h-3.5 transition-transform ${showBlocked ? 'rotate-90' : ''}`}
-              />
+              <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showBlocked ? 'rotate-90' : ''}`} />
             </button>
 
             {showBlocked && (

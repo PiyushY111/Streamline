@@ -76,7 +76,9 @@ export function AttachmentsView({ emails, onJumpToEmail }: AttachmentsViewProps)
           <div className="p-16 text-center space-y-3 my-auto">
             <Paperclip className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
             <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400">No attachments found</h3>
-            <p className="text-xs text-slate-400 max-w-xs mx-auto">There are no files attached to emails in your current inbox.</p>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              There are no files attached to emails in your current inbox.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -93,13 +95,16 @@ export function AttachmentsView({ emails, onJumpToEmail }: AttachmentsViewProps)
                     <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate" title={item.filename}>
                       {item.filename}
                     </h4>
-                    <span className="text-[10px] text-slate-400 font-mono mt-0.5">{formatFileSize(item.size || 0)}</span>
+                    <span className="text-[10px] text-slate-400 font-mono mt-0.5">
+                      {formatFileSize(item.size || 0)}
+                    </span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2 text-xs">
                   <div className="text-[10px] text-slate-400 truncate">
-                    From: <span className="text-slate-700 dark:text-slate-300 font-medium truncate">{item.email.sender}</span>
+                    From:{' '}
+                    <span className="text-slate-700 dark:text-slate-300 font-medium truncate">{item.email.sender}</span>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">

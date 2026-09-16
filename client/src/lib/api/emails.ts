@@ -16,8 +16,12 @@ export async function fetchEmails(folder?: string, limit: number = 50, page: num
   }
 }
 
-
-export async function sendEmailApi(payload: { to: string; subject: string; body: string; accountId?: string }): Promise<EmailData> {
+export async function sendEmailApi(payload: {
+  to: string;
+  subject: string;
+  body: string;
+  accountId?: string;
+}): Promise<EmailData> {
   const res = await safeFetch('/emails/send', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

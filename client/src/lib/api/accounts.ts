@@ -14,7 +14,7 @@ export async function fetchConnectedAccounts(): Promise<AccountData[]> {
 
 export async function updateAccountDetails(
   id: string,
-  payload: { label?: string; color?: string }
+  payload: { label?: string; color?: string },
 ): Promise<AccountData> {
   const res = await safeFetch(`/accounts/${id}`, {
     method: 'PATCH',

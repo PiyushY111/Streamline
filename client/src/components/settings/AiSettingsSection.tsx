@@ -2,18 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Sparkles,
-  Clock,
-  Globe,
-  Bell,
-  CheckCircle2,
-  Plus,
-  Trash2,
-  Sliders,
-  ShieldCheck,
-  Save,
-} from 'lucide-react';
+import { Sparkles, Clock, Globe, Bell, CheckCircle2, Plus, Trash2, Sliders, ShieldCheck, Save } from 'lucide-react';
 import { safeFetch } from '@/lib/api/client';
 
 interface AiPreferences {
@@ -29,9 +18,7 @@ interface AiPreferences {
 export function AiSettingsSection() {
   const queryClient = useQueryClient();
   const [digestTime, setDigestTime] = useState('08:00:00');
-  const [digestTimezone, setDigestTimezone] = useState(
-    Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-  );
+  const [digestTimezone, setDigestTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
   const [deliveryMode, setDeliveryMode] = useState<'in_app' | 'email' | 'both'>('in_app');
   const [isAutoTriageEnabled, setIsAutoTriageEnabled] = useState(true);
   const [vipSenders, setVipSenders] = useState<string[]>([]);
@@ -75,7 +62,6 @@ export function AiSettingsSection() {
       setTimeout(() => setSavedSuccess(false), 3000);
     },
   });
-
 
   const handleAddVip = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,9 +149,7 @@ export function AiSettingsSection() {
             </div>
 
             <div>
-              <label className="text-xs font-medium text-slate-600 dark:text-slate-400 block mb-1">
-                Your Timezone
-              </label>
+              <label className="text-xs font-medium text-slate-600 dark:text-slate-400 block mb-1">Your Timezone</label>
               <div className="flex items-center space-x-2">
                 <Globe className="h-4 w-4 text-slate-400" />
                 <input

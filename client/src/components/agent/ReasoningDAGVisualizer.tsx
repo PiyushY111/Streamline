@@ -20,7 +20,8 @@ import {
 
 export interface SwarmSubTaskData {
   id: string;
-  role: 'supervisor' | 'inbox_sentry' | 'calendar_negotiator' | 'dossier_researcher' | 'dag_scheduler' | 'critic' | string;
+  role:
+    'supervisor' | 'inbox_sentry' | 'calendar_negotiator' | 'dossier_researcher' | 'dag_scheduler' | 'critic' | string;
   title: string;
   instruction?: string;
   status: 'pending' | 'running' | 'completed' | 'failed';
@@ -116,9 +117,7 @@ export function ReasoningDAGVisualizer({
           <div>
             <h3 className="text-xs font-bold text-white flex items-center space-x-2">
               <span>Multi-Agent Swarm Reasoning DAG</span>
-              {isRunning && (
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              )}
+              {isRunning && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
             </h3>
             <p className="text-[11px] text-slate-400">
               Deterministic supervisor delegation, specialist execution, and Tree-of-Thought critique.
@@ -163,8 +162,8 @@ export function ReasoningDAGVisualizer({
                   isCurrent
                     ? `bg-slate-900/90 ${colors.border} ring-1 ring-indigo-500/50 shadow-lg ${colors.glow}`
                     : task.status === 'completed'
-                    ? 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
-                    : 'bg-slate-950/30 border-slate-900 opacity-60'
+                      ? 'bg-slate-950/60 border-slate-800 hover:border-slate-700'
+                      : 'bg-slate-950/30 border-slate-900 opacity-60'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -181,29 +180,19 @@ export function ReasoningDAGVisualizer({
                         </span>
                       </div>
                       {task.instruction && (
-                        <p className="text-[11px] text-slate-400 truncate max-w-md mt-0.5">
-                          {task.instruction}
-                        </p>
+                        <p className="text-[11px] text-slate-400 truncate max-w-md mt-0.5">{task.instruction}</p>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
                     {task.durationMs && (
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {task.durationMs}ms
-                      </span>
+                      <span className="text-[10px] text-slate-500 font-mono">{task.durationMs}ms</span>
                     )}
 
-                    {task.status === 'completed' && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    )}
-                    {task.status === 'running' && (
-                      <Clock className="w-4 h-4 text-indigo-400 animate-spin" />
-                    )}
-                    {task.status === 'failed' && (
-                      <AlertCircle className="w-4 h-4 text-rose-400" />
-                    )}
+                    {task.status === 'completed' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+                    {task.status === 'running' && <Clock className="w-4 h-4 text-indigo-400 animate-spin" />}
+                    {task.status === 'failed' && <AlertCircle className="w-4 h-4 text-rose-400" />}
 
                     {task.output && (
                       <button

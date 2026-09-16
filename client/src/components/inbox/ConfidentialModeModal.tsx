@@ -15,12 +15,7 @@ interface ConfidentialModeModalProps {
   currentConfig?: ConfidentialModeConfig | null;
 }
 
-export function ConfidentialModeModal({
-  isOpen,
-  onClose,
-  onSave,
-  currentConfig,
-}: ConfidentialModeModalProps) {
+export function ConfidentialModeModal({ isOpen, onClose, onSave, currentConfig }: ConfidentialModeModalProps) {
   const [expiration, setExpiration] = useState(currentConfig?.expiration || '1w');
   const [requirePasscode, setRequirePasscode] = useState(currentConfig?.requirePasscode || false);
 
@@ -41,7 +36,10 @@ export function ConfidentialModeModal({
             <Lock className="w-4 h-4 text-amber-500" />
             <span>Confidential Mode Settings</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -93,10 +91,7 @@ export function ConfidentialModeModal({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded-xl bg-[#0b57d0] text-white font-semibold shadow-xs"
-            >
+            <button type="submit" className="px-4 py-1.5 rounded-xl bg-[#0b57d0] text-white font-semibold shadow-xs">
               Save Mode
             </button>
           </div>

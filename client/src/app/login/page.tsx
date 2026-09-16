@@ -36,9 +36,7 @@ export default function LoginPage() {
             <Layers className="h-5 w-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">
-              Streamline
-            </span>
+            <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white">Streamline</span>
             <span className="text-[10px] text-purple-600 dark:text-purple-400 font-mono tracking-wider uppercase">
               Personal OS
             </span>
@@ -51,9 +49,7 @@ export default function LoginPage() {
       {/* Login Card */}
       <main className="w-full max-w-md my-auto space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-            Welcome back
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Welcome back</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Sign in to your Streamline OS account to access unified inbox and agenda.
           </p>
@@ -69,9 +65,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Email Address
-              </label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
@@ -87,9 +81,7 @@ export default function LoginPage() {
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Password
-                </label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Password</label>
               </div>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -117,10 +109,7 @@ export default function LoginPage() {
           <div className="pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Don&apos;t have an account?{' '}
-              <Link
-                href="/register"
-                className="text-purple-600 dark:text-purple-400 font-semibold hover:underline"
-              >
+              <Link href="/register" className="text-purple-600 dark:text-purple-400 font-semibold hover:underline">
                 Create Account
               </Link>
             </p>

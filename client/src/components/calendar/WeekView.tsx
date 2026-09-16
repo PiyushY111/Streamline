@@ -11,12 +11,7 @@ interface WeekViewProps {
   onQuickCreateSlot: (date: Date, hour: number) => void;
 }
 
-export const WeekView: React.FC<WeekViewProps> = ({
-  selectedDate,
-  events,
-  onSelectEvent,
-  onQuickCreateSlot,
-}) => {
+export const WeekView: React.FC<WeekViewProps> = ({ selectedDate, events, onSelectEvent, onQuickCreateSlot }) => {
   const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -42,10 +37,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const redLineTop = currentMinutes * (hourRowHeight / 60);
 
   const isTodayWeek = daysOfWeek.some(
-    (d) =>
-      d.getFullYear() === now.getFullYear() &&
-      d.getMonth() === now.getMonth() &&
-      d.getDate() === now.getDate()
+    (d) => d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate(),
   );
 
   return (
@@ -72,9 +64,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                 </span>
                 <span
                   className={`text-sm font-bold h-7 w-7 rounded-full flex items-center justify-center ${
-                    isTodayCell
-                      ? 'bg-blue-600 text-white shadow-xs'
-                      : 'text-slate-800 dark:text-slate-200'
+                    isTodayCell ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-800 dark:text-slate-200'
                   }`}
                 >
                   {dayDate.getDate()}
@@ -91,13 +81,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
         <div className="w-16 border-r border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 shrink-0">
           {hours.map((hour) => {
             const displayTime =
-              hour === 0
-                ? '12 AM'
-                : hour < 12
-                ? `${hour} AM`
-                : hour === 12
-                ? '12 PM'
-                : `${hour - 12} PM`;
+              hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
             return (
               <div
                 key={hour}
@@ -173,12 +157,8 @@ export const WeekView: React.FC<WeekViewProps> = ({
                       style={{
                         top: `${topPx}px`,
                         height: `${heightPx}px`,
-                        backgroundColor: evt.hasConflict
-                          ? undefined
-                          : `${evt.accountColor || '#4285F4'}25`,
-                        borderColor: evt.hasConflict
-                          ? undefined
-                          : evt.accountColor || '#4285F4',
+                        backgroundColor: evt.hasConflict ? undefined : `${evt.accountColor || '#4285F4'}25`,
+                        borderColor: evt.hasConflict ? undefined : evt.accountColor || '#4285F4',
                       }}
                       className={`absolute left-1 right-1 rounded-xl p-2 z-10 cursor-pointer overflow-hidden border shadow-2xs transition-all hover:scale-[1.02] hover:z-30 ${
                         evt.hasConflict

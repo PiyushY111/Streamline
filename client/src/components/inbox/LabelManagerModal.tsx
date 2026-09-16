@@ -58,7 +58,10 @@ export function LabelManagerModal({
             <Tag className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
             <span>Manage Custom Labels</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -75,7 +78,10 @@ export function LabelManagerModal({
               <span>Create New Label</span>
             </button>
           ) : (
-            <form onSubmit={handleCreate} className="p-3 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 bg-slate-50 dark:bg-slate-900">
+            <form
+              onSubmit={handleCreate}
+              className="p-3 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 bg-slate-50 dark:bg-slate-900"
+            >
               <input
                 type="text"
                 required
@@ -111,10 +117,7 @@ export function LabelManagerModal({
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1 rounded-lg bg-[#0b57d0] text-white font-semibold shadow-xs"
-                >
+                <button type="submit" className="px-4 py-1 rounded-lg bg-[#0b57d0] text-white font-semibold shadow-xs">
                   Save Label
                 </button>
               </div>
@@ -144,7 +147,9 @@ export function LabelManagerModal({
                     </div>
 
                     {onToggleLabelOnEmail && (
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${isAssigned ? 'bg-[#0b57d0] border-[#0b57d0] text-white' : 'border-slate-300'}`}>
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center ${isAssigned ? 'bg-[#0b57d0] border-[#0b57d0] text-white' : 'border-slate-300'}`}
+                      >
                         {isAssigned && <Check className="w-3 h-3" />}
                       </div>
                     )}

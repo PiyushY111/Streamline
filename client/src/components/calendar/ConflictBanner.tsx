@@ -9,9 +9,7 @@ interface ConflictBannerProps {
   onSelectEvent: (evt: EventData) => void;
 }
 
-export const ConflictBanner: React.FC<ConflictBannerProps> = ({
-  conflictEvents,
-}) => {
+export const ConflictBanner: React.FC<ConflictBannerProps> = ({ conflictEvents }) => {
   if (conflictEvents.length === 0) return null;
 
   return (
@@ -22,7 +20,8 @@ export const ConflictBanner: React.FC<ConflictBannerProps> = ({
         </div>
         <div>
           <h4 className="text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide">
-            ⚠️ Double-Booking Conflict Engine ({conflictEvents.length} Overlapping Event{conflictEvents.length === 1 ? '' : 's'})
+            ⚠️ Double-Booking Conflict Engine ({conflictEvents.length} Overlapping Event
+            {conflictEvents.length === 1 ? '' : 's'})
           </h4>
           <p className="text-[11px] text-amber-800 dark:text-slate-300 mt-0.5">
             Sweep-line algorithm identified schedule overlaps across your connected Google calendars.

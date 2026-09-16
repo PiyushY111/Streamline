@@ -18,12 +18,7 @@ interface AdvancedSearchModalProps {
   onResetFilters: () => void;
 }
 
-export function AdvancedSearchModal({
-  isOpen,
-  onClose,
-  onApplyFilters,
-  onResetFilters,
-}: AdvancedSearchModalProps) {
+export function AdvancedSearchModal({ isOpen, onClose, onApplyFilters, onResetFilters }: AdvancedSearchModalProps) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [subject, setSubject] = useState('');
@@ -57,7 +52,10 @@ export function AdvancedSearchModal({
             <SlidersHorizontal className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
             <span>Advanced Search Filters</span>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white">
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -122,7 +120,10 @@ export function AdvancedSearchModal({
                 onChange={(e) => setHasAttachment(e.target.checked)}
                 className="w-4 h-4 rounded text-[#0b57d0] focus:ring-[#0b57d0]"
               />
-              <label htmlFor="hasAttachmentCheck" className="font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1 cursor-pointer">
+              <label
+                htmlFor="hasAttachmentCheck"
+                className="font-semibold text-slate-700 dark:text-slate-300 flex items-center space-x-1 cursor-pointer"
+              >
                 <Paperclip className="w-3.5 h-3.5 text-slate-500" />
                 <span>Has Attachment</span>
               </label>

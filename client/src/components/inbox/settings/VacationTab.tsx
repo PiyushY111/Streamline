@@ -14,7 +14,7 @@ export function VacationTab({ settings, setSettings }: VacationTabProps) {
           type="checkbox"
           id="vacationActive"
           checked={settings.vacationResponderActive}
-          onChange={(e) => setSettings(prev => ({ ...prev, vacationResponderActive: e.target.checked }))}
+          onChange={(e) => setSettings((prev) => ({ ...prev, vacationResponderActive: e.target.checked }))}
         />
         <label htmlFor="vacationActive" className="font-semibold cursor-pointer">
           Enable Vacation Auto-Responder
@@ -28,7 +28,7 @@ export function VacationTab({ settings, setSettings }: VacationTabProps) {
             <input
               type="text"
               value={settings.vacationSubject}
-              onChange={(e) => setSettings(prev => ({ ...prev, vacationSubject: e.target.value }))}
+              onChange={(e) => setSettings((prev) => ({ ...prev, vacationSubject: e.target.value }))}
               className="w-full p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded text-gray-900 dark:text-gray-100"
             />
           </div>
@@ -36,7 +36,7 @@ export function VacationTab({ settings, setSettings }: VacationTabProps) {
             <label className="block font-semibold mb-1">Auto-Response Message</label>
             <textarea
               value={settings.vacationMessage}
-              onChange={(e) => setSettings(prev => ({ ...prev, vacationMessage: e.target.value }))}
+              onChange={(e) => setSettings((prev) => ({ ...prev, vacationMessage: e.target.value }))}
               className="w-full h-24 p-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded resize-none text-gray-900 dark:text-gray-100"
             />
           </div>

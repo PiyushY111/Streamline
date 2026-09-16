@@ -12,10 +12,13 @@ export function CalendarList({ accounts, selectedAccounts, onToggleAccount }: Ca
     <div className="p-4 space-y-3">
       <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">My Calendars</h3>
       <div className="space-y-2">
-        {accounts.map(acc => {
+        {accounts.map((acc) => {
           const isChecked = selectedAccounts.includes(acc.id);
           return (
-            <label key={acc.id} className="flex items-center gap-2.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+            <label
+              key={acc.id}
+              className="flex items-center gap-2.5 text-xs text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+            >
               <input
                 type="checkbox"
                 checked={isChecked}

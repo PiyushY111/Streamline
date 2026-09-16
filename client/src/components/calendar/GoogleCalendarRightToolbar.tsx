@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  CheckCircle2,
-  Lightbulb,
-  User,
-  MapPin,
-  Plus,
-  ChevronRight,
-  ChevronLeft,
-  X,
-  Trash2,
-  Check,
-} from 'lucide-react';
+import { CheckCircle2, Lightbulb, User, MapPin, Plus, ChevronRight, ChevronLeft, X, Trash2, Check } from 'lucide-react';
 import { fetchTasks, createTaskApi, updateTaskApi, deleteTaskApi, TaskData } from '@/lib/api';
 
 export const GoogleCalendarRightToolbar: React.FC = () => {
@@ -61,10 +50,7 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
         const created = await createTaskApi({ title: newTaskTitle.trim(), status: 'todo' });
         setTasks([created, ...tasks]);
       } catch (err) {
-        setTasks([
-          { id: `t-${Date.now()}`, title: newTaskTitle.trim(), status: 'todo', priority: 'medium' },
-          ...tasks,
-        ]);
+        setTasks([{ id: `t-${Date.now()}`, title: newTaskTitle.trim(), status: 'todo', priority: 'medium' }, ...tasks]);
       }
       setNewTaskTitle('');
     }
@@ -103,7 +89,9 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
               {activePanel === 'tasks' && <CheckCircle2 className="w-4 h-4 text-blue-500" />}
               {activePanel === 'contacts' && <User className="w-4 h-4 text-blue-500" />}
               {activePanel === 'maps' && <MapPin className="w-4 h-4 text-red-500" />}
-              <span>{activePanel === 'keep' ? 'Google Keep Notes' : activePanel === 'tasks' ? 'Google Tasks' : activePanel}</span>
+              <span>
+                {activePanel === 'keep' ? 'Google Keep Notes' : activePanel === 'tasks' ? 'Google Tasks' : activePanel}
+              </span>
             </h3>
             <button onClick={() => setActivePanel(null)} className="text-slate-400 hover:text-slate-600">
               <X className="w-4 h-4" />
@@ -113,7 +101,10 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
           {/* KEEP NOTES PANEL */}
           {activePanel === 'keep' && (
             <div className="flex-1 flex flex-col space-y-3 overflow-hidden">
-              <form onSubmit={handleAddNote} className="space-y-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+              <form
+                onSubmit={handleAddNote}
+                className="space-y-2 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-200 dark:border-slate-800"
+              >
                 <input
                   type="text"
                   placeholder="Take a note..."
@@ -129,7 +120,10 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
                   className="w-full text-xs bg-transparent border-0 focus:outline-none text-slate-700 dark:text-slate-300 resize-none placeholder-slate-400"
                 />
                 <div className="flex justify-end">
-                  <button type="submit" className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold">
+                  <button
+                    type="submit"
+                    className="px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold"
+                  >
                     Done
                   </button>
                 </div>
@@ -137,8 +131,14 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
 
               <div className="flex-1 overflow-y-auto space-y-2">
                 {notes.map((n) => (
-                  <div key={n.id} className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 relative group">
-                    <button onClick={() => handleDeleteNote(n.id)} className="opacity-0 group-hover:opacity-100 absolute right-2 top-2 text-slate-400 hover:text-red-500">
+                  <div
+                    key={n.id}
+                    className="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 relative group"
+                  >
+                    <button
+                      onClick={() => handleDeleteNote(n.id)}
+                      className="opacity-0 group-hover:opacity-100 absolute right-2 top-2 text-slate-400 hover:text-red-500"
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white">{n.title}</h4>
@@ -169,10 +169,14 @@ export const GoogleCalendarRightToolbar: React.FC = () => {
                     onClick={() => handleToggleTask(t)}
                     className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center space-x-2.5 cursor-pointer hover:border-blue-400 transition-colors"
                   >
-                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center text-white shrink-0 ${t.status === 'completed' ? 'bg-blue-600 border-blue-600' : 'border-slate-400'}`}>
+                    <span
+                      className={`w-4 h-4 rounded-full border flex items-center justify-center text-white shrink-0 ${t.status === 'completed' ? 'bg-blue-600 border-blue-600' : 'border-slate-400'}`}
+                    >
                       {t.status === 'completed' && <Check className="w-3 h-3 stroke-[3]" />}
                     </span>
-                    <span className={`text-xs font-medium truncate ${t.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                    <span
+                      className={`text-xs font-medium truncate ${t.status === 'completed' ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}
+                    >
                       {t.title}
                     </span>
                   </div>

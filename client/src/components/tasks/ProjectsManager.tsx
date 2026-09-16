@@ -1,23 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  FolderKanban,
-  Plus,
-  CheckCircle2,
-  Clock,
-  Layers,
-  Sparkles,
-  Trash2,
-  Edit2,
-  ExternalLink,
-} from 'lucide-react';
-import {
-  fetchProjects,
-  createProjectApi,
-  deleteProjectApi,
-  ProjectData,
-} from '@/lib/api';
+import { FolderKanban, Plus, CheckCircle2, Clock, Layers, Sparkles, Trash2, Edit2, ExternalLink } from 'lucide-react';
+import { fetchProjects, createProjectApi, deleteProjectApi, ProjectData } from '@/lib/api';
 
 interface ProjectsManagerProps {
   selectedProjectId?: string;
@@ -25,11 +10,7 @@ interface ProjectsManagerProps {
   onProjectsChanged?: () => void;
 }
 
-export function ProjectsManager({
-  selectedProjectId,
-  onSelectProject,
-  onProjectsChanged,
-}: ProjectsManagerProps) {
+export function ProjectsManager({ selectedProjectId, onSelectProject, onProjectsChanged }: ProjectsManagerProps) {
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -138,10 +119,7 @@ export function ProjectsManager({
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
               }`}
             >
-              <div
-                className="w-2.5 h-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: p.color || '#6366f1' }}
-              />
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color || '#6366f1' }} />
               <span className="font-medium text-slate-800 dark:text-slate-200">{p.name}</span>
 
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">

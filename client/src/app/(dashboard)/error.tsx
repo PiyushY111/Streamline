@@ -22,11 +22,10 @@ export default function DashboardErrorBoundary({
         </div>
 
         <div className="space-y-1.5">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white">
-            Dashboard View Error
-          </h3>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Dashboard View Error</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            This dashboard view encountered a render issue. Your other workspaces and sidebars remain safe and interactive.
+            This dashboard view encountered a render issue. Your other workspaces and sidebars remain safe and
+            interactive.
           </p>
           {error?.message && (
             <div className="p-2.5 mt-2 bg-slate-50 dark:bg-slate-800/80 rounded-lg text-xs font-mono text-slate-600 dark:text-slate-300 text-left overflow-x-auto max-h-20">

@@ -39,19 +39,16 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
         const isTool = step.kind === 'tool_call';
         const isModel = step.kind === 'model_response';
 
-        let nodeBorderClass =
-          'border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60';
+        let nodeBorderClass = 'border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60';
         let dotBg = 'bg-slate-400';
         let StepIcon = Activity;
 
         if (isUser) {
-          nodeBorderClass =
-            'border-blue-300 dark:border-blue-900/80 bg-blue-50/50 dark:bg-blue-950/20';
+          nodeBorderClass = 'border-blue-300 dark:border-blue-900/80 bg-blue-50/50 dark:bg-blue-950/20';
           dotBg = 'bg-blue-500';
           StepIcon = User;
         } else if (isContext) {
-          nodeBorderClass =
-            'border-purple-300 dark:border-purple-900/80 bg-purple-50/50 dark:bg-purple-950/20';
+          nodeBorderClass = 'border-purple-300 dark:border-purple-900/80 bg-purple-50/50 dark:bg-purple-950/20';
           dotBg = 'bg-purple-500';
           StepIcon = Brain;
         } else if (isPending) {
@@ -60,13 +57,11 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
           dotBg = 'bg-rose-500 animate-pulse';
           StepIcon = ShieldAlert;
         } else if (isTool) {
-          nodeBorderClass =
-            'border-amber-300 dark:border-amber-900/80 bg-amber-50/50 dark:bg-amber-950/20';
+          nodeBorderClass = 'border-amber-300 dark:border-amber-900/80 bg-amber-50/50 dark:bg-amber-950/20';
           dotBg = 'bg-amber-500';
           StepIcon = Wrench;
         } else if (isModel) {
-          nodeBorderClass =
-            'border-emerald-300 dark:border-emerald-900/80 bg-emerald-50/50 dark:bg-emerald-950/20';
+          nodeBorderClass = 'border-emerald-300 dark:border-emerald-900/80 bg-emerald-50/50 dark:bg-emerald-950/20';
           dotBg = 'bg-emerald-500';
           StepIcon = Sparkles;
         }
@@ -79,16 +74,12 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
             />
 
             {/* Step Card */}
-            <div
-              className={`p-4 rounded-2xl border backdrop-blur-md shadow-xs transition-all ${nodeBorderClass}`}
-            >
+            <div className={`p-4 rounded-2xl border backdrop-blur-md shadow-xs transition-all ${nodeBorderClass}`}>
               {/* Step Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                 <div className="flex items-center space-x-2">
                   <StepIcon className="h-4 w-4 shrink-0 text-slate-700 dark:text-slate-300" />
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">
-                    {step.label}
-                  </span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">{step.label}</span>
                   <span className="text-[10px] px-2 py-0.5 rounded font-mono bg-black/5 dark:bg-white/5 text-slate-500 dark:text-slate-400">
                     {step.spanId}
                   </span>
@@ -103,9 +94,7 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
               {/* Body: User Message */}
               {isUser && (
                 <div className="text-xs text-slate-800 dark:text-slate-200 font-medium">
-                  {typeof step.detail === 'string'
-                    ? step.detail
-                    : JSON.stringify(step.detail)}
+                  {typeof step.detail === 'string' ? step.detail : JSON.stringify(step.detail)}
                 </div>
               )}
 
@@ -122,9 +111,7 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
                           <span className="font-bold text-[9px] uppercase tracking-wider text-purple-600 dark:text-purple-400">
                             [{mem.type}]
                           </span>
-                          <span className="text-[9px] text-slate-400 font-mono">
-                            id: {mem.id.slice(0, 6)}...
-                          </span>
+                          <span className="text-[9px] text-slate-400 font-mono">id: {mem.id.slice(0, 6)}...</span>
                         </div>
                         <p className="text-xs">{mem.snippet}</p>
                       </div>
@@ -137,9 +124,7 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
               {isTool && (
                 <div className="mt-1">
                   <pre className="text-[11px] font-mono p-2.5 rounded-xl bg-black/5 dark:bg-black/40 text-slate-800 dark:text-slate-200 overflow-x-auto max-h-48 whitespace-pre-wrap">
-                    {typeof step.detail === 'string'
-                      ? step.detail
-                      : JSON.stringify(step.detail, null, 2)}
+                    {typeof step.detail === 'string' ? step.detail : JSON.stringify(step.detail, null, 2)}
                   </pre>
                 </div>
               )}
@@ -152,8 +137,8 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
                     <div className="p-2.5 rounded-xl bg-rose-100/80 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs flex items-center space-x-2">
                       <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
                       <span>
-                        <strong>Untrusted Content Warning:</strong> This proposal was
-                        prompted by external email content. Review carefully.
+                        <strong>Untrusted Content Warning:</strong> This proposal was prompted by external email
+                        content. Review carefully.
                       </span>
                     </div>
                   )}
@@ -199,8 +184,7 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
                   {/* Status indicator if resolved */}
                   {step.metadata?.status && step.metadata.status !== 'pending' && (
                     <div className="flex items-center space-x-1.5 text-xs font-bold pt-1">
-                      {step.metadata.status === 'executed' ||
-                      step.metadata.status === 'approved' ? (
+                      {step.metadata.status === 'executed' || step.metadata.status === 'approved' ? (
                         <span className="text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
                           <CheckCircle2 className="h-4 w-4" />
                           <span>Status: EXECUTED (Human Approved)</span>
@@ -219,9 +203,7 @@ export const TraceTimeline: React.FC<TraceTimelineProps> = ({
               {/* Body: Model Response */}
               {isModel && (
                 <div className="mt-1 text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
-                  {typeof step.detail === 'string'
-                    ? step.detail
-                    : JSON.stringify(step.detail, null, 2)}
+                  {typeof step.detail === 'string' ? step.detail : JSON.stringify(step.detail, null, 2)}
                 </div>
               )}
             </div>

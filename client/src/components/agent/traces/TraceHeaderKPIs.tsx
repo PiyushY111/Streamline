@@ -15,9 +15,7 @@ export const TraceHeaderKPIs: React.FC<TraceHeaderKPIsProps> = ({ summary }) => 
           <span className="font-medium">Total Latency</span>
           <Clock className="h-3.5 w-3.5 text-indigo-500" />
         </div>
-        <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">
-          {summary.totalLatencyMs}ms
-        </div>
+        <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">{summary.totalLatencyMs}ms</div>
         <div className="text-[10px] text-slate-400 mt-1 flex items-center space-x-2">
           <span>LLM: {summary.modelLatencyMs}ms</span>
           <span>·</span>
@@ -32,12 +30,9 @@ export const TraceHeaderKPIs: React.FC<TraceHeaderKPIsProps> = ({ summary }) => 
           <Coins className="h-3.5 w-3.5 text-purple-500" />
         </div>
         <div className="text-xl font-bold text-purple-600 dark:text-purple-400 font-mono">
-          {summary.totalTokens.toLocaleString()}{' '}
-          <span className="text-xs font-normal text-slate-400">tokens</span>
+          {summary.totalTokens.toLocaleString()} <span className="text-xs font-normal text-slate-400">tokens</span>
         </div>
-        <div className="text-[10px] text-slate-400 mt-1">
-          ${summary.totalCostUsd.toFixed(6)} USD
-        </div>
+        <div className="text-[10px] text-slate-400 mt-1">${summary.totalCostUsd.toFixed(6)} USD</div>
       </div>
 
       {/* Total Decision Steps */}
@@ -49,9 +44,7 @@ export const TraceHeaderKPIs: React.FC<TraceHeaderKPIsProps> = ({ summary }) => 
         <div className="text-xl font-bold text-slate-900 dark:text-white font-mono">
           {summary.stepCount} <span className="text-xs font-normal text-slate-400">spans</span>
         </div>
-        <div className="text-[10px] text-slate-400 mt-1">
-          {summary.toolCallsCount} tool calls executed
-        </div>
+        <div className="text-[10px] text-slate-400 mt-1">{summary.toolCallsCount} tool calls executed</div>
       </div>
 
       {/* Policy Gate & HITL Interceptions */}
@@ -61,13 +54,10 @@ export const TraceHeaderKPIs: React.FC<TraceHeaderKPIsProps> = ({ summary }) => 
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
         </div>
         <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-          {summary.pendingActionsCount}{' '}
-          <span className="text-xs font-normal text-slate-400">held</span>
+          {summary.pendingActionsCount} <span className="text-xs font-normal text-slate-400">held</span>
         </div>
         <div className="text-[10px] text-slate-400 mt-1">
-          {summary.hasUntrustedContentWarning
-            ? '⚠️ Untrusted data flagged'
-            : 'Zero autonomous writes'}
+          {summary.hasUntrustedContentWarning ? '⚠️ Untrusted data flagged' : 'Zero autonomous writes'}
         </div>
       </div>
     </div>

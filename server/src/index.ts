@@ -13,6 +13,8 @@ import { requestId } from './middlewares/requestId.js';
 import { notFoundHandler } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { toError } from './utils/errors.js';
+import metricsRouter from './routes/metrics.routes.js';
+import { metrics } from './utils/metrics.js';
 
 const app = express();
 
@@ -43,9 +45,15 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(cookieParser());
 
-// Request Logger (correlated via req.id)
+// HTTP Metrics Collector
 app.use((req, res, next) => {
-  logger.info({ reqId: req.id, method: req.method, url: req.url }, 'Incoming API Request');
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.baseUrl || req.path || 'unknown';
+    metrics.httpRequestsTotal.inc({ method: req.method, route, status: res.statusCode });
+    metrics.httpRequestDurationSeconds.observe(duration, { method: req.method, route, status: res.statusCode });
+  });
   next();
 });
 
@@ -56,8 +64,12 @@ app.get('/', (req, res) => {
     status: 'running',
     version: '1.0.0',
     health: '/api/health',
+    metrics: '/api/metrics',
   });
 });
+
+// Root Prometheus Metrics Endpoint
+app.use('/metrics', metricsRouter);
 
 // API Routes
 app.use('/api', apiRouter);

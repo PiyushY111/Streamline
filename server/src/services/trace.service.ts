@@ -3,6 +3,7 @@ import { agentSessions, agentMessages, pendingActions, aiTokenUsage, memories } 
 import { eq, and, asc, inArray, gte, sql } from 'drizzle-orm';
 import { redactSecrets } from '../utils/redactor.js';
 import { TOOL_REGISTRY, PermissionClass } from './ai/agent/tools/index.js';
+import { telemetryRegistry } from '../utils/telemetry.js';
 
 export interface OTelSpan {
   traceId: string;
@@ -511,6 +512,28 @@ export class TraceService {
         })),
       },
     };
+  }
+
+  /**
+   * Bridges internal session OTel spans into global OpenTelemetry registry.
+   */
+  exportSessionToTelemetry(trace: SessionTraceResponse): void {
+    for (const span of trace.waterfallSpans) {
+      telemetryRegistry.exportSpan({
+        traceId: span.traceId,
+        spanId: span.spanId,
+        parentSpanId: span.parentSpanId,
+        name: span.name,
+        kind: span.kind,
+        startTimeMs: span.startTimeMs,
+        endTimeMs: span.endTimeMs,
+        durationMs: span.durationMs,
+        statusCode: span.statusCode,
+        statusMessage: span.statusMessage,
+        attributes: span.attributes,
+        events: [],
+      });
+    }
   }
 }
 

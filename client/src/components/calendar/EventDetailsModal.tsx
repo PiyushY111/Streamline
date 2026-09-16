@@ -1,18 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  X,
-  Edit2,
-  Trash2,
-  Clock,
-  MapPin,
-  Users,
-  Video,
-  AlertTriangle,
-  Copy,
-  Check,
-} from 'lucide-react';
+import { X, Edit2, Trash2, Clock, MapPin, Users, Video, AlertTriangle, Copy, Check } from 'lucide-react';
 import { EventData } from '@/lib/api';
 
 interface EventDetailsModalProps {
@@ -21,11 +10,7 @@ interface EventDetailsModalProps {
   onDelete: (id: string) => void;
 }
 
-export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
-  event,
-  onClose,
-  onDelete,
-}) => {
+export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, onClose, onDelete }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [rsvpState, setRsvpState] = useState<'yes' | 'maybe' | 'no'>('yes');
 
@@ -100,13 +85,16 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
           {/* Title */}
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
-              {event.title}
-            </h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{event.title}</h2>
             <div className="flex items-center space-x-2 mt-2 text-xs font-mono text-slate-600 dark:text-slate-300">
               <Clock className="w-4 h-4 text-blue-600 shrink-0" />
               <span>
-                {start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                {start.toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
                 {' • '}
                 {start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} –{' '}
                 {end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
@@ -122,9 +110,7 @@ export const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   <Video className="w-5 h-5" />
                 </div>
                 <div className="truncate">
-                  <h4 className="text-xs font-bold text-blue-900 dark:text-blue-200">
-                    Join with Google Meet
-                  </h4>
+                  <h4 className="text-xs font-bold text-blue-900 dark:text-blue-200">Join with Google Meet</h4>
                   <span className="text-[11px] text-blue-600 dark:text-blue-400 font-mono truncate block">
                     {event.meetLink}
                   </span>

@@ -8,12 +8,7 @@ interface ComposeToolbarProps {
   onOpenConfidential: () => void;
 }
 
-export function ComposeToolbar({
-  onSend,
-  isSending,
-  onOpenTemplates,
-  onOpenConfidential,
-}: ComposeToolbarProps) {
+export function ComposeToolbar({ onSend, isSending, onOpenTemplates, onOpenConfidential }: ComposeToolbarProps) {
   return (
     <div className="flex items-center justify-between p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 rounded-b-lg">
       <button
@@ -26,10 +21,18 @@ export function ComposeToolbar({
       </button>
 
       <div className="flex items-center gap-2">
-        <button onClick={onOpenTemplates} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="Email Templates">
+        <button
+          onClick={onOpenTemplates}
+          className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          title="Email Templates"
+        >
           <FileText className="w-4 h-4" />
         </button>
-        <button onClick={onOpenConfidential} className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="Confidential Mode">
+        <button
+          onClick={onOpenConfidential}
+          className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          title="Confidential Mode"
+        >
           <Lock className="w-4 h-4" />
         </button>
         <button className="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" title="Attach File">

@@ -13,7 +13,9 @@ export default function NotificationsPage() {
             <span>Daily Digest & System Alerts</span>
           </div>
           <h1 className="text-2xl font-bold text-white">Notifications & Daily Digest</h1>
-          <p className="text-xs text-slate-400">Structured morning digest, double-booking alerts, and sync status logs.</p>
+          <p className="text-xs text-slate-400">
+            Structured morning digest, double-booking alerts, and sync status logs.
+          </p>
         </div>
       </div>
 
@@ -41,7 +43,9 @@ export default function NotificationsPage() {
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Agenda Overview</span>
               </div>
-              <p className="text-xs text-slate-300">3 events scheduled today across 3 calendars. 1 double-booking conflict detected.</p>
+              <p className="text-xs text-slate-300">
+                3 events scheduled today across 3 calendars. 1 double-booking conflict detected.
+              </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
@@ -49,7 +53,9 @@ export default function NotificationsPage() {
                 <Bell className="w-3.5 h-3.5" />
                 <span>Starred Emails</span>
               </div>
-              <p className="text-xs text-slate-300">2 unread starred emails requiring response from Agency Work & Personal Gmail.</p>
+              <p className="text-xs text-slate-300">
+                2 unread starred emails requiring response from Agency Work & Personal Gmail.
+              </p>
             </div>
 
             <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-1">
@@ -68,7 +74,9 @@ export default function NotificationsPage() {
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
             <div>
               <h4 className="text-xs font-bold text-white">Double-Booking Conflict Alert</h4>
-              <p className="text-xs text-slate-400">Client Architecture Review overlaps with Personal Health Checkup on Aug 25.</p>
+              <p className="text-xs text-slate-400">
+                Client Architecture Review overlaps with Personal Health Checkup on Aug 25.
+              </p>
             </div>
           </div>
           <span className="text-[10px] text-slate-400 font-mono">10:42 AM</span>

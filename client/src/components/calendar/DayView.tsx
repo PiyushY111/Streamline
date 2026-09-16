@@ -11,12 +11,7 @@ interface DayViewProps {
   onQuickCreateSlot: (date: Date, hour: number) => void;
 }
 
-export const DayView: React.FC<DayViewProps> = ({
-  selectedDate,
-  events,
-  onSelectEvent,
-  onQuickCreateSlot,
-}) => {
+export const DayView: React.FC<DayViewProps> = ({ selectedDate, events, onSelectEvent, onQuickCreateSlot }) => {
   const [now, setNow] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -55,9 +50,16 @@ export const DayView: React.FC<DayViewProps> = ({
           </div>
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {selectedDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
             </h2>
-            <p className="text-xs text-slate-500">{dayEvents.length} Event{dayEvents.length === 1 ? '' : 's'} scheduled</p>
+            <p className="text-xs text-slate-500">
+              {dayEvents.length} Event{dayEvents.length === 1 ? '' : 's'} scheduled
+            </p>
           </div>
         </div>
 
@@ -76,13 +78,7 @@ export const DayView: React.FC<DayViewProps> = ({
         <div className="w-20 border-r border-slate-200 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-900/20 shrink-0">
           {hours.map((hour) => {
             const displayTime =
-              hour === 0
-                ? '12 AM'
-                : hour < 12
-                ? `${hour} AM`
-                : hour === 12
-                ? '12 PM'
-                : `${hour - 12} PM`;
+              hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`;
             return (
               <div
                 key={hour}
@@ -185,9 +181,7 @@ export const DayView: React.FC<DayViewProps> = ({
                   )}
                 </div>
 
-                {evt.description && (
-                  <p className="text-xs opacity-75 mt-2 line-clamp-2">{evt.description}</p>
-                )}
+                {evt.description && <p className="text-xs opacity-75 mt-2 line-clamp-2">{evt.description}</p>}
               </div>
             );
           })}

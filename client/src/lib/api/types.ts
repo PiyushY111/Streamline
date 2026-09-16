@@ -38,7 +38,6 @@ export interface EmailData {
   aiExtractedTasks?: any[];
 }
 
-
 export interface EventData {
   id: string;
   calendarId: string;
@@ -333,6 +332,3 @@ export interface AgentStatsResponseData {
     }>;
   };
 }
-
-
-
