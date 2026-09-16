@@ -38,14 +38,16 @@ export async function runToolSelectionEval() {
   const originalInsert = db.insert;
   db.insert = ((table: any) => ({
     values: (val: any) => ({
-      returning: async () => [{
-        id: 'eval-pending-uuid-999',
-        userId,
-        toolName: val.toolName,
-        status: 'pending',
-        impactPreview: val.impactPreview,
-        expiresAt: val.expiresAt,
-      }],
+      returning: async () => [
+        {
+          id: 'eval-pending-uuid-999',
+          userId,
+          toolName: val.toolName,
+          status: 'pending',
+          impactPreview: val.impactPreview,
+          expiresAt: val.expiresAt,
+        },
+      ],
     }),
   })) as any;
 
@@ -57,7 +59,6 @@ export async function runToolSelectionEval() {
   EventsRepository.prototype.findSmartFreeSlots = async () => [];
 
   try {
-
     const report = await runSuite<ToolSelectionScenarioInput, ToolSelectionScenarioExpected>(
       'agent-tool-selection-and-policy-engine',
       'tool-selection.json',
@@ -101,7 +102,7 @@ export async function runToolSelectionEval() {
         }
 
         return true;
-      }
+      },
     );
 
     // Regression Snapshot Verification
@@ -113,9 +114,7 @@ export async function runToolSelectionEval() {
       try {
         const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf-8'));
         const baselinePassedMap = new Map(baseline.results.map((r: any) => [r.scenarioId, r.passed]));
-        const regressions = report.results.filter(
-          (r) => !r.passed && baselinePassedMap.get(r.scenarioId) === true
-        );
+        const regressions = report.results.filter((r) => !r.passed && baselinePassedMap.get(r.scenarioId) === true);
 
         if (regressions.length > 0) {
           console.error(`  ⚠️ Regression detected in ${regressions.length} scenarios compared to baseline!`);

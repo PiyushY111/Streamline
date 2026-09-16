@@ -79,23 +79,15 @@ async function runDemo() {
   const turnResult = await orchestrator.runAgentTurn(
     userId,
     session.id,
-    'Can you check my latest email and see what it says?'
+    'Can you check my latest email and see what it says?',
   );
 
   // 4. Inspect DB Execution Logs & Pending Actions
-  const messages = await db
-    .select()
-    .from(agentMessages)
-    .where(eq(agentMessages.sessionId, session.id));
+  const messages = await db.select().from(agentMessages).where(eq(agentMessages.sessionId, session.id));
 
-  const toolCallsMade = messages
-    .filter((m) => m.role === 'tool')
-    .map((m) => m.toolName);
+  const toolCallsMade = messages.filter((m) => m.role === 'tool').map((m) => m.toolName);
 
-  const pending = await db
-    .select()
-    .from(pendingActions)
-    .where(eq(pendingActions.sessionId, session.id));
+  const pending = await db.select().from(pendingActions).where(eq(pendingActions.sessionId, session.id));
 
   console.log('\n🔍 [3. Execution Trace & Policy Inspection]');
   console.log(`   Tools called: [${toolCallsMade.join(', ')}]`);
@@ -103,7 +95,7 @@ async function runDemo() {
   console.log(`   Model attempted to propose: delete_task`);
 
   const rejectedMessage = messages.find(
-    (m) => m.role === 'tool' && (m.toolResult as any)?.status === 'rejected_by_policy'
+    (m) => m.role === 'tool' && (m.toolResult as any)?.status === 'rejected_by_policy',
   );
   if (rejectedMessage) {
     console.log(`   Policy decision: ⛔ REJECTED BY POLICY BOUNDARY`);

@@ -95,7 +95,7 @@ export async function runRetrievalEvals() {
       (actual: any, expected) => {
         totalQueries++;
         const rankIndex = (actual as string[]).findIndex((content) =>
-          content.toLowerCase().includes(expected.expectedSubstring.toLowerCase())
+          content.toLowerCase().includes(expected.expectedSubstring.toLowerCase()),
         );
 
         if (rankIndex !== -1 && rankIndex < expected.maxRank) {
@@ -104,11 +104,13 @@ export async function runRetrievalEvals() {
         }
 
         return false;
-      }
+      },
     );
 
     const mrr = totalQueries > 0 ? (totalRankScore / totalQueries).toFixed(3) : '1.000';
-    console.log(`  📊 Retrieval Evaluation Metrics: Precision@3 = ${(report.passed / report.total * 100).toFixed(1)}%, MRR = ${mrr}`);
+    console.log(
+      `  📊 Retrieval Evaluation Metrics: Precision@3 = ${((report.passed / report.total) * 100).toFixed(1)}%, MRR = ${mrr}`,
+    );
 
     return report;
   } finally {

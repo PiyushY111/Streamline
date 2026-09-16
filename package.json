@@ -11,10 +11,12 @@
     "lint": "npm --prefix server run lint && npm --prefix client run lint",
     "format:check": "npx prettier --check \"server/src/**/*.{ts,js}\" \"client/src/**/*.{ts,tsx}\"",
     "test": "npm --prefix server run test",
+    "test:coverage": "npm --prefix server run test:coverage",
     "eval": "npm --prefix server run eval"
-
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "@playwright/test": "^1.63.0",
+    "concurrently": "^9.2.4",
+    "prettier": "^3.9.7"
   }
 }

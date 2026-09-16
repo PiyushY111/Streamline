@@ -16,10 +16,7 @@ export async function backfillEmbeddings(options: BackfillOptions = {}) {
   const batchSize = options.batchSize || 50;
   const dryRun = Boolean(options.dryRun);
 
-  logger.info(
-    { targetVersion, batchSize, dryRun },
-    '🔄 Starting Semantic Memory Embedding Backfill & Migration'
-  );
+  logger.info({ targetVersion, batchSize, dryRun }, '🔄 Starting Semantic Memory Embedding Backfill & Migration');
 
   const provider = getAiProvider();
   if (!provider || !provider.isAvailable()) {
@@ -39,11 +36,8 @@ export async function backfillEmbeddings(options: BackfillOptions = {}) {
     .where(
       and(
         eq(memories.status, 'active'),
-        or(
-          isNull(memories.embedding),
-          ne(memories.embeddingModelVersion, targetVersion)
-        )
-      )
+        or(isNull(memories.embedding), ne(memories.embeddingModelVersion, targetVersion)),
+      ),
     )
     .limit(500);
 
@@ -87,10 +81,7 @@ export async function backfillEmbeddings(options: BackfillOptions = {}) {
     }
   }
 
-  logger.info(
-    { updatedCount, failedCount, targetVersion },
-    '🎉 Memory Embedding Migration & Backfill Completed'
-  );
+  logger.info({ updatedCount, failedCount, targetVersion }, '🎉 Memory Embedding Migration & Backfill Completed');
 
   return { updatedCount, failedCount, totalPending: pendingRows.length };
 }

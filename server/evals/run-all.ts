@@ -1,8 +1,14 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { runPriorityEval } from './priority.eval.js';
 import { runToolSelectionEval } from './tool-selection.eval.js';
 import { runRetrievalEvals } from './retrieval-precision.eval.js';
 import { runInjectionResistanceEvals } from './injection-resistance.eval.js';
 import type { EvalReport } from './types.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function main() {
   console.log('🧪 Running Streamline AI Evaluation Harness...\n');
@@ -32,15 +38,45 @@ async function main() {
   reports.push(injectionReport);
   console.log(`  Passed: ${injectionReport.passed}/${injectionReport.total} scenarios\n`);
 
-
   // Overall summary
   const totalScenarios = reports.reduce((sum, r) => sum + r.total, 0);
   const totalPassed = reports.reduce((sum, r) => sum + r.passed, 0);
   const totalFailed = reports.reduce((sum, r) => sum + r.failed, 0);
+  const passRate = totalScenarios > 0 ? (totalPassed / totalScenarios) * 100 : 0;
 
   console.log('-------------------------------------------');
-  console.log(`🎯 Overall Eval Results: ${totalPassed}/${totalScenarios} Passed (${totalFailed} Failed)`);
+  console.log(
+    `🎯 Overall Eval Results: ${totalPassed}/${totalScenarios} Passed (${totalFailed} Failed) - ${passRate.toFixed(1)}%`,
+  );
   console.log('-------------------------------------------');
+
+  // Save tracked benchmark summary JSON
+  const benchmarkSummary = {
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    metrics: {
+      totalScenarios,
+      passedScenarios: totalPassed,
+      failedScenarios: totalFailed,
+      passRate: `${passRate.toFixed(1)}%`,
+      status: totalFailed === 0 ? 'PASSED' : 'FAILED',
+    },
+    suites: reports.map((r) => ({
+      suite: r.suite,
+      total: r.total,
+      passed: r.passed,
+      failed: r.failed,
+      durationMs: r.durationMs,
+    })),
+  };
+
+  const resultsDir = path.resolve(__dirname, 'results');
+  if (!fs.existsSync(resultsDir)) {
+    fs.mkdirSync(resultsDir, { recursive: true });
+  }
+  const summaryPath = path.join(resultsDir, 'benchmark-summary.json');
+  fs.writeFileSync(summaryPath, JSON.stringify(benchmarkSummary, null, 2), 'utf-8');
+  console.log(`📄 Saved benchmark summary artifact to ${summaryPath}\n`);
 
   if (totalFailed > 0) {
     console.error('❌ Eval suite finished with failures.');

@@ -9,16 +9,14 @@ export async function runSuite<TInput, TExpected>(
   suiteName: string,
   scenarioFile: string,
   execute: (input: TInput) => Promise<unknown>,
-  compare: (actual: unknown, expected: TExpected) => boolean
+  compare: (actual: unknown, expected: TExpected) => boolean,
 ): Promise<EvalReport> {
   const scenarioPath = path.join(__dirname, 'scenarios', scenarioFile);
   if (!fs.existsSync(scenarioPath)) {
     throw new Error(`Scenario file not found: ${scenarioPath}`);
   }
 
-  const scenarios: EvalScenario<TInput, TExpected>[] = JSON.parse(
-    fs.readFileSync(scenarioPath, 'utf-8')
-  );
+  const scenarios: EvalScenario<TInput, TExpected>[] = JSON.parse(fs.readFileSync(scenarioPath, 'utf-8'));
 
   const results: EvalResult[] = [];
   for (const scenario of scenarios) {
@@ -53,10 +51,7 @@ export async function runSuite<TInput, TExpected>(
     fs.mkdirSync(resultsDir, { recursive: true });
   }
 
-  const outPath = path.join(
-    resultsDir,
-    `${suiteName}-${Date.now()}.json`
-  );
+  const outPath = path.join(resultsDir, `${suiteName}-${Date.now()}.json`);
   fs.writeFileSync(outPath, JSON.stringify(report, null, 2));
 
   return report;

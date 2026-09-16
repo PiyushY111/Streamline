@@ -10,7 +10,8 @@ export const SEED_EVAL_MEMORIES: SeedMemoryItem[] = [
   // Preferences
   {
     type: 'preference',
-    content: 'Rules for daily scheduling: I prefer deep work in the morning between 8am and 12pm, and meetings after 2pm.',
+    content:
+      'Rules for daily scheduling: I prefer deep work in the morning between 8am and 12pm, and meetings after 2pm.',
     sourceRef: 'eval:pref:1',
   },
   {
@@ -45,7 +46,8 @@ export const SEED_EVAL_MEMORIES: SeedMemoryItem[] = [
   },
   {
     type: 'preference',
-    content: 'Weekly routine: Reserve Fridays exclusively for code reviews, refactoring, and planning at the end of the week.',
+    content:
+      'Weekly routine: Reserve Fridays exclusively for code reviews, refactoring, and planning at the end of the week.',
     sourceRef: 'eval:pref:8',
   },
 

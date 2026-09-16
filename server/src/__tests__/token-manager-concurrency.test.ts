@@ -12,7 +12,7 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
     vi.clearAllMocks();
   });
 
-  it('serializes 25 concurrent requests for an expiring token and invokes Google refresh API exactly once', async () => {
+  it('serializes 50 concurrent requests (thundering herd) for an expiring token and invokes Google refresh API exactly once', async () => {
     const expiredAccount = {
       id: mockAccountId,
       userId: mockUserId,
@@ -66,15 +66,15 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
 
     vi.spyOn(googleOAuthUtils, 'createOAuth2Client').mockReturnValue(mockOAuth2Client as any);
 
-    // Fire 25 concurrent callers simultaneously
-    const CONCURRENT_CALLERS = 25;
+    // Fire 50 concurrent callers simultaneously (Thundering Herd)
+    const CONCURRENT_CALLERS = 50;
     const concurrentRequests = Array.from({ length: CONCURRENT_CALLERS }, () =>
       googleTokenManager.getValidOAuth2Client(mockAccountId),
     );
 
     const results = await Promise.all(concurrentRequests);
 
-    // Invariant 1: All 25 callers received valid non-null results
+    // Invariant 1: All 50 callers received valid non-null results
     expect(results).toHaveLength(CONCURRENT_CALLERS);
     for (const res of results) {
       expect(res).not.toBeNull();
@@ -130,15 +130,18 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
       refreshAccessToken: failingRefreshSpy,
     } as any);
 
-    // Fire 5 concurrent requests that will fail
-    const concurrentCalls = Array.from({ length: 5 }, () =>
+    // Fire 10 concurrent requests that will fail
+    const concurrentCalls = Array.from({ length: 10 }, () =>
       googleTokenManager.getValidOAuth2Client('error-account-id'),
     );
 
     const results = await Promise.all(concurrentCalls);
-    // Best-effort returns existing client or handles error
-    expect(results).toHaveLength(5);
-    // Across all 5 concurrent callers, exactly 1 operation ran with its retry policy (1 initial + 2 retries = 3 calls)
+    expect(results).toHaveLength(10);
+    // Across all 10 concurrent callers, exactly 1 operation ran with its retry policy (1 initial + 2 retries = 3 calls)
     expect(failingRefreshSpy).toHaveBeenCalledTimes(3);
+
+    // Ensure mutex is cleared and new request does not hang
+    const subsequentCall = await googleTokenManager.getValidOAuth2Client('error-account-id');
+    expect(subsequentCall).toBeDefined();
   });
 });

@@ -1,10 +1,5 @@
 import { runSuite } from './runner.js';
-import {
-  priorityEngine,
-  ScorableTask,
-  RankedTask,
-  PriorityPreset,
-} from '../src/services/priority.service.js';
+import { priorityEngine, ScorableTask, RankedTask, PriorityPreset } from '../src/services/priority.service.js';
 
 interface ScenarioTaskInput {
   id: string;
@@ -45,10 +40,7 @@ export async function runPriorityEval() {
       const scorableTasks: ScorableTask[] = input.tasks.map((t) => ({
         id: t.id,
         importance: t.importance,
-        dueAt:
-          t.hoursUntilDue !== null
-            ? new Date(now.getTime() + t.hoursUntilDue * 60 * 60 * 1000)
-            : null,
+        dueAt: t.hoursUntilDue !== null ? new Date(now.getTime() + t.hoursUntilDue * 60 * 60 * 1000) : null,
         estimatedMinutes: t.estimatedMinutes,
         dependencies: t.dependencies || [],
       }));
@@ -148,6 +140,6 @@ export async function runPriorityEval() {
       }
 
       return true;
-    }
+    },
   );
 }

@@ -30,7 +30,7 @@ export async function enforcePolicy(
   sessionId: string | null,
   call: ProposedToolCall,
 ): Promise<PolicyOutcome> {
-  const tool = TOOL_REGISTRY[call.name];
+  const tool = Object.prototype.hasOwnProperty.call(TOOL_REGISTRY, call.name) ? TOOL_REGISTRY[call.name] : undefined;
 
   // 1. Unknown tool name — LLM hallucinated an unregistered tool
   if (!tool) {
@@ -309,3 +309,5 @@ export async function rejectAction(userId: string, pendingActionId: string) {
 
   return updated;
 }
+
+export const rejectPendingAction = rejectAction;

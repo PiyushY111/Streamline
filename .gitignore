@@ -44,4 +44,5 @@ pnpm-debug.log*
 # AI Eval results
 server/evals/results/*.json
 !server/evals/results/.gitkeep
+!server/evals/results/benchmark-summary.json
 

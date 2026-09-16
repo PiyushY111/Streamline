@@ -113,6 +113,14 @@ class SSEService {
   public getActiveUserCount(): number {
     return this.userClients.size;
   }
+
+  public getClientCount(): number {
+    let count = 0;
+    for (const clients of this.userClients.values()) {
+      count += clients.size;
+    }
+    return count;
+  }
 }
 
 export const sseService = new SSEService();
