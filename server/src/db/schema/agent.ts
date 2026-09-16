@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, jsonb, index, integer } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, jsonb, index, integer, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './users.js';
 
 // A conversation thread with the agent
@@ -49,6 +50,7 @@ export const agentMessages = pgTable(
     sessionMsgIdx: index('agent_messages_session_idx').on(table.sessionId, table.createdAt),
     spanIdx: index('agent_messages_span_idx').on(table.spanId),
     latencyIdx: index('agent_messages_latency_idx').on(table.latencyMs),
+    roleCheck: check('agent_messages_role_valid', sql`${table.role} IN ('user', 'model', 'tool')`),
   })
 );
 
@@ -76,5 +78,11 @@ export const pendingActions = pgTable(
   },
   (table) => ({
     userStatusIdx: index('pending_actions_user_status_idx').on(table.userId, table.status),
+    expiresIdx: index('pending_actions_expires_idx').on(table.expiresAt),
+    userCreatedAtIdx: index('pending_actions_user_created_idx').on(table.userId, table.createdAt),
+    statusCheck: check(
+      'pending_actions_status_valid',
+      sql`${table.status} IN ('pending', 'approved', 'rejected', 'executed', 'failed', 'expired')`
+    ),
   })
 );

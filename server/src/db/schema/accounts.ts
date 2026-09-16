@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, uniqueIndex, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './users.js';
 
 // Connected Google Accounts
@@ -20,6 +21,7 @@ export const connectedAccounts = pgTable('connected_accounts', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   userProviderIdx: uniqueIndex('user_provider_account_idx').on(table.userId, table.providerAccountId),
+  statusCheck: check('connected_accounts_status_valid', sql`${table.status} IN ('active', 'error', 'disconnected')`),
 }));
 
 // Sync States (Per account per service)
@@ -33,4 +35,6 @@ export const syncStates = pgTable('sync_states', {
   status: text('status').default('idle').notNull(), // idle | syncing | error
 }, (table) => ({
   accountServiceIdx: uniqueIndex('account_service_idx').on(table.accountId, table.service),
+  statusCheck: check('sync_states_status_valid', sql`${table.status} IN ('idle', 'syncing', 'error')`),
+  serviceCheck: check('sync_states_service_valid', sql`${table.service} IN ('gmail', 'calendar')`),
 }));

@@ -16,6 +16,7 @@
     "db:generate": "tsx ./node_modules/drizzle-kit/bin.cjs generate",
     "db:push": "tsx ./node_modules/drizzle-kit/bin.cjs push",
     "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate:down": "tsx src/db/rollback.ts",
     "db:seed:clean": "tsx scripts/cleanup-seeds.ts",
     "db:studio": "tsx ./node_modules/drizzle-kit/bin.cjs studio"
   },

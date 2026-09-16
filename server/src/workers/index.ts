@@ -7,12 +7,18 @@ import {
   startDailyDigestScheduler,
   stopDailyDigestScheduler,
 } from './daily-digest.worker.js';
+import {
+  createRetentionPurgeWorker,
+  startRetentionPurgeScheduler,
+  stopRetentionPurgeScheduler,
+} from './retention-purge.worker.js';
 import { stopSyncScheduler } from './scheduler.js';
 import { logger } from '../utils/logger.js';
 
 let accountSyncWorkerInstance: Worker | null = null;
 let aiTriageWorkerInstance: Worker | null = null;
 let dailyDigestWorkerInstance: Worker | null = null;
+let retentionPurgeWorkerInstance: Worker | null = null;
 
 export function startWorkers() {
   logger.info('🚀 Starting BullMQ account sync background worker...');
@@ -37,10 +43,12 @@ export function startWorkers() {
     await routeToDeadLetterQueue('account-sync-queue', job, err);
   });
 
-  // Start AI Triage and Daily Digest Workers
+  // Start AI Triage, Daily Digest, and Database Retention Purge Workers
   aiTriageWorkerInstance = createAiTriageWorker();
   dailyDigestWorkerInstance = createDailyDigestWorker();
+  retentionPurgeWorkerInstance = createRetentionPurgeWorker();
   startDailyDigestScheduler();
+  startRetentionPurgeScheduler();
 
   logger.info('✨ All BullMQ background workers and AI schedulers initialized and active!');
 }
@@ -49,6 +57,7 @@ export async function stopWorkers(): Promise<void> {
   logger.info('🛑 Stopping all background workers and cron schedulers...');
   stopSyncScheduler();
   stopDailyDigestScheduler();
+  stopRetentionPurgeScheduler();
 
   const closePromises: Promise<any>[] = [];
   if (accountSyncWorkerInstance) {
@@ -60,11 +69,15 @@ export async function stopWorkers(): Promise<void> {
   if (dailyDigestWorkerInstance) {
     closePromises.push(dailyDigestWorkerInstance.close());
   }
+  if (retentionPurgeWorkerInstance) {
+    closePromises.push(retentionPurgeWorkerInstance.close());
+  }
 
   await Promise.allSettled(closePromises);
   accountSyncWorkerInstance = null;
   aiTriageWorkerInstance = null;
   dailyDigestWorkerInstance = null;
+  retentionPurgeWorkerInstance = null;
 
   logger.info('✅ All BullMQ background workers and schedulers successfully stopped.');
 }

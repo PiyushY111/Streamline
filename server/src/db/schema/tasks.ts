@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, timestamp, index, real, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, index, real, jsonb, check } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { users } from './users.js';
 import { emails } from './emails.js';
 import { events } from './events.js';
@@ -10,8 +11,8 @@ export const tasks = pgTable('tasks', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   title: text('title').notNull(),
   description: text('description'),
-  status: text('status').default('todo').notNull(), // todo | in_progress | completed
-  priority: text('priority').default('medium').notNull(), // low | medium | high
+  status: text('status').default('todo').notNull(), // todo | in_progress | completed | cancelled
+  priority: text('priority').default('medium').notNull(), // low | medium | high | urgent
   dueAt: timestamp('due_at'),
   completedAt: timestamp('completed_at'),
   sourceEmailId: uuid('source_email_id').references(() => emails.id, { onDelete: 'set null' }),
@@ -28,5 +29,8 @@ export const tasks = pgTable('tasks', {
 }, (table) => ({
   userTaskIdx: index('tasks_user_status_due_idx').on(table.userId, table.status, table.dueAt),
   projectIdx: index('tasks_project_idx').on(table.projectId),
+  importanceCheck: check('tasks_importance_range', sql`${table.importance} >= 0.0 AND ${table.importance} <= 1.0`),
+  priorityCheck: check('tasks_priority_valid', sql`${table.priority} IN ('low', 'medium', 'high', 'urgent')`),
+  statusCheck: check('tasks_status_valid', sql`${table.status} IN ('todo', 'in_progress', 'completed', 'cancelled')`),
 }));
 

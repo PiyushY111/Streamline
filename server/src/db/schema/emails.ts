@@ -8,8 +8,10 @@ import {
   jsonb,
   index,
   uniqueIndex,
-  primaryKey
+  primaryKey,
+  check
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { connectedAccounts } from './accounts.js';
 
 // Email Threads
@@ -53,8 +55,11 @@ export const emails = pgTable('emails', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   accountReceivedIdx: index('emails_account_received_idx').on(table.accountId, table.receivedAt),
+  accountFolderReceivedIdx: index('emails_account_folder_received_idx').on(table.accountId, table.folder, table.receivedAt),
   accountReadIdx: index('emails_read_idx').on(table.accountId, table.isRead),
   accountMsgIdx: uniqueIndex('account_msg_idx').on(table.accountId, table.externalMessageId),
+  folderCheck: check('emails_folder_valid', sql`${table.folder} IN ('inbox', 'sent', 'drafts', 'trash', 'spam', 'archive', 'starred')`),
+  categoryCheck: check('emails_category_valid', sql`${table.category} IN ('primary', 'social', 'promotions', 'updates', 'forums')`),
 }));
 
 // Labels
