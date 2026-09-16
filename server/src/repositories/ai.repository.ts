@@ -15,11 +15,7 @@ import { eq, and, desc, gte, inArray } from 'drizzle-orm';
 export class AiRepository {
   // --- User AI Preferences ---
   async getUserPreferences(userId: string) {
-    const [prefs] = await db
-      .select()
-      .from(userAiPreferences)
-      .where(eq(userAiPreferences.userId, userId))
-      .limit(1);
+    const [prefs] = await db.select().from(userAiPreferences).where(eq(userAiPreferences.userId, userId)).limit(1);
     return prefs || null;
   }
 
@@ -32,7 +28,7 @@ export class AiRepository {
       isAutoTriageEnabled: boolean;
       vipSenders: string[];
       customInstructions: string;
-    }>
+    }>,
   ) {
     const existing = await this.getUserPreferences(userId);
     if (existing) {
@@ -105,19 +101,12 @@ export class AiRepository {
   }
 
   async getEmailAiMetadata(emailId: string) {
-    const [record] = await db
-      .select()
-      .from(emailAiMetadata)
-      .where(eq(emailAiMetadata.emailId, emailId))
-      .limit(1);
+    const [record] = await db.select().from(emailAiMetadata).where(eq(emailAiMetadata.emailId, emailId)).limit(1);
     return record || null;
   }
 
   async getEmailsAiMetadataByThread(threadId: string) {
-    return db
-      .select()
-      .from(emailAiMetadata)
-      .where(eq(emailAiMetadata.threadId, threadId));
+    return db.select().from(emailAiMetadata).where(eq(emailAiMetadata.threadId, threadId));
   }
 
   // --- AI Task Radar ---
@@ -195,7 +184,7 @@ export class AiRepository {
   async updateRadarTaskStatus(
     emailId: string,
     taskId: string,
-    updates: { isConverted?: boolean; isDismissed?: boolean }
+    updates: { isConverted?: boolean; isDismissed?: boolean },
   ) {
     const record = await this.getEmailAiMetadata(emailId);
     if (!record || !Array.isArray(record.extractedTasks)) return null;
@@ -245,8 +234,8 @@ export class AiRepository {
         and(
           eq(connectedAccounts.userId, userId),
           gte(emails.receivedAt, since),
-          eq(emailAiMetadata.priority, 'p4_newsletter')
-        )
+          eq(emailAiMetadata.priority, 'p4_newsletter'),
+        ),
       )
       .orderBy(desc(emails.receivedAt));
   }
@@ -272,8 +261,8 @@ export class AiRepository {
           eq(connectedAccounts.userId, userId),
           gte(emails.receivedAt, since),
           eq(emailAiMetadata.priority, 'p1_urgent'),
-          eq(emails.isRead, false)
-        )
+          eq(emails.isRead, false),
+        ),
       )
       .orderBy(desc(emailAiMetadata.urgencyScore));
   }
@@ -297,6 +286,10 @@ export class AiRepository {
         isRead: false,
       })
       .returning();
+
+    if (!saved) {
+      throw new Error('Failed to insert daily digest record');
+    }
     return saved;
   }
 

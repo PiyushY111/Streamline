@@ -22,22 +22,31 @@ export async function syncGoogleCalendar(oauth2Client: any, accountId: string): 
     if (!calItem.id) continue;
 
     let calDbId: string;
-    const [existingCal] = await db.select().from(calendars)
-      .where(and(eq(calendars.accountId, accountId), eq(calendars.externalCalendarId, calItem.id))).limit(1);
+    const [existingCal] = await db
+      .select()
+      .from(calendars)
+      .where(and(eq(calendars.accountId, accountId), eq(calendars.externalCalendarId, calItem.id)))
+      .limit(1);
 
     if (existingCal) {
       calDbId = existingCal.id;
     } else {
-      const [newCal] = await db.insert(calendars).values({
-        accountId,
-        externalCalendarId: calItem.id,
-        name: calItem.summary || 'Google Calendar',
-        description: calItem.description || '',
-        timezone: calItem.timeZone || 'UTC',
-        color: calItem.backgroundColor || '#3b82f6',
-        isPrimary: Boolean(calItem.primary),
-        isVisible: true,
-      }).returning();
+      const [newCal] = await db
+        .insert(calendars)
+        .values({
+          accountId,
+          externalCalendarId: calItem.id,
+          name: calItem.summary || 'Google Calendar',
+          description: calItem.description || '',
+          timezone: calItem.timeZone || 'UTC',
+          color: calItem.backgroundColor || '#3b82f6',
+          isPrimary: Boolean(calItem.primary),
+          isVisible: true,
+        })
+        .returning();
+      if (!newCal) {
+        throw new Error('Failed to create calendar in database');
+      }
       calDbId = newCal.id;
     }
 
@@ -59,19 +68,22 @@ export async function syncGoogleCalendar(oauth2Client: any, accountId: string): 
       const startTime = rawStart ? new Date(rawStart) : new Date();
       const endTime = rawEnd ? new Date(rawEnd) : new Date();
 
-      await db.insert(events).values({
-        calendarId: calDbId,
-        accountId,
-        externalEventId: evt.id,
-        title: evt.summary,
-        description: evt.description || '',
-        location: evt.location || '',
-        startTime,
-        endTime,
-        timezone: evt.start?.timeZone || calItem.timeZone || 'UTC',
-        status: evt.status || 'confirmed',
-        htmlLink: evt.htmlLink || '',
-      }).onConflictDoNothing();
+      await db
+        .insert(events)
+        .values({
+          calendarId: calDbId,
+          accountId,
+          externalEventId: evt.id,
+          title: evt.summary,
+          description: evt.description || '',
+          location: evt.location || '',
+          startTime,
+          endTime,
+          timezone: evt.start?.timeZone || calItem.timeZone || 'UTC',
+          status: evt.status || 'confirmed',
+          htmlLink: evt.htmlLink || '',
+        })
+        .onConflictDoNothing();
 
       syncedEventCount++;
     }

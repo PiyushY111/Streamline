@@ -81,7 +81,7 @@ describe('Canary Tokens & Prompt Injection Detection Guard', () => {
       expect.objectContaining({
         source: 'email_ingest',
         emailId: 'email-exploit-99',
-      })
+      }),
     );
   });
 });

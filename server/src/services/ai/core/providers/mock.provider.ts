@@ -30,11 +30,9 @@ export class MockAiProvider implements AiProvider {
     return {} as T;
   }
 
-  async streamText(
-    options: AiStreamTextOptions,
-    onChunk: (chunk: string) => void
-  ): Promise<string> {
-    const text = 'Hi,\n\nThank you for reaching out. I have reviewed the details and will follow up shortly.\n\nBest regards,';
+  async streamText(options: AiStreamTextOptions, onChunk: (chunk: string) => void): Promise<string> {
+    const text =
+      'Hi,\n\nThank you for reaching out. I have reviewed the details and will follow up shortly.\n\nBest regards,';
     const words = text.split(' ');
     for (const word of words) {
       onChunk(word + ' ');
@@ -97,13 +95,20 @@ export class MockAiProvider implements AiProvider {
       };
     }
 
-    if (prompt.includes('free slot') || prompt.includes('two hours') || (prompt.includes('schedule') && !prompt.includes('create'))) {
+    if (
+      prompt.includes('free slot') ||
+      prompt.includes('two hours') ||
+      (prompt.includes('schedule') && !prompt.includes('create'))
+    ) {
       return {
         toolCalls: [{ name: 'find_free_slots', args: { windowHours: 24 } }],
       };
     }
 
-    if (prompt.includes('email') && (prompt.includes('send') || prompt.includes('tell her') || prompt.includes('write to'))) {
+    if (
+      prompt.includes('email') &&
+      (prompt.includes('send') || prompt.includes('tell her') || prompt.includes('write to'))
+    ) {
       return {
         toolCalls: [
           {
@@ -152,4 +157,3 @@ export class MockAiProvider implements AiProvider {
     };
   }
 }
-

@@ -68,4 +68,3 @@ export async function delCache(keyPattern: string): Promise<void> {
     logger.warn({ keyPattern, err: err.message }, 'Redis delCache warning');
   }
 }
-

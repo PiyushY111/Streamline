@@ -25,10 +25,7 @@ export class EventsRepository {
     if (userAccounts.length === 0) return [];
 
     const accountIds = userAccounts.map((a: { id: string }) => a.id);
-    const conditions = [
-      inArray(events.accountId, accountIds),
-      ne(events.status, 'cancelled'),
-    ];
+    const conditions = [inArray(events.accountId, accountIds), ne(events.status, 'cancelled')];
 
     if (startDate) conditions.push(gte(events.startTime, startDate));
     if (endDate) conditions.push(lte(events.endTime, endDate));
@@ -138,7 +135,11 @@ export class EventsRepository {
     return newEvent;
   }
 
-  async update(id: string, userId: string, data: Partial<{ title: string; description: string; startTime: Date; endTime: Date; location: string }>) {
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<{ title: string; description: string; startTime: Date; endTime: Date; location: string }>,
+  ) {
     const accountIds = await this.getUserAccountIds(userId);
     if (accountIds.length === 0) return null;
 
@@ -154,9 +155,7 @@ export class EventsRepository {
     const accountIds = await this.getUserAccountIds(userId);
     if (accountIds.length === 0) return { rowCount: 0 };
 
-    return db
-      .delete(events)
-      .where(and(eq(events.id, id), inArray(events.accountId, accountIds)));
+    return db.delete(events).where(and(eq(events.id, id), inArray(events.accountId, accountIds)));
   }
 
   /**
@@ -170,7 +169,7 @@ export class EventsRepository {
       endTime?: Date;
       minDurationMinutes?: number;
       bufferMinutes?: number;
-    } = {}
+    } = {},
   ): Promise<Array<{ start: Date; end: Date; durationMinutes: number }>> {
     const now = new Date();
     const windowStart = options.startTime || now;
@@ -199,7 +198,7 @@ export class EventsRepository {
         busyIntervals.push({ start: bStart, end: bEnd });
       } else {
         const last = busyIntervals[busyIntervals.length - 1];
-        if (bStart <= last.end) {
+        if (last && bStart <= last.end) {
           last.end = Math.max(last.end, bEnd);
         } else {
           busyIntervals.push({ start: bStart, end: bEnd });
@@ -241,4 +240,3 @@ export class EventsRepository {
 }
 
 export const eventsRepository = new EventsRepository();
-

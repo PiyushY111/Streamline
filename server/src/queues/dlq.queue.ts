@@ -29,7 +29,7 @@ export const deadLetterQueue = new Queue<DeadLetterJobPayload>('streamline-dead-
 export async function routeToDeadLetterQueue(
   originalQueueName: string,
   job: Job | undefined,
-  rawError: unknown
+  rawError: unknown,
 ): Promise<void> {
   if (!job) return;
 
@@ -45,27 +45,24 @@ export async function routeToDeadLetterQueue(
         maxAttempts,
         err: error.message,
       },
-      '🚨 Job exhausted all retries! Routing payload to Dead-Letter Queue (DLQ)'
+      '🚨 Job exhausted all retries! Routing payload to Dead-Letter Queue (DLQ)',
     );
 
     try {
-      await deadLetterQueue.add(
-        `${originalQueueName}-dead-letter`,
-        {
-          originalQueue: originalQueueName,
-          jobId: String(job.id || 'unknown'),
-          jobName: job.name || 'unnamed',
-          data: job.data,
-          failedReason: error.message,
-          stacktrace: job.stacktrace && job.stacktrace.length > 0 ? job.stacktrace : [error.stack || ''],
-          attemptsMade: job.attemptsMade,
-          failedAt: new Date().toISOString(),
-        }
-      );
+      await deadLetterQueue.add(`${originalQueueName}-dead-letter`, {
+        originalQueue: originalQueueName,
+        jobId: String(job.id || 'unknown'),
+        jobName: job.name || 'unnamed',
+        data: job.data,
+        failedReason: error.message,
+        stacktrace: job.stacktrace && job.stacktrace.length > 0 ? job.stacktrace : [error.stack || ''],
+        attemptsMade: job.attemptsMade,
+        failedAt: new Date().toISOString(),
+      });
     } catch (dlqErr: unknown) {
       logger.error(
         { dlqErr: toError(dlqErr).message, jobId: job.id },
-        'Critical failure: could not push job to Dead-Letter Queue'
+        'Critical failure: could not push job to Dead-Letter Queue',
       );
     }
   }

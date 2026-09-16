@@ -11,7 +11,6 @@ import { auditService } from '../audit.service.js';
 import { aiTriageQueue } from '../../queues/index.js';
 import { toError } from '../../utils/errors.js';
 
-
 function decodeBase64(data: string): string {
   try {
     const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
@@ -48,7 +47,9 @@ function extractEmailBodies(payload: any): { bodyText: string; bodyHtml: string 
   return { bodyText, bodyHtml };
 }
 
-function extractAttachments(payload: any): Array<{ filename: string; mimeType: string; size: number; attachmentId?: string }> {
+function extractAttachments(
+  payload: any,
+): Array<{ filename: string; mimeType: string; size: number; attachmentId?: string }> {
   const attachments: Array<{ filename: string; mimeType: string; size: number; attachmentId?: string }> = [];
   function walk(part: any) {
     if (!part) return;
@@ -113,7 +114,7 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
 
   logger.info(
     { accountId, totalListed: allMessageMetas.length, alreadyInDb: existingIds.size, newToFetch: newMetas.length },
-    'Gmail Sync: Pre-filtered emails against database'
+    'Gmail Sync: Pre-filtered emails against database',
   );
 
   if (newMetas.length === 0) {
@@ -139,14 +140,15 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
         } catch (e) {
           return null;
         }
-      })
+      }),
     );
 
     for (const msg of fullMessages) {
       if (!msg || !msg.id) continue;
 
       const headers = msg.payload?.headers || [];
-      const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+      const getHeader = (name: string) =>
+        headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
       const subject = getHeader('subject') || '(No Subject)';
       const from = getHeader('from') || 'Unknown Sender';
@@ -154,7 +156,9 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
       const cc = getHeader('cc') || undefined;
       const bcc = getHeader('bcc') || undefined;
       const dateHeader = getHeader('date');
-      const receivedAt = dateHeader ? new Date(dateHeader) : new Date(parseInt(msg.internalDate || `${Date.now()}`, 10));
+      const receivedAt = dateHeader
+        ? new Date(dateHeader)
+        : new Date(parseInt(msg.internalDate || `${Date.now()}`, 10));
 
       const labelIds: string[] = msg.labelIds || [];
       const isRead = !labelIds.includes('UNREAD');
@@ -198,25 +202,33 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
           .returning();
       }
 
-      const [insertedEmail] = await db.insert(emails).values({
-        threadId: thread.id,
-        accountId,
-        externalMessageId: msg.id,
-        sender: from,
-        recipients: to,
-        cc,
-        bcc,
-        subject,
-        bodyText,
-        bodyHtml,
-        receivedAt,
-        folder,
-        category,
-        isRead,
-        isStarred,
-        isImportant,
-        attachments,
-      }).onConflictDoNothing().returning({ id: emails.id });
+      if (!thread) {
+        continue;
+      }
+
+      const [insertedEmail] = await db
+        .insert(emails)
+        .values({
+          threadId: thread.id,
+          accountId,
+          externalMessageId: msg.id,
+          sender: from,
+          recipients: to,
+          cc,
+          bcc,
+          subject,
+          bodyText,
+          bodyHtml,
+          receivedAt,
+          folder,
+          category,
+          isRead,
+          isStarred,
+          isImportant,
+          attachments,
+        })
+        .onConflictDoNothing()
+        .returning({ id: emails.id });
 
       if (insertedEmail) {
         newEmailIds.push(insertedEmail.id);
@@ -254,7 +266,6 @@ export async function syncGmailMessages(oauth2Client: any, accountId: string): P
 
   logger.info({ accountId, syncedCount }, 'Gmail batch sync completed');
   return syncedCount;
-
 }
 
 export async function syncGmailMarkAsRead(emailId: string, userId: string, isRead: boolean) {
@@ -369,7 +380,7 @@ export async function syncGmailDeleteEmail(emailId: string, userId: string) {
 
 export async function syncGmailSendEmail(
   userId: string,
-  data: { to: string; subject: string; body: string; accountId?: string }
+  data: { to: string; subject: string; body: string; accountId?: string },
 ) {
   let accountId = data.accountId;
   if (!accountId) {

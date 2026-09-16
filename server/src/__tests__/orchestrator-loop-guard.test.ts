@@ -78,8 +78,16 @@ describe('Orchestrator Loop Guard & Resource Control', () => {
       })) as any);
 
       vi.spyOn(memoryService, 'searchMemory').mockResolvedValue([]);
-      vi.spyOn(aiCostGuardService, 'checkCircuitBreaker').mockResolvedValue({ isTripped: false, tokensToday: 0, costTodayUsd: 0 });
-      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue({ totalTokens: 50, costUsd: 0.0001, formattedCost: '0.000100' });
+      vi.spyOn(aiCostGuardService, 'checkCircuitBreaker').mockResolvedValue({
+        isTripped: false,
+        tokensToday: 0,
+        costTodayUsd: 0,
+      });
+      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue({
+        totalTokens: 50,
+        costUsd: 0.0001,
+        formattedCost: '0.000100',
+      });
 
       // Mock provider that repeatedly asks to run the exact same tool
       let callCount = 0;

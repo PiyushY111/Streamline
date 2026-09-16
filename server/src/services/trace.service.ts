@@ -1,11 +1,5 @@
 import { db } from '../db/index.js';
-import {
-  agentSessions,
-  agentMessages,
-  pendingActions,
-  aiTokenUsage,
-  memories,
-} from '../db/schema/index.js';
+import { agentSessions, agentMessages, pendingActions, aiTokenUsage, memories } from '../db/schema/index.js';
 import { eq, and, asc, inArray, gte, sql } from 'drizzle-orm';
 import { redactSecrets } from '../utils/redactor.js';
 import { TOOL_REGISTRY, PermissionClass } from './ai/agent/tools/index.js';
@@ -114,10 +108,7 @@ export class TraceService {
         .from(agentMessages)
         .where(eq(agentMessages.sessionId, sessionId))
         .orderBy(asc(agentMessages.createdAt)),
-      db
-        .select()
-        .from(pendingActions)
-        .where(eq(pendingActions.sessionId, sessionId)),
+      db.select().from(pendingActions).where(eq(pendingActions.sessionId, sessionId)),
     ]);
 
     // 3. Resolve all retrieved memory IDs to extract provenance fact snippets
@@ -147,7 +138,7 @@ export class TraceService {
     }
 
     // 4. Build action lookup map by toolName or actionId
-    const actionByToolId: Record<string, typeof actions[0]> = {};
+    const actionByToolId: Record<string, (typeof actions)[0]> = {};
     for (const act of actions) {
       actionByToolId[act.id] = act;
     }
@@ -201,7 +192,7 @@ export class TraceService {
         if (msg.retrievedMemoryIds && msg.retrievedMemoryIds.length > 0) {
           const recalledSnippets = msg.retrievedMemoryIds
             .map((id) => memoryLookup[id])
-            .filter(Boolean);
+            .filter((item): item is { id: string; type: string; snippet: string } => Boolean(item));
 
           timelineSteps.push({
             id: `mem-${msg.id}`,
@@ -433,7 +424,8 @@ export class TraceService {
 
     // 6. Cost decomposition metrics
     const systemPromptEstimate = Math.min(totalPromptTokens, 450);
-    const memoryContextEstimate = allMemoryIds.size > 0 ? Math.min(totalPromptTokens - systemPromptEstimate, allMemoryIds.size * 90) : 0;
+    const memoryContextEstimate =
+      allMemoryIds.size > 0 ? Math.min(totalPromptTokens - systemPromptEstimate, allMemoryIds.size * 90) : 0;
     const historyEstimate = Math.max(0, totalPromptTokens - systemPromptEstimate - memoryContextEstimate);
 
     const summary: TraceSummary = {

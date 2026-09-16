@@ -11,7 +11,8 @@ type GetTasksArgs = z.infer<typeof getTasksSchema>;
 
 export const getTasksTool: ToolDefinition<GetTasksArgs, any> = {
   name: 'get_tasks',
-  description: "Retrieve the user's tasks, optionally filtered by status ('todo', 'in_progress', 'completed') or project ID.",
+  description:
+    "Retrieve the user's tasks, optionally filtered by status ('todo', 'in_progress', 'completed') or project ID.",
   permissionClass: 'read',
   schema: getTasksSchema,
   parameters: {

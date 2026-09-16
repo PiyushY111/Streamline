@@ -9,12 +9,7 @@ export class AuditService {
    * Records an immutable audit log entry in the database.
    * Accepts an optional database or transaction client.
    */
-  async logAction(
-    userId: string,
-    action: string,
-    meta?: Record<string, any>,
-    executor: any = db
-  ): Promise<void> {
+  async logAction(userId: string, action: string, meta?: Record<string, any>, executor: any = db): Promise<void> {
     if (!userId || !UUID_REGEX.test(userId)) {
       logger.debug({ userId, action }, 'Audit log skipped: userId is not a valid UUID');
       return;
@@ -32,7 +27,5 @@ export class AuditService {
     }
   }
 }
-
-
 
 export const auditService = new AuditService();

@@ -15,38 +15,34 @@ export function startSyncScheduler() {
   }
 
   // Enqueue background sync jobs every 2 minutes (120,000 ms)
-  syncIntervalHandle = setInterval(async () => {
-    try {
-      const activeAccounts = await db
-        .select()
-        .from(connectedAccounts)
-        .where(eq(connectedAccounts.status, 'active'));
+  syncIntervalHandle = setInterval(
+    async () => {
+      try {
+        const activeAccounts = await db.select().from(connectedAccounts).where(eq(connectedAccounts.status, 'active'));
 
-      if (activeAccounts.length === 0) return;
+        if (activeAccounts.length === 0) return;
 
-      logger.info({ count: activeAccounts.length }, '⏰ Cron Scheduler enqueuing background sync jobs...');
+        logger.info({ count: activeAccounts.length }, '⏰ Cron Scheduler enqueuing background sync jobs...');
 
-      for (const account of activeAccounts) {
-        const jobId = `account-sync-${account.id}`;
-        const existingJob = await accountSyncQueue.getJob(jobId);
-        if (existingJob) {
-          const state = await existingJob.getState();
-          if (state === 'active' || state === 'waiting' || state === 'delayed') {
-            continue;
+        for (const account of activeAccounts) {
+          const jobId = `account-sync-${account.id}`;
+          const existingJob = await accountSyncQueue.getJob(jobId);
+          if (existingJob) {
+            const state = await existingJob.getState();
+            if (state === 'active' || state === 'waiting' || state === 'delayed') {
+              continue;
+            }
           }
-        }
 
-        await accountSyncQueue.add(
-          'sync-account',
-          { accountId: account.id },
-          { jobId }
-        );
+          await accountSyncQueue.add('sync-account', { accountId: account.id }, { jobId });
+        }
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
+        logger.error({ err: err.message }, 'Error in Background Sync Scheduler');
       }
-    } catch (rawErr: unknown) {
-      const err = toError(rawErr);
-      logger.error({ err: err.message }, 'Error in Background Sync Scheduler');
-    }
-  }, 2 * 60 * 1000);
+    },
+    2 * 60 * 1000,
+  );
 }
 
 export function stopSyncScheduler(): void {
@@ -56,4 +52,3 @@ export function stopSyncScheduler(): void {
     logger.info('🛑 Background Sync Cron Scheduler stopped.');
   }
 }
-

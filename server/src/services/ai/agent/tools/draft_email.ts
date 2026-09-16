@@ -11,7 +11,8 @@ type DraftEmailArgs = z.infer<typeof draftEmailSchema>;
 
 export const draftEmailTool: ToolDefinition<DraftEmailArgs, any> = {
   name: 'draft_email',
-  description: 'Draft an email message safely. Generates the subject and body without sending or producing side effects.',
+  description:
+    'Draft an email message safely. Generates the subject and body without sending or producing side effects.',
   permissionClass: 'read',
   schema: draftEmailSchema,
   parameters: {

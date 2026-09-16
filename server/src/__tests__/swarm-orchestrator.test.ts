@@ -70,7 +70,14 @@ describe('Multi-Agent Specialist Swarm', () => {
       sessionId: 'session-critic-1',
       userGoal: 'Schedule team sync',
       subTasks: [
-        { id: '1', role: 'calendar_negotiator', title: 'Find slots', instruction: '', status: 'completed', output: { slots: ['2pm'] } },
+        {
+          id: '1',
+          role: 'calendar_negotiator',
+          title: 'Find slots',
+          instruction: '',
+          status: 'completed',
+          output: { slots: ['2pm'] },
+        },
       ],
       intermediateResults: { '1': { slots: ['2pm'] } },
       pendingActions: [],

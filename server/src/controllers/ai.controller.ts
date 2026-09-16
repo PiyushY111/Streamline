@@ -29,13 +29,14 @@ export const getPreferences = asyncHandler(async (req: Request, res: Response) =
   let prefs = await aiRepository.getUserPreferences(userId);
 
   if (!prefs) {
-    prefs = await aiRepository.upsertUserPreferences(userId, {
-      digestTime: '08:00:00',
-      digestTimezone: 'UTC',
-      digestDeliveryMode: 'in_app',
-      isAutoTriageEnabled: true,
-      vipSenders: [],
-    });
+    prefs =
+      (await aiRepository.upsertUserPreferences(userId, {
+        digestTime: '08:00:00',
+        digestTimezone: 'UTC',
+        digestDeliveryMode: 'in_app',
+        isAutoTriageEnabled: true,
+        vipSenders: [],
+      })) ?? null;
   }
 
   res.status(200).json({ success: true, data: prefs });
@@ -152,7 +153,7 @@ export const draftReply = asyncHandler(async (req: Request, res: Response) => {
       replyType,
     },
     res,
-    abortController.signal
+    abortController.signal,
   );
 });
 
@@ -177,7 +178,8 @@ export const summarizeThread = asyncHandler(async (req: Request, res: Response) 
     .where(and(eq(emails.threadId, threadId), eq(connectedAccounts.userId, userId)))
     .orderBy(asc(emails.receivedAt));
 
-  if (threadMessages.length === 0) {
+  const firstMsg = threadMessages[0];
+  if (!firstMsg) {
     throw new NotFoundError('Thread not found');
   }
 
@@ -186,7 +188,7 @@ export const summarizeThread = asyncHandler(async (req: Request, res: Response) 
     res.status(200).json({
       success: true,
       data: {
-        summary: `${threadMessages.length} messages in conversation about: ${threadMessages[0].subject}`,
+        summary: `${threadMessages.length} messages in conversation about: ${firstMsg.subject}`,
         keyTakeaways: ['Conversation active', 'Review latest reply'],
         actionItems: [],
       },
@@ -226,7 +228,7 @@ ${conversationText}`;
 
   if (!summaryResult) {
     summaryResult = {
-      summary: `Conversation between ${threadMessages[0].sender} and participants regarding ${threadMessages[0].subject}.`,
+      summary: `Conversation between ${firstMsg.sender} and participants regarding ${firstMsg.subject}.`,
       keyTakeaways: ['Review message details'],
       actionItems: [],
     };
@@ -296,7 +298,7 @@ export const triggerAutoLabelAll = asyncHandler(async (req: Request, res: Respon
           const err = toError(rawErr);
           logger.warn({ emailId: em.id, err: err.message }, 'Individual email triage failed');
         }
-      })
+      }),
     );
   }
 

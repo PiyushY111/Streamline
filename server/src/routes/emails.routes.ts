@@ -25,35 +25,15 @@ router.use(authenticate);
 
 router.get('/', listEmails);
 router.get('/:id', validateParams(emailIdParamSchema), getEmailById);
-router.post(
-  '/send',
-  sendEmailRateLimiter,
-  express.json({ limit: '50mb' }),
-  validateBody(sendEmailSchema),
-  sendEmail
-);
-router.patch(
-  '/:id/read',
-  validateParams(emailIdParamSchema),
-  validateBody(markEmailReadSchema),
-  markEmailAsRead
-);
-router.patch(
-  '/:id/star',
-  validateParams(emailIdParamSchema),
-  validateBody(starEmailSchema),
-  toggleStarEmail
-);
+router.post('/send', sendEmailRateLimiter, express.json({ limit: '50mb' }), validateBody(sendEmailSchema), sendEmail);
+router.patch('/:id/read', validateParams(emailIdParamSchema), validateBody(markEmailReadSchema), markEmailAsRead);
+router.patch('/:id/star', validateParams(emailIdParamSchema), validateBody(starEmailSchema), toggleStarEmail);
 router.patch(
   '/:id/category',
   validateParams(emailIdParamSchema),
   validateBody(updateCategorySchema),
-  updateEmailCategory
+  updateEmailCategory,
 );
-router.delete(
-  '/:id',
-  validateParams(emailIdParamSchema),
-  deleteEmail
-);
+router.delete('/:id', validateParams(emailIdParamSchema), deleteEmail);
 
 export default router;

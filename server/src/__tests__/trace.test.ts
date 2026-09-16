@@ -44,9 +44,7 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
           apiKey: 'AIzaSyA12345678901234567890123456789012',
           token: 'Bearer sensitive-token-here',
         },
-        tools: [
-          { name: 'send_email', args: { to: 'alex@example.com', password: 'my-email-pass' } },
-        ],
+        tools: [{ name: 'send_email', args: { to: 'alex@example.com', password: 'my-email-pass' } }],
       };
 
       const redacted = redactSecrets(complexPayload) as any;
@@ -168,28 +166,31 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
       ];
 
       let selectCallCount = 0;
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: (table: any) => {
-          selectCallCount++;
-          return {
-            where: () => {
-              if (table === agentSessions) {
-                return { limit: vi.fn().mockResolvedValue([mockSession]) };
-              }
-              if (table === agentMessages) {
-                return { orderBy: vi.fn().mockResolvedValue(mockMessages) };
-              }
-              if (table === pendingActions) {
-                return Promise.resolve(mockActions);
-              }
-              if (table === memories) {
-                return Promise.resolve(mockMemories);
-              }
-              return Promise.resolve([]);
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: (table: any) => {
+              selectCallCount++;
+              return {
+                where: () => {
+                  if (table === agentSessions) {
+                    return { limit: vi.fn().mockResolvedValue([mockSession]) };
+                  }
+                  if (table === agentMessages) {
+                    return { orderBy: vi.fn().mockResolvedValue(mockMessages) };
+                  }
+                  if (table === pendingActions) {
+                    return Promise.resolve(mockActions);
+                  }
+                  if (table === memories) {
+                    return Promise.resolve(mockMemories);
+                  }
+                  return Promise.resolve([]);
+                },
+              };
             },
-          };
-        },
-      } as any));
+          }) as any,
+      );
 
       const trace = await traceService.assembleTrace('user-1', 'session-uuid-1');
 
@@ -214,7 +215,7 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
       // Memory injection provenance verification
       const contextStep = trace.timelineSteps.find((s) => s.kind === 'context_retrieved');
       expect(contextStep).toBeDefined();
-      expect(contextStep?.metadata?.memorySnippets?.[0].snippet).toContain('morning meetings');
+      expect(contextStep?.metadata?.memorySnippets?.[0]?.snippet).toContain('morning meetings');
 
       // Policy gate interception verification
       const pendingStep = trace.timelineSteps.find((s) => s.kind === 'pending_action');
@@ -267,16 +268,19 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
         },
       ];
 
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: (table: any) => ({
-          where: () => {
-            if (table === agentSessions) return { limit: vi.fn().mockResolvedValue([mockSession]) };
-            if (table === agentMessages) return { orderBy: vi.fn().mockResolvedValue(mockMessages) };
-            if (table === pendingActions) return Promise.resolve(mockApprovedAction);
-            return Promise.resolve([]);
-          },
-        }),
-      } as any));
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: (table: any) => ({
+              where: () => {
+                if (table === agentSessions) return { limit: vi.fn().mockResolvedValue([mockSession]) };
+                if (table === agentMessages) return { orderBy: vi.fn().mockResolvedValue(mockMessages) };
+                if (table === pendingActions) return Promise.resolve(mockApprovedAction);
+                return Promise.resolve([]);
+              },
+            }),
+          }) as any,
+      );
 
       const trace = await traceService.assembleTrace('user-1', 'session-uuid-2');
       expect(trace).not.toBeNull();
@@ -294,13 +298,16 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
         { operation: 'digest', tokens: 8500, cost: '0.000950' },
       ];
 
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: () => ({
-          where: () => ({
-            groupBy: vi.fn().mockResolvedValue(mockUsageBreakdown),
-          }),
-        }),
-      } as any));
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: () => ({
+              where: () => ({
+                groupBy: vi.fn().mockResolvedValue(mockUsageBreakdown),
+              }),
+            }),
+          }) as any,
+      );
 
       const stats = await traceService.getAgentCostStats('user-1');
       expect(stats.last7Days.agentTurnCostUsd).toBe(0.00185);

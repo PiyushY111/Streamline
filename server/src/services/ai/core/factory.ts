@@ -12,6 +12,13 @@ export function getAiProvider(preferredProvider?: string): AiProvider {
     return activeProviderInstance;
   }
 
+  // If in test environment and no provider instance is explicitly set, default to MockAiProvider
+  if (process.env.NODE_ENV === 'test' && !preferredProvider) {
+    const mock = new MockAiProvider();
+    activeProviderInstance = mock;
+    return mock;
+  }
+
   const providerType = preferredProvider || env.AI_PROVIDER || 'gemini';
 
   switch (providerType.toLowerCase()) {

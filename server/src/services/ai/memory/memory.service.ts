@@ -44,7 +44,7 @@ export class MemoryService {
     type: MemoryType,
     content: string,
     sourceRef?: string,
-    options: SaveMemoryOptions = {}
+    options: SaveMemoryOptions = {},
   ): Promise<{ id: string; type: MemoryType; content: string; status: string; embeddingModelVersion?: string } | null> {
     if (!content || content.trim().length < 3) {
       logger.warn({ userId }, 'Memory content too short to persist');
@@ -83,23 +83,20 @@ export class MemoryService {
             eq(memories.userId, userId),
             eq(memories.type, type),
             eq(memories.status, 'active'),
-            eq(memories.embeddingModelVersion, modelVersion)
-          )
+            eq(memories.embeddingModelVersion, modelVersion),
+          ),
         )
         .orderBy(sql`${memories.embedding} <=> ${sql.raw(vectorLiteral)}::vector`)
         .limit(1);
 
-      if (
-        existingNearDuplicates.length > 0 &&
-        existingNearDuplicates[0].distance !== null &&
-        Number(existingNearDuplicates[0].distance) < 0.12
-      ) {
-        const existingId = existingNearDuplicates[0].id;
-        logger.info({ userId, existingId, distance: existingNearDuplicates[0].distance }, 'Deduplication match: updating existing memory timestamp');
-        await db
-          .update(memories)
-          .set({ updatedAt: new Date() })
-          .where(eq(memories.id, existingId));
+      const firstDup = existingNearDuplicates[0];
+      if (firstDup && firstDup.distance !== null && Number(firstDup.distance) < 0.12) {
+        const existingId = firstDup.id;
+        logger.info(
+          { userId, existingId, distance: firstDup.distance },
+          'Deduplication match: updating existing memory timestamp',
+        );
+        await db.update(memories).set({ updatedAt: new Date() }).where(eq(memories.id, existingId));
 
         return {
           id: existingId,
@@ -125,18 +122,15 @@ export class MemoryService {
               eq(memories.userId, userId),
               eq(memories.type, type),
               eq(memories.status, 'active'),
-              eq(memories.embeddingModelVersion, modelVersion)
-            )
+              eq(memories.embeddingModelVersion, modelVersion),
+            ),
           )
           .orderBy(sql`${memories.embedding} <=> ${sql.raw(vectorLiteral)}::vector`)
           .limit(1);
 
-        if (
-          candidateToSupersede.length > 0 &&
-          candidateToSupersede[0].distance !== null &&
-          Number(candidateToSupersede[0].distance) < 0.38
-        ) {
-          supersededId = candidateToSupersede[0].id;
+        const firstCandidate = candidateToSupersede[0];
+        if (firstCandidate && firstCandidate.distance !== null && Number(firstCandidate.distance) < 0.38) {
+          supersededId = firstCandidate.id;
         }
       }
 
@@ -154,8 +148,12 @@ export class MemoryService {
         })
         .returning({ id: memories.id });
 
+      if (!inserted) {
+        return null;
+      }
+
       // If superseding an older conflicting memory, update old status
-      if (supersededId && inserted?.id) {
+      if (supersededId && inserted.id) {
         await db
           .update(memories)
           .set({
@@ -184,12 +182,27 @@ export class MemoryService {
 
   /**
    * Search long-term memory using hybrid retrieval (Dense pgvector + Sparse tsvector RRF).
+   *
+   * ## Mathematical Retrieval Architecture:
+   * 1. **Dense Vector Search (Cosine Distance)**:
+   *    - Queries 768-dimensional embeddings using pgvector cosine distance: `d = 1 - cos_sim(u, v)`.
+   *    - Bounded by strict distance cutoff: `d <= maxDistance` (default: 0.78).
+   * 2. **Sparse Keyword Search (tsvector BM25-like)**:
+   *    - Queries PostgreSQL full-text search index `to_tsvector('english', content) @@ plainto_tsquery('english', query)`.
+   * 3. **Reciprocal Rank Fusion (RRF with smoothing constant k = 60)**:
+   *    - Combined score formula:
+   *      `Score(d) = w_dense * (1 / (60 + rank_dense(d))) + w_sparse * (1 / (60 + rank_sparse(d)))`
+   *    - Default fusion weights: `w_dense = 0.65`, `w_sparse = 0.35`.
+   * 4. **Embedding Drift Safety**:
+   *    - Enforces exact model version matching (`embeddingModelVersion = 'text-embedding-004'`) to prevent
+   *      vector space corruption across model iterations.
+   *
+   * @param userId Tenant user UUID
+   * @param query Natural language user query or entity lookup
+   * @param opts Filtering options, limit topK, distance threshold, and retrieval mode
+   * @returns Top-K fused and ranked memory items
    */
-  async searchMemory(
-    userId: string,
-    query: string,
-    opts: SearchMemoryOptions = {}
-  ): Promise<MemoryResult[]> {
+  async searchMemory(userId: string, query: string, opts: SearchMemoryOptions = {}): Promise<MemoryResult[]> {
     if (!query || query.trim().length === 0) return [];
 
     const provider = getAiProvider();
@@ -235,9 +248,7 @@ export class MemoryService {
         .limit(topK * 2);
 
       // Filter by max distance cutoff
-      const validDenseRows = denseRows.filter(
-        (r) => r.distance !== null && Number(r.distance) <= maxDistance
-      );
+      const validDenseRows = denseRows.filter((r) => r.distance !== null && Number(r.distance) <= maxDistance);
 
       if (mode === 'vector' || validDenseRows.length === 0) {
         const results: MemoryResult[] = validDenseRows.slice(0, topK).map((r) => ({
@@ -292,7 +303,9 @@ export class MemoryService {
           })
           .from(memories)
           .where(and(...sparseConditions))
-          .orderBy(desc(sql`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`))
+          .orderBy(
+            desc(sql`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`),
+          )
           .limit(topK * 2);
       } catch (rawSparseErr: unknown) {
         const sparseErr = toError(rawSparseErr);
@@ -404,7 +417,7 @@ export class MemoryService {
    */
   async listMemories(
     userId: string,
-    opts: { type?: MemoryType; status?: MemoryStatus; limit?: number } = {}
+    opts: { type?: MemoryType; status?: MemoryStatus; limit?: number } = {},
   ): Promise<Array<{ id: string; type: MemoryType; content: string; sourceRef: string | null; createdAt: Date }>> {
     const conditions = [eq(memories.userId, userId)];
     conditions.push(eq(memories.status, opts.status ?? 'active'));

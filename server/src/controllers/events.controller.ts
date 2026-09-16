@@ -33,7 +33,7 @@ export const updateEvent = asyncHandler(async (req: AuthenticatedRequest, res: R
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const updated = await eventsService.updateEvent(id, req.user.id, req.body);
   if (!updated) {
     throw new NotFoundError('Event not found or unauthorized');
@@ -45,7 +45,7 @@ export const deleteEvent = asyncHandler(async (req: AuthenticatedRequest, res: R
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   await eventsService.deleteEvent(id, req.user.id);
   res.json({ success: true });
 });

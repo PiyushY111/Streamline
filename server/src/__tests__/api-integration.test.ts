@@ -72,7 +72,7 @@ describe('API Route Controllers Integration Tests', () => {
         expect.objectContaining({
           success: true,
           message: 'Task created successfully from AI radar',
-        })
+        }),
       );
     });
 
@@ -118,7 +118,7 @@ describe('API Route Controllers Integration Tests', () => {
         expect.objectContaining({
           success: true,
           data: expect.objectContaining({ isAutoTriageEnabled: true }),
-        })
+        }),
       );
     });
   });
@@ -139,7 +139,7 @@ describe('API Route Controllers Integration Tests', () => {
           status: 'ok',
           uptime: expect.any(Number),
           timestamp: expect.any(String),
-        })
+        }),
       );
     });
 
@@ -178,4 +178,3 @@ describe('API Route Controllers Integration Tests', () => {
     });
   });
 });
-

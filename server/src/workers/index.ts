@@ -2,11 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { redisConnection } from '../queues/index.js';
 import { syncGoogleAccountData } from '../services/google/google-sync.service.js';
 import { createAiTriageWorker } from './ai-triage.worker.js';
-import {
-  createDailyDigestWorker,
-  startDailyDigestScheduler,
-  stopDailyDigestScheduler,
-} from './daily-digest.worker.js';
+import { createDailyDigestWorker, startDailyDigestScheduler, stopDailyDigestScheduler } from './daily-digest.worker.js';
 import {
   createRetentionPurgeWorker,
   startRetentionPurgeScheduler,
@@ -30,7 +26,7 @@ export function startWorkers() {
       logger.info({ jobId: job.id, accountId }, '⚙️ Background Worker processing Account Sync job...');
       await syncGoogleAccountData(accountId);
     },
-    { connection: redisConnection, concurrency: 2 }
+    { connection: redisConnection, concurrency: 2 },
   );
 
   accountSyncWorkerInstance.on('completed', (job) => {
@@ -81,5 +77,3 @@ export async function stopWorkers(): Promise<void> {
 
   logger.info('✅ All BullMQ background workers and schedulers successfully stopped.');
 }
-
-

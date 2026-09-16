@@ -34,13 +34,7 @@ export class CalendarNegotiatorAgent {
       })
       .from(events)
       .innerJoin(connectedAccounts, eq(events.accountId, connectedAccounts.id))
-      .where(
-        and(
-          eq(connectedAccounts.userId, userId),
-          gte(events.startTime, now),
-          lte(events.startTime, nextWeek)
-        )
-      )
+      .where(and(eq(connectedAccounts.userId, userId), gte(events.startTime, now), lte(events.startTime, nextWeek)))
       .limit(25);
 
     // Build intelligent slot proposals preserving focus blocks (e.g. 10am-12pm or 2pm-4pm)

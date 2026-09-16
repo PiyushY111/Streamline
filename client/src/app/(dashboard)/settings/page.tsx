@@ -117,7 +117,7 @@ function SettingsContent() {
 
   const handleStartEditing = (acc: AccountData) => {
     setEditingId(acc.id);
-    setEditLabel(acc.label || acc.email.split('@')[0]);
+    setEditLabel(acc.label || (acc.email ? acc.email.split('@')[0] || acc.email : 'Google Account'));
     setEditColor(acc.color || '#3b82f6');
   };
 

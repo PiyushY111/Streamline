@@ -76,8 +76,8 @@ describe('Planner Service', () => {
     expect(result.recommendedTask?.id).toBe('task-1');
     expect(result.summary.blockedCount).toBe(1);
     expect(result.summary.actionableCount).toBe(2);
-    expect(result.blockedTasks[0].id).toBe('task-2');
-    expect(result.blockedTasks[0].isBlocked).toBe(true);
+    expect(result.blockedTasks[0]!.id).toBe('task-2');
+    expect(result.blockedTasks[0]!.isBlocked).toBe(true);
   });
 
   it('matches available calendar slot when found', async () => {

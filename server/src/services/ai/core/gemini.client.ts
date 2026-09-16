@@ -33,11 +33,7 @@ export function getGeminiClient(): GoogleGenAI | null {
   }
 }
 
-export async function generateContentWithFallback(
-  ai: GoogleGenAI,
-  models: string[],
-  request: any
-): Promise<any> {
+export async function generateContentWithFallback(ai: GoogleGenAI, models: string[], request: any): Promise<any> {
   let lastError: Error | null = null;
   const attemptedModels: string[] = [];
 
@@ -56,7 +52,7 @@ export async function generateContentWithFallback(
           maxRetries: 1,
           backoffBaseMs: 400,
           operationName: `gemini_generate_${model}`,
-        }
+        },
       );
       return response;
     } catch (rawErr: unknown) {
@@ -64,7 +60,7 @@ export async function generateContentWithFallback(
       lastError = err;
       logger.warn(
         { model, err: err.message },
-        'Gemini model invocation failed or timed out, trying next candidate in cascade'
+        'Gemini model invocation failed or timed out, trying next candidate in cascade',
       );
     }
   }
@@ -72,7 +68,7 @@ export async function generateContentWithFallback(
   // All cascade tiers failed: degrade to typed domain error with clear user-facing explanation
   logger.error(
     { attemptedModels, lastError: lastError?.message },
-    'All Gemini cascade fallback candidate tiers failed'
+    'All Gemini cascade fallback candidate tiers failed',
   );
   throw new AllModelsExhaustedError(attemptedModels, lastError?.message);
 }

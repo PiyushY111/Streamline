@@ -46,7 +46,7 @@ describe('OAuth 2.0 Token Lifecycle & Refresh Mutex Manager', () => {
       expect.objectContaining({
         access_token: 'decrypted-enc-access',
         refresh_token: 'decrypted-enc-refresh',
-      })
+      }),
     );
   });
 
@@ -99,7 +99,7 @@ describe('OAuth 2.0 Token Lifecycle & Refresh Mutex Manager', () => {
       expect.objectContaining({
         accessToken: 'encrypted-new-raw-access-token',
         status: 'active',
-      })
+      }),
     );
   });
 
@@ -143,7 +143,7 @@ describe('OAuth 2.0 Token Lifecycle & Refresh Mutex Manager', () => {
             access_token: 'concurrent-refreshed-token',
             expiry_date: Date.now() + 3600 * 1000,
           },
-        }))
+        })),
       ),
     };
     vi.spyOn(googleOAuth, 'createOAuth2Client').mockReturnValue(mockOAuth2Client as any);
@@ -208,14 +208,14 @@ describe('OAuth 2.0 Token Lifecycle & Refresh Mutex Manager', () => {
     expect(updateSetMock).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'error',
-      })
+      }),
     );
     expect(auditService.logAction).toHaveBeenCalledWith(
       'user-1',
       'account.token_revocation_error',
       expect.objectContaining({
         accountId: 'acc-revoked',
-      })
+      }),
     );
   });
 });

@@ -64,7 +64,7 @@ export function createAiTriageWorker() {
               userId: email.userId,
               vipSenders: prefs?.vipSenders || [],
               userEmail: email.userEmail,
-            }
+            },
           );
 
           await aiRepository.saveEmailAiMetadata({
@@ -81,7 +81,7 @@ export function createAiTriageWorker() {
 
           logger.info(
             { emailId: email.id, priority: triage.priority, tasksCount: triage.extractedTasks.length },
-            '✅ Email triaged & metadata stored'
+            '✅ Email triaged & metadata stored',
           );
         } catch (rawErr: unknown) {
           const err = toError(rawErr);
@@ -89,7 +89,7 @@ export function createAiTriageWorker() {
         }
       }
     },
-    { connection: redisConnection, concurrency: 3 }
+    { connection: redisConnection, concurrency: 3 },
   );
 
   worker.on('failed', async (job, err) => {

@@ -1,10 +1,5 @@
 export type SwarmAgentRole =
-  | 'supervisor'
-  | 'inbox_sentry'
-  | 'calendar_negotiator'
-  | 'dossier_researcher'
-  | 'dag_scheduler'
-  | 'critic';
+  'supervisor' | 'inbox_sentry' | 'calendar_negotiator' | 'dossier_researcher' | 'dag_scheduler' | 'critic';
 
 export type SubTaskStatus = 'pending' | 'running' | 'completed' | 'failed';
 

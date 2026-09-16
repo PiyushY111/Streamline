@@ -23,11 +23,7 @@ export class StyleProfilerService {
    */
   public async getStyleProfile(userId: string): Promise<StyleProfile> {
     try {
-      const [existing] = await db
-        .select()
-        .from(userStyleProfiles)
-        .where(eq(userStyleProfiles.userId, userId))
-        .limit(1);
+      const [existing] = await db.select().from(userStyleProfiles).where(eq(userStyleProfiles.userId, userId)).limit(1);
 
       if (existing) {
         return {
@@ -75,12 +71,7 @@ export class StyleProfilerService {
       })
       .from(emails)
       .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-      .where(
-        and(
-          eq(connectedAccounts.userId, userId),
-          eq(emails.folder, 'sent')
-        )
-      )
+      .where(and(eq(connectedAccounts.userId, userId), eq(emails.folder, 'sent')))
       .orderBy(desc(emails.receivedAt))
       .limit(50);
 
@@ -94,8 +85,8 @@ export class StyleProfilerService {
     }
 
     // Statistical & Linguistic Analysis
-    const greetingsCount: Record<string, number> = { Hi: 0, Hey: 0, Hello: 0, Dear: 0 };
-    const signoffCount: Record<string, number> = { Best: 0, Thanks: 0, Cheers: 0, Regards: 0, 'Talk soon': 0 };
+    const greetingsCount = { Hi: 0, Hey: 0, Hello: 0, Dear: 0 };
+    const signoffCount = { Best: 0, Thanks: 0, Cheers: 0, Regards: 0, 'Talk soon': 0 };
     let bulletPointCount = 0;
     let totalSentences = 0;
     let totalWords = 0;
@@ -135,8 +126,8 @@ export class StyleProfilerService {
     }
 
     const avgSentenceLength = Math.round(totalWords / Math.max(1, totalSentences));
-    const preferredGreeting = Object.entries(greetingsCount).sort((a, b) => b[1] - a[1])[0][0];
-    const preferredSignoff = Object.entries(signoffCount).sort((a, b) => b[1] - a[1])[0][0];
+    const preferredGreeting = Object.entries(greetingsCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Hi';
+    const preferredSignoff = Object.entries(signoffCount).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Best';
     const useBulletPoints = bulletPointCount / bodies.length > 0.3;
 
     const avgWordsPerEmail = totalWords / bodies.length;
@@ -200,11 +191,12 @@ export class StyleProfilerService {
    * Format the style profile into an XML instruction block with few-shot sent examples
    */
   public formatStylePromptSection(profile: StyleProfile): string {
-    const examplesBlock = profile.sampleSentSnippets.length > 0
-      ? profile.sampleSentSnippets
-          .map((sample, i) => `[Example ${i + 1} from User's Sent History]\n${sample}`)
-          .join('\n\n')
-      : `[Standard Example]\n${profile.preferredGreeting} Team,\n\nThanks for the update. Let's move forward with this proposal.\n\n${profile.preferredSignoff},`;
+    const examplesBlock =
+      profile.sampleSentSnippets.length > 0
+        ? profile.sampleSentSnippets
+            .map((sample, i) => `[Example ${i + 1} from User's Sent History]\n${sample}`)
+            .join('\n\n')
+        : `[Standard Example]\n${profile.preferredGreeting} Team,\n\nThanks for the update. Let's move forward with this proposal.\n\n${profile.preferredSignoff},`;
 
     return `
 <user_personal_writing_style>

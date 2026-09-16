@@ -12,7 +12,8 @@ type SearchMemoryArgs = z.infer<typeof searchMemorySchema>;
 
 export const searchMemoryTool: ToolDefinition<SearchMemoryArgs, any> = {
   name: 'search_memory',
-  description: "Search the user's stored preferences, past decisions, and project facts for relevant context using hybrid semantic and keyword retrieval.",
+  description:
+    "Search the user's stored preferences, past decisions, and project facts for relevant context using hybrid semantic and keyword retrieval.",
   permissionClass: 'read',
   schema: searchMemorySchema,
   parameters: {

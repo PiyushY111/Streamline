@@ -255,10 +255,10 @@ function InboxContent() {
       const [emailData, accData] = await Promise.all([fetchEmails(), fetchConnectedAccounts()]);
       updateEmailsState(emailData);
       setAccounts(accData);
-      if (emailData.length > 0 && !selectedEmailId) {
+      if (emailData.length > 0 && !selectedEmailId && emailData[0]) {
         setSelectedEmailId(emailData[0].id);
       }
-      if (accData.length > 0 && !composeFromAccountId) {
+      if (accData.length > 0 && !composeFromAccountId && accData[0]) {
         setComposeFromAccountId(accData[0].id);
       }
     } catch (err) {
@@ -391,7 +391,8 @@ function InboxContent() {
       if (event.data && event.data.frameId && typeof event.data.height === 'number') {
         const newH = Math.ceil(event.data.height);
         setIframeHeights((prev) => {
-          if (!prev[event.data.frameId] || Math.abs(prev[event.data.frameId] - newH) > 4) {
+          const prevH = prev[event.data.frameId];
+          if (prevH === undefined || Math.abs(prevH - newH) > 4) {
             return { ...prev, [event.data.frameId]: newH };
           }
           return prev;
@@ -580,13 +581,15 @@ function InboxContent() {
         if (paginatedEmails.length > 0) {
           const currIndex = paginatedEmails.findIndex((e) => e.id === selectedEmailId);
           const nextIndex = Math.min(paginatedEmails.length - 1, currIndex + 1);
-          handleSelectEmail(paginatedEmails[nextIndex]);
+          const nextEmail = paginatedEmails[nextIndex];
+          if (nextEmail) handleSelectEmail(nextEmail);
         }
       } else if (e.key === 'k' || e.key === 'K') {
         if (paginatedEmails.length > 0) {
           const currIndex = paginatedEmails.findIndex((e) => e.id === selectedEmailId);
           const prevIndex = Math.max(0, currIndex - 1);
-          handleSelectEmail(paginatedEmails[prevIndex]);
+          const prevEmail = paginatedEmails[prevIndex];
+          if (prevEmail) handleSelectEmail(prevEmail);
         }
       }
     };
@@ -836,8 +839,10 @@ function InboxContent() {
         setUndoToast(null);
 
         try {
-          const lastMsg = currentThreadMessages.length > 0 ? currentThreadMessages[currentThreadMessages.length - 1] : selectedEmail;
-          const recipient = lastMsg.sender.includes('<') ? lastMsg.sender.split('<')[1].replace('>', '') : lastMsg.sender;
+          const lastMsg = currentThreadMessages.length > 0 ? (currentThreadMessages[currentThreadMessages.length - 1] || selectedEmail) : selectedEmail;
+          const rawSender = lastMsg?.sender || selectedEmail.sender;
+          const senderSplit = rawSender.includes('<') ? rawSender.split('<')[1] : null;
+          const recipient = senderSplit ? senderSplit.replace('>', '') : rawSender;
           await fetch('/api/emails/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1405,8 +1410,8 @@ function InboxContent() {
                       const hasAttachments = (email as any).attachments && (email as any).attachments.length > 0;
 
                       const match = email.sender.match(/^(.*?)\s*<([^>]+)>$/);
-                      const senderName = match ? match[1].replace(/['"]/g, '').trim() || match[2] : email.sender;
-                      const senderEmail = match ? match[2] : email.sender;
+                      const senderName = (match && match[1] ? match[1].replace(/['"]/g, '').trim() : '') || (match && match[2] ? match[2] : email.sender) || email.sender;
+                      const senderEmail = (match && match[2]) ? match[2] : email.sender;
                       const assignedLabels = emailLabelsMap[email.id] || [];
 
                       return (
@@ -1876,8 +1881,8 @@ function InboxContent() {
                   <div className="space-y-6">
                     {currentThreadMessages.map((msg, index) => {
                       const match = msg.sender.match(/^(.*?)\s*<([^>]+)>$/);
-                      const senderName = match ? match[1].replace(/['"]/g, '').trim() || match[2] : msg.sender;
-                      const senderEmail = match ? match[2] : msg.sender;
+                      const senderName = (match && match[1] ? match[1].replace(/['"]/g, '').trim() : '') || (match && match[2] ? match[2] : msg.sender) || msg.sender;
+                      const senderEmail = (match && match[2]) ? match[2] : msg.sender;
                       const recipientClean = msg.recipients.replace(/[<>]/g, '');
 
                       let attachmentsList: Array<{ filename: string; mimeType?: string; size?: number; content?: string }> = [];

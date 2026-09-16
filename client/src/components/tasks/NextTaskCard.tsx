@@ -79,7 +79,7 @@ export function NextTaskCard({ onTaskUpdated, selectedProjectId }: NextTaskCardP
   const slot = data?.availableSlot;
   const summary = data?.summary;
 
-  const presetLabels: Record<string, { label: string; icon: any; desc: string }> = {
+  const presetLabels: Record<'balanced' | 'deadline' | 'deep_work' | 'quick_wins', { label: string; icon: any; desc: string }> = {
     balanced: { label: 'Balanced', icon: SlidersHorizontal, desc: '5-factor equilibrium' },
     deadline: { label: 'Deadlines First', icon: Flame, desc: 'Exponential decay urgency' },
     deep_work: { label: 'Deep Work', icon: Target, desc: 'High importance & focus' },

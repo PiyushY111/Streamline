@@ -27,9 +27,7 @@ export const triggerManualSync = asyncHandler(async (req: AuthenticatedRequest, 
 
   if (shouldWait) {
     logger.info({ userId, count: userAccounts.length }, 'Executing fast direct sync for user accounts...');
-    await Promise.allSettled(
-      userAccounts.map((acc) => syncGoogleAccountData(acc.id))
-    );
+    await Promise.allSettled(userAccounts.map((acc) => syncGoogleAccountData(acc.id)));
     await delCache(`emails:${userId}:*`);
 
     await auditService.logAction(userId, 'sync.fast_completed', {
@@ -55,11 +53,7 @@ export const triggerManualSync = asyncHandler(async (req: AuthenticatedRequest, 
       }
     }
 
-    await accountSyncQueue.add(
-      'sync-account',
-      { accountId: acc.id },
-      { jobId }
-    );
+    await accountSyncQueue.add('sync-account', { accountId: acc.id }, { jobId });
   }
 
   await auditService.logAction(userId, 'sync.manual_triggered', {

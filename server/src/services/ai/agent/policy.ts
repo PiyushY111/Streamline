@@ -28,7 +28,7 @@ export type PolicyOutcome =
 export async function enforcePolicy(
   userId: string,
   sessionId: string | null,
-  call: ProposedToolCall
+  call: ProposedToolCall,
 ): Promise<PolicyOutcome> {
   const tool = TOOL_REGISTRY[call.name];
 
@@ -76,7 +76,10 @@ export async function enforcePolicy(
         .limit(1);
 
       if (existing) {
-        logger.info({ idempotencyKey: providedIdempotencyKey, pendingActionId: existing.id }, 'Deduplicated tool call via idempotency key');
+        logger.info(
+          { idempotencyKey: providedIdempotencyKey, pendingActionId: existing.id },
+          'Deduplicated tool call via idempotency key',
+        );
         return {
           kind: 'pending',
           pendingActionId: existing.id,
@@ -108,6 +111,10 @@ export async function enforcePolicy(
     })
     .returning();
 
+  if (!row) {
+    throw new Error('Failed to create pending action record');
+  }
+
   await auditService.logAction(userId, `agent.tool.queued.${call.name}`, {
     pendingActionId: row.id,
     toolName: call.name,
@@ -128,7 +135,7 @@ export async function enforcePolicy(
 export async function executeApprovedAction(
   userId: string,
   pendingActionId: string,
-  options: { idempotencyKey?: string } = {}
+  options: { idempotencyKey?: string } = {},
 ) {
   // 1. Fetch action with ownership validation
   const [action] = await db
@@ -148,7 +155,10 @@ export async function executeApprovedAction(
     action.idempotencyKey &&
     action.idempotencyKey === options.idempotencyKey
   ) {
-    logger.info({ pendingActionId, idempotencyKey: options.idempotencyKey }, 'Returning cached action result for idempotent replay');
+    logger.info(
+      { pendingActionId, idempotencyKey: options.idempotencyKey },
+      'Returning cached action result for idempotent replay',
+    );
     return action.resultJson;
   }
 
@@ -185,11 +195,13 @@ export async function executeApprovedAction(
       status: 'executing',
       idempotencyKey: effectiveIdempotencyKey,
     })
-    .where(and(
-      eq(pendingActions.id, pendingActionId),
-      eq(pendingActions.userId, userId),
-      eq(pendingActions.status, 'pending')
-    ));
+    .where(
+      and(
+        eq(pendingActions.id, pendingActionId),
+        eq(pendingActions.userId, userId),
+        eq(pendingActions.status, 'pending'),
+      ),
+    );
 
   if (typeof (updateClaimQuery as any).returning === 'function') {
     const [claimed] = await (updateClaimQuery as any).returning();
@@ -235,8 +247,10 @@ export async function executeApprovedAction(
         userId,
         `Approved action: ${action.toolName} with arguments ${JSON.stringify(action.toolArgs)}`,
         JSON.stringify(result),
-        `pending_action:${pendingActionId}`
-      ).catch((rawErr: unknown) => logger.warn({ err: toError(rawErr).message }, 'Background memory extraction failed, non-fatal'));
+        `pending_action:${pendingActionId}`,
+      ).catch((rawErr: unknown) =>
+        logger.warn({ err: toError(rawErr).message }, 'Background memory extraction failed, non-fatal'),
+      );
     });
 
     return result;

@@ -12,9 +12,10 @@ export class AuthService {
 
     const passwordHash = password ? await bcrypt.hash(password, 10) : '';
 
-    const runInTx = typeof db.transaction === 'function'
-      ? (fn: (tx: any) => Promise<any>) => db.transaction(fn as any)
-      : (fn: (tx: any) => Promise<any>) => fn(db);
+    const runInTx =
+      typeof db.transaction === 'function'
+        ? (fn: (tx: any) => Promise<any>) => db.transaction(fn as any)
+        : (fn: (tx: any) => Promise<any>) => fn(db);
 
     const user = await runInTx(async (tx) => {
       const newUser = await usersRepository.create({ email, name, passwordHash }, tx);

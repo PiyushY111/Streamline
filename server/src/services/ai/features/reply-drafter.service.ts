@@ -25,11 +25,7 @@ function isValidUuid(id?: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 }
 
-export async function streamDraftReply(
-  options: DraftOptions,
-  res: Response,
-  abortSignal?: AbortSignal
-): Promise<void> {
+export async function streamDraftReply(options: DraftOptions, res: Response, abortSignal?: AbortSignal): Promise<void> {
   const { threadId, emailId, userId, tone = 'professional', customPrompt, emailContext } = options;
   const targetId = threadId || emailId;
 
@@ -69,12 +65,7 @@ export async function streamDraftReply(
           })
           .from(emails)
           .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-          .where(
-            and(
-              eq(connectedAccounts.userId, userId),
-              or(eq(emails.threadId, targetId), eq(emails.id, targetId))
-            )
-          )
+          .where(and(eq(connectedAccounts.userId, userId), or(eq(emails.threadId, targetId), eq(emails.id, targetId))))
           .orderBy(asc(emails.receivedAt));
       }
 
@@ -96,13 +87,14 @@ export async function streamDraftReply(
           .where(
             and(
               eq(connectedAccounts.userId, userId),
-              or(eq(emails.externalMessageId, targetId), eq(emailThreads.externalThreadId, targetId))
-            )
+              or(eq(emails.externalMessageId, targetId), eq(emailThreads.externalThreadId, targetId)),
+            ),
           )
           .orderBy(asc(emails.receivedAt));
 
-        if (matchingEmails.length > 0) {
-          const actualThreadId = matchingEmails[0].threadId;
+        const firstMatch = matchingEmails[0];
+        if (firstMatch) {
+          const actualThreadId = firstMatch.threadId;
           threadMessages = await db
             .select({
               id: emails.id,
@@ -116,12 +108,7 @@ export async function streamDraftReply(
             })
             .from(emails)
             .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
-            .where(
-              and(
-                eq(connectedAccounts.userId, userId),
-                eq(emails.threadId, actualThreadId)
-              )
-            )
+            .where(and(eq(connectedAccounts.userId, userId), eq(emails.threadId, actualThreadId)))
             .orderBy(asc(emails.receivedAt));
         }
       }
@@ -130,7 +117,6 @@ export async function streamDraftReply(
       logger.warn({ err: err.message, targetId }, 'Error during SQL thread resolution');
     }
   }
-
 
   // 3. Fallback: Context text from client if DB records empty
   let conversationHistory = '';
@@ -233,7 +219,7 @@ ${conversationHistory}
           return;
         }
         res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
-      }
+      },
     );
 
     if (!abortSignal?.aborted && !res.writableEnded) {
@@ -253,7 +239,6 @@ ${conversationHistory}
       res.end();
     }
   }
-
 
   // 5. Asynchronously Record Token Usage
   if (streamSucceeded && fullGeneratedDraft) {

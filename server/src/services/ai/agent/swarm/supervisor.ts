@@ -17,7 +17,7 @@ export class SwarmSupervisor {
     userId: string,
     sessionId: string,
     userGoal: string,
-    onProgress?: (event: SwarmProgressEvent) => void
+    onProgress?: (event: SwarmProgressEvent) => void,
   ): Promise<SwarmExecutionState> {
     const startTime = Date.now();
     logger.info({ userId, sessionId, userGoal }, 'Swarm Supervisor initiating meta-planning...');
@@ -46,6 +46,7 @@ export class SwarmSupervisor {
     // 2. Sequential / Coordinated Sub-Agent Execution
     for (let i = 0; i < state.subTasks.length; i++) {
       const task = state.subTasks[i];
+      if (!task) continue;
       state.currentStepIndex = i;
       task.status = 'running';
 
@@ -134,7 +135,10 @@ export class SwarmSupervisor {
     state.finalAnswer = await this.synthesizeFinalAnswer(state);
 
     const totalDurationMs = Date.now() - startTime;
-    logger.info({ userId, totalDurationMs, tasksCount: state.subTasks.length }, 'Swarm execution completed successfully');
+    logger.info(
+      { userId, totalDurationMs, tasksCount: state.subTasks.length },
+      'Swarm execution completed successfully',
+    );
 
     return state;
   }

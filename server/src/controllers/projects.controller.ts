@@ -17,7 +17,7 @@ export const getProject = asyncHandler(async (req: AuthenticatedRequest, res: Re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const project = await projectsRepository.getById(id, req.user.id);
   if (!project) {
     throw new NotFoundError('Project not found');
@@ -50,7 +50,7 @@ export const updateProject = asyncHandler(async (req: AuthenticatedRequest, res:
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const updated = await projectsRepository.update(id, req.user.id, req.body);
   if (!updated) {
     throw new NotFoundError('Project not found');
@@ -62,7 +62,7 @@ export const deleteProject = asyncHandler(async (req: AuthenticatedRequest, res:
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const deleted = await projectsRepository.delete(id, req.user.id);
   if (!deleted) {
     throw new NotFoundError('Project not found');
@@ -74,7 +74,7 @@ export const getProjectTasks = asyncHandler(async (req: AuthenticatedRequest, re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const taskList = await tasksRepository.listByProject(req.user.id, id);
   res.json({ tasks: taskList });
 });

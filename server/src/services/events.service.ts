@@ -29,7 +29,7 @@ export class EventsService {
       endTime: string | Date;
       timezone?: string;
       attendees?: string[];
-    }
+    },
   ) {
     let accountId = data.accountId;
     if (!accountId) {
@@ -42,6 +42,9 @@ export class EventsService {
         throw new Error('No connected Google account found. Please connect an account first.');
       }
       const activeAcc = accountsList.find((a) => a.status === 'active') || accountsList[0];
+      if (!activeAcc) {
+        throw new Error('No connected Google account found. Please connect an account first.');
+      }
       accountId = activeAcc.id;
     } else {
       const [userAcc] = await db
@@ -57,6 +60,9 @@ export class EventsService {
     let calendarId = data.calendarId;
     if (!calendarId) {
       const primaryCal = await eventsRepository.getOrCreatePrimaryCalendar(accountId);
+      if (!primaryCal) {
+        throw new Error('Failed to resolve primary calendar');
+      }
       calendarId = primaryCal.id;
     }
 
@@ -86,7 +92,7 @@ export class EventsService {
           .where(eq(calendars.id, calendarId))
           .limit(1);
 
-        const targetExternalCalId = calRow?.isPrimary ? 'primary' : (calRow?.externalId || 'primary');
+        const targetExternalCalId = calRow?.isPrimary ? 'primary' : calRow?.externalId || 'primary';
 
         const insertPayload: any = {
           calendarId: targetExternalCalId,
@@ -119,7 +125,10 @@ export class EventsService {
       }
     } catch (rawErr: unknown) {
       const gErr = toError(rawErr);
-      logger.warn({ err: gErr.message, accountId }, 'Failed to push event directly to Google Calendar API, persisting to local DB');
+      logger.warn(
+        { err: gErr.message, accountId },
+        'Failed to push event directly to Google Calendar API, persisting to local DB',
+      );
     }
 
     if (!externalEventId) {
@@ -144,7 +153,13 @@ export class EventsService {
   async updateEvent(
     id: string,
     userId: string,
-    data: Partial<{ title: string; description: string; startTime: string | Date; endTime: string | Date; location: string }>
+    data: Partial<{
+      title: string;
+      description: string;
+      startTime: string | Date;
+      endTime: string | Date;
+      location: string;
+    }>,
   ) {
     return eventsRepository.update(id, userId, {
       ...data,

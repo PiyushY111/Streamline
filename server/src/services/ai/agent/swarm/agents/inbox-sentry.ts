@@ -29,12 +29,7 @@ export class InboxSentryAgent {
       .from(emails)
       .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
       .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
-      .where(
-        and(
-          eq(connectedAccounts.userId, userId),
-          eq(emails.folder, 'inbox')
-        )
-      )
+      .where(and(eq(connectedAccounts.userId, userId), eq(emails.folder, 'inbox')))
       .orderBy(desc(emails.receivedAt))
       .limit(10);
 
@@ -52,7 +47,9 @@ export class InboxSentryAgent {
     let keyCommitments: string[] = [];
 
     if (provider && provider.isAvailable() && recentEmails.length > 0) {
-      const emailContext = recentEmails.map((e) => `From: ${e.sender} | Subject: ${e.subject} | Snippet: ${(e.bodyText || '').slice(0, 150)}`).join('\n');
+      const emailContext = recentEmails
+        .map((e) => `From: ${e.sender} | Subject: ${e.subject} | Snippet: ${(e.bodyText || '').slice(0, 150)}`)
+        .join('\n');
       try {
         const res = await provider.generateStructuredJson<{ summary: string; commitments: string[] }>({
           prompt: `You are the Inbox Sentry Agent. Analyze these emails according to this instruction: "${instruction}".

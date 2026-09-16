@@ -38,10 +38,7 @@ export class AgentRepository {
   }
 
   async createSession(userId: string, title?: string) {
-    const [newSession] = await db
-      .insert(agentSessions)
-      .values({ userId, title })
-      .returning();
+    const [newSession] = await db.insert(agentSessions).values({ userId, title }).returning();
     return newSession;
   }
 
@@ -82,23 +79,21 @@ export class AgentRepository {
   }
 
   async createMessage(values: CreateAgentMessageInput) {
-    return db
-      .insert(agentMessages)
-      .values({
-        sessionId: values.sessionId,
-        role: values.role,
-        content: values.content,
-        toolCalls: values.toolCalls as any,
-        toolName: values.toolName,
-        toolResult: values.toolResult as any,
-        spanId: values.spanId,
-        parentSpanId: values.parentSpanId,
-        latencyMs: values.latencyMs,
-        retrievedMemoryIds: values.retrievedMemoryIds,
-        tokenPromptCount: values.tokenPromptCount,
-        tokenCandidateCount: values.tokenCandidateCount,
-        costUsd: values.costUsd,
-      });
+    return db.insert(agentMessages).values({
+      sessionId: values.sessionId,
+      role: values.role,
+      content: values.content,
+      toolCalls: values.toolCalls as any,
+      toolName: values.toolName,
+      toolResult: values.toolResult as any,
+      spanId: values.spanId,
+      parentSpanId: values.parentSpanId,
+      latencyMs: values.latencyMs,
+      retrievedMemoryIds: values.retrievedMemoryIds,
+      tokenPromptCount: values.tokenPromptCount,
+      tokenCandidateCount: values.tokenCandidateCount,
+      costUsd: values.costUsd,
+    });
   }
 
   // Pending Action Methods
@@ -110,8 +105,8 @@ export class AgentRepository {
         and(
           eq(pendingActions.userId, userId),
           eq(pendingActions.status, 'pending'),
-          gt(pendingActions.expiresAt, new Date())
-        )
+          gt(pendingActions.expiresAt, new Date()),
+        ),
       )
       .orderBy(desc(pendingActions.createdAt));
   }
@@ -143,7 +138,7 @@ export class AgentRepository {
       errorJson?: unknown;
       resolvedAt?: Date;
       impactPreview?: Record<string, unknown>;
-    }
+    },
   ) {
     const [updated] = await db
       .update(pendingActions)

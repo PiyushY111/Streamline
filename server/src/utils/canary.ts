@@ -18,17 +18,20 @@ export interface CanaryScanResult {
  */
 const PROMPT_INJECTION_PATTERNS: Array<{ pattern: RegExp; name: string; risk: 'low' | 'medium' | 'critical' }> = [
   {
-    pattern: /(?:ignore|disregard|forget|bypass)\s+(?:all\s+)?(?:previous|prior|above|system)\s+(?:instructions|prompts|rules|directives)/i,
+    pattern:
+      /(?:ignore|disregard|forget|bypass)\s+(?:all\s+)?(?:previous|prior|above|system)\s+(?:instructions|prompts|rules|directives)/i,
     name: 'instruction_override',
     risk: 'critical',
   },
   {
-    pattern: /(?:reveal|output|print|display|dump|leak)\s+(?:your\s+)?(?:system\s+prompt|initial\s+prompt|hidden\s+instructions|secret\s+key|api\s+key)/i,
+    pattern:
+      /(?:reveal|output|print|display|dump|leak)\s+(?:your\s+)?(?:system\s+prompt|initial\s+prompt|hidden\s+instructions|secret\s+key|api\s+key)/i,
     name: 'system_prompt_exfiltration',
     risk: 'critical',
   },
   {
-    pattern: /(?:you\s+are\s+now\s+in\s+DAN\s+mode|developer\s+mode\s+enabled|jailbreak\s+active|unfiltered\s+mode|unrestricted\s+ai)/i,
+    pattern:
+      /(?:you\s+are\s+now\s+in\s+DAN\s+mode|developer\s+mode\s+enabled|jailbreak\s+active|unfiltered\s+mode|unrestricted\s+ai)/i,
     name: 'jailbreak_persona_adoption',
     risk: 'critical',
   },
@@ -120,7 +123,7 @@ export function scanForCanaryTokens(content: string, canaryTokens: string[]): Ca
 export async function guardAndAlertIngestion(
   userId: string,
   content: string,
-  sourceContext: { source: string; emailId?: string; sessionId?: string; metadata?: Record<string, unknown> }
+  sourceContext: { source: string; emailId?: string; sessionId?: string; metadata?: Record<string, unknown> },
 ): Promise<PromptInjectionScanResult> {
   const result = scanForPromptInjection(content);
 
@@ -133,7 +136,7 @@ export async function guardAndAlertIngestion(
         source: sourceContext.source,
         sessionId: sourceContext.sessionId,
       },
-      '🚨 Security Alert: Prompt injection or system prompt override attempt detected in ingestion payload'
+      '🚨 Security Alert: Prompt injection or system prompt override attempt detected in ingestion payload',
     );
 
     await auditService.logAction(userId, 'agent.security.prompt_injection_flagged', {

@@ -11,7 +11,8 @@ type FindFreeSlotsArgs = z.infer<typeof findFreeSlotsSchema>;
 
 export const findFreeSlotsTool: ToolDefinition<FindFreeSlotsArgs, any> = {
   name: 'find_free_slots',
-  description: 'Find open, available calendar time slots within the next N hours, accounting for 10-minute transition buffers before and after meetings.',
+  description:
+    'Find open, available calendar time slots within the next N hours, accounting for 10-minute transition buffers before and after meetings.',
   permissionClass: 'read',
   schema: findFreeSlotsSchema,
   parameters: {

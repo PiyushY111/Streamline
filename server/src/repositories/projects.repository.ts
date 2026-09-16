@@ -46,7 +46,7 @@ export class ProjectsRepository {
           total: s.total || 0,
           completed: s.completed || 0,
         },
-      ])
+      ]),
     );
 
     return userProjects.map((p) => {
@@ -129,7 +129,7 @@ export class ProjectsRepository {
       color: string;
       stack: string;
       currentMilestone: string;
-    }>
+    }>,
   ) {
     const [updated] = await db
       .update(projects)

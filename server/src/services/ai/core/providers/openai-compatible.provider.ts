@@ -69,7 +69,8 @@ export class OpenAiCompatibleProvider implements AiProvider {
     const model = options.models?.[0] || this.defaultModel;
     const messages: Array<{ role: string; content: string }> = [];
 
-    const systemInstructions = (options.systemPrompt || '') +
+    const systemInstructions =
+      (options.systemPrompt || '') +
       '\nIMPORTANT: Return ONLY valid JSON matching the requested structure without any markdown backticks or commentary.';
 
     messages.push({ role: 'system', content: systemInstructions });
@@ -99,10 +100,7 @@ export class OpenAiCompatibleProvider implements AiProvider {
     return JSON.parse(content) as T;
   }
 
-  async streamText(
-    options: AiStreamTextOptions,
-    onChunk: (chunk: string) => void
-  ): Promise<string> {
+  async streamText(options: AiStreamTextOptions, onChunk: (chunk: string) => void): Promise<string> {
     const model = options.models?.[0] || this.defaultModel;
     const messages: Array<{ role: string; content: string }> = [];
 
@@ -286,4 +284,3 @@ export class OpenAiCompatibleProvider implements AiProvider {
     };
   }
 }
-

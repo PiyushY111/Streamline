@@ -8,7 +8,7 @@ export function createOAuth2Client() {
   return new google.auth.OAuth2(
     env.GOOGLE_CLIENT_ID,
     env.GOOGLE_CLIENT_SECRET,
-    env.GOOGLE_REDIRECT_URI || 'http://localhost:5001/api/auth/google/callback'
+    env.GOOGLE_REDIRECT_URI || 'http://localhost:5001/api/auth/google/callback',
   );
 }
 
@@ -17,13 +17,11 @@ export function signOAuthState(userId: string): string {
   return jwt.sign({ userId, nonce }, env.JWT_SECRET, { expiresIn: '15m' });
 }
 
-
 export function verifyOAuthState(stateToken: string): { userId: string } {
   return jwt.verify(stateToken, env.JWT_SECRET) as { userId: string };
 }
 
 export function generateCodeVerifier(): string {
-
   return crypto.randomBytes(32).toString('base64url');
 }
 
@@ -84,10 +82,7 @@ export interface GoogleTokenResult {
   profile: GoogleProfile;
 }
 
-export async function exchangeCodeForTokens(
-  code: string,
-  codeVerifier: string
-): Promise<GoogleTokenResult> {
+export async function exchangeCodeForTokens(code: string, codeVerifier: string): Promise<GoogleTokenResult> {
   const oauth2Client = createOAuth2Client();
   const { tokens } = await oauth2Client.getToken({ code, codeVerifier });
 
@@ -103,9 +98,7 @@ export async function exchangeCodeForTokens(
     throw new Error('Failed to retrieve user profile from Google OAuth');
   }
 
-  const tokenExpiresAt = tokens.expiry_date
-    ? new Date(tokens.expiry_date)
-    : new Date(Date.now() + 3600 * 1000);
+  const tokenExpiresAt = tokens.expiry_date ? new Date(tokens.expiry_date) : new Date(Date.now() + 3600 * 1000);
 
   return {
     accessToken: tokens.access_token,

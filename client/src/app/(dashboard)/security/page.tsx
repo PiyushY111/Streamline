@@ -114,8 +114,9 @@ export default function SecurityGuardrailsPage() {
   const [copiedScript, setCopiedScript] = useState(false);
 
   // Red Team Simulator state
-  const [selectedPreset, setSelectedPreset] = useState<PresetAttack>(PRESET_ATTACKS[0]);
-  const [customPayload, setCustomPayload] = useState<string>(PRESET_ATTACKS[0].payload);
+  const defaultPreset = PRESET_ATTACKS[0]!;
+  const [selectedPreset, setSelectedPreset] = useState<PresetAttack>(defaultPreset);
+  const [customPayload, setCustomPayload] = useState<string>(defaultPreset.payload);
   const [simulating, setSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<InjectionSimulationResultData | null>(null);
   const [simError, setSimError] = useState<string | null>(null);

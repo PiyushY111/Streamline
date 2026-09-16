@@ -52,13 +52,12 @@ export class AllModelsExhaustedError extends AppError {
     super(
       `All AI model candidates failed: [${attemptedModels.join(', ')}]. ${lastErrorMessage || 'Service temporarily degraded.'}`,
       503,
-      'ALL_AI_MODELS_EXHAUSTED'
+      'ALL_AI_MODELS_EXHAUSTED',
     );
     this.name = 'AllModelsExhaustedError';
     this.attemptedModels = attemptedModels;
   }
 }
-
 
 /**
  * Thrown when external API dependencies (Google OAuth, Gmail API, etc.) fail or timeout.

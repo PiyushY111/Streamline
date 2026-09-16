@@ -14,7 +14,7 @@ export function authenticate(req: AuthenticatedRequest, res: Response, next: Nex
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith('Bearer ')
     ? authHeader.substring(7)
-    : (req.cookies?.session_token || (typeof req.query?.token === 'string' ? req.query.token : undefined));
+    : req.cookies?.session_token || (typeof req.query?.token === 'string' ? req.query.token : undefined);
 
   if (!token) {
     if (typeof next === 'function') {

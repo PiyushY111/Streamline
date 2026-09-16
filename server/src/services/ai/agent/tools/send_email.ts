@@ -13,7 +13,8 @@ type SendEmailArgs = z.infer<typeof sendEmailSchema>;
 
 export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
   name: 'send_email',
-  description: 'Propose dispatching an external email to a recipient via Google Workspace / Gmail. This is a highly consequential SEND action that ALWAYS requires explicit human approval before transmission.',
+  description:
+    'Propose dispatching an external email to a recipient via Google Workspace / Gmail. This is a highly consequential SEND action that ALWAYS requires explicit human approval before transmission.',
   permissionClass: 'send',
   schema: sendEmailSchema,
   parameters: {

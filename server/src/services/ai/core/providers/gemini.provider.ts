@@ -84,7 +84,10 @@ export class GeminiProvider implements AiProvider {
           parsedJson = JSON.parse(rawText);
         } catch (jsonErr: any) {
           if (attempt < maxRetries) {
-            logger.warn({ attempt, error: jsonErr.message }, 'Gemini JSON parse failed, retrying with correction feedback');
+            logger.warn(
+              { attempt, error: jsonErr.message },
+              'Gemini JSON parse failed, retrying with correction feedback',
+            );
             currentPrompt = `${options.prompt}\n\n[FEEDBACK ERROR]: Your previous output was malformed JSON: ${jsonErr.message}. Output strictly valid JSON conforming to the schema.`;
             continue;
           }
@@ -96,7 +99,10 @@ export class GeminiProvider implements AiProvider {
           if (!parseResult.success) {
             const formattedIssues = JSON.stringify(parseResult.error.format());
             if (attempt < maxRetries) {
-              logger.warn({ attempt, formattedIssues }, 'Gemini output failed Zod schema validation, retrying with feedback');
+              logger.warn(
+                { attempt, formattedIssues },
+                'Gemini output failed Zod schema validation, retrying with feedback',
+              );
               currentPrompt = `${options.prompt}\n\n[FEEDBACK ERROR]: Your previous JSON output failed schema validation:\n${formattedIssues}\nPlease correct all validation errors and return strictly valid JSON matching the schema.`;
               continue;
             }
@@ -117,10 +123,7 @@ export class GeminiProvider implements AiProvider {
     throw lastError || new Error('Structured JSON generation failed');
   }
 
-  async streamText(
-    options: AiStreamTextOptions,
-    onChunk: (chunk: string) => void
-  ): Promise<string> {
+  async streamText(options: AiStreamTextOptions, onChunk: (chunk: string) => void): Promise<string> {
     const client = getGeminiClient();
     if (!client) {
       throw new Error('Gemini client not available (missing GEMINI_API_KEY)');
@@ -190,11 +193,7 @@ export class GeminiProvider implements AiProvider {
     }
 
     const targetDims = options?.dimensions || 768;
-    const modelCandidates = [
-      options?.model || 'gemini-embedding-001',
-      'gemini-embedding-2',
-      'text-embedding-004',
-    ];
+    const modelCandidates = [options?.model || 'gemini-embedding-001', 'gemini-embedding-2', 'text-embedding-004'];
 
     let lastError: any = null;
     for (const model of modelCandidates) {
@@ -301,7 +300,8 @@ export class GeminiProvider implements AiProvider {
       config,
     });
 
-    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }> = [];
+    const toolCalls: Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }> =
+      [];
     const candidateParts = response.candidates?.[0]?.content?.parts || [];
     for (const part of candidateParts) {
       if (part.functionCall) {
@@ -342,4 +342,3 @@ export class GeminiProvider implements AiProvider {
     };
   }
 }
-

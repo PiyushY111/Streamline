@@ -62,10 +62,7 @@ Respond with JSON matching this exact structure:
       });
 
       if (result && typeof result.passed === 'boolean') {
-        logger.info(
-          { passed: result.passed, feedback: result.feedback },
-          'Swarm Critic Node evaluation completed'
-        );
+        logger.info({ passed: result.passed, feedback: result.feedback }, 'Swarm Critic Node evaluation completed');
         return result;
       }
     } catch (rawErr: unknown) {

@@ -11,9 +11,9 @@ describe('AI Cost Guard & Circuit Breaker Service', () => {
     it('should calculate cost accurately for gemini-3.5-flash-lite', () => {
       // 1,000,000 prompt tokens = $0.075, 1,000,000 completion = $0.30
       const { costUsd, formattedCost } = aiCostGuardService.calculateCost('gemini-3.5-flash-lite', 100_000, 10_000);
-      
+
       const expectedPromptCost = (100_000 / 1_000_000) * 0.075; // 0.0075
-      const expectedCompCost = (10_000 / 1_000_000) * 0.30;     // 0.003
+      const expectedCompCost = (10_000 / 1_000_000) * 0.3; // 0.003
       const expectedTotal = expectedPromptCost + expectedCompCost; // 0.0105
 
       expect(costUsd).toBeCloseTo(expectedTotal, 5);
@@ -22,7 +22,7 @@ describe('AI Cost Guard & Circuit Breaker Service', () => {
 
     it('should calculate cost accurately for gemini-3.6-flash', () => {
       const { costUsd } = aiCostGuardService.calculateCost('gemini-3.6-flash', 50_000, 50_000);
-      const expected = (50_000 / 1_000_000) * 0.10 + (50_000 / 1_000_000) * 0.40;
+      const expected = (50_000 / 1_000_000) * 0.1 + (50_000 / 1_000_000) * 0.4;
       expect(costUsd).toBeCloseTo(expected, 5);
     });
 
@@ -35,12 +35,13 @@ describe('AI Cost Guard & Circuit Breaker Service', () => {
 
   describe('Circuit Breaker Logic', () => {
     it('should not trip circuit breaker when user is within budget limits', async () => {
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([
-          { totalTokens: 5_000, totalCost: '0.005' },
-        ]),
-      } as any));
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: vi.fn().mockReturnThis(),
+            where: vi.fn().mockResolvedValue([{ totalTokens: 5_000, totalCost: '0.005' }]),
+          }) as any,
+      );
 
       const status = await aiCostGuardService.checkCircuitBreaker('user-1');
       expect(status.isTripped).toBe(false);
@@ -49,12 +50,15 @@ describe('AI Cost Guard & Circuit Breaker Service', () => {
     });
 
     it('should trip circuit breaker when daily token limit is reached', async () => {
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([
-          { totalTokens: AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT + 100, totalCost: '0.20' },
-        ]),
-      } as any));
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: vi.fn().mockReturnThis(),
+            where: vi
+              .fn()
+              .mockResolvedValue([{ totalTokens: AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT + 100, totalCost: '0.20' }]),
+          }) as any,
+      );
 
       const status = await aiCostGuardService.checkCircuitBreaker('user-1');
       expect(status.isTripped).toBe(true);
@@ -62,12 +66,17 @@ describe('AI Cost Guard & Circuit Breaker Service', () => {
     });
 
     it('should trip circuit breaker when daily cost limit is reached', async () => {
-      vi.spyOn(db, 'select').mockImplementation(() => ({
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockResolvedValue([
-          { totalTokens: 10_000, totalCost: String(AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD + 0.10) },
-        ]),
-      } as any));
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: vi.fn().mockReturnThis(),
+            where: vi
+              .fn()
+              .mockResolvedValue([
+                { totalTokens: 10_000, totalCost: String(AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD + 0.1) },
+              ]),
+          }) as any,
+      );
 
       const status = await aiCostGuardService.checkCircuitBreaker('user-1');
       expect(status.isTripped).toBe(true);

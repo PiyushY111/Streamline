@@ -22,5 +22,5 @@ export const userStyleProfiles = pgTable(
   },
   (table) => ({
     userIdx: index('user_style_profiles_user_idx').on(table.userId),
-  })
+  }),
 );

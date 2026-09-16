@@ -8,7 +8,7 @@ export function errorHandler(
   err: Error | AppError | ZodError | unknown,
   req: Request,
   res: Response,
-  _next: NextFunction
+  _next: NextFunction,
 ): void {
   if (res.headersSent) {
     return _next(err);
@@ -64,7 +64,7 @@ export function errorHandler(
   const errorObj = err instanceof Error ? err : new Error(String(err));
   logger.error(
     { reqId, err: errorObj.message, stack: errorObj.stack, path: req.path, method: req.method },
-    'Unhandled Exception'
+    'Unhandled Exception',
   );
 
   const isProd = env.NODE_ENV === 'production';

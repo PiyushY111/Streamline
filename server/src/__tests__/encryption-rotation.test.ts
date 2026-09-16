@@ -103,7 +103,8 @@ describe('AES-256-GCM Key Rotation & Backward Compatibility', () => {
     const encrypted = encrypt('sensitive-bank-grade-data');
     const parts = encrypted.split(':');
     // Tamper with ciphertext
-    parts[3] = parts[3].slice(0, -2) + (parts[3].endsWith('a') ? 'b' : 'a');
+    const ct = parts[3] ?? 'deadbeef';
+    parts[3] = ct.slice(0, -2) + (ct.endsWith('a') ? 'b' : 'a');
     const tampered = parts.join(':');
 
     expect(() => decrypt(tampered)).toThrow();

@@ -16,9 +16,15 @@ const SECRET_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   // Bearer Authorization Header tokens
   { pattern: /Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*/gi, replacement: 'Bearer [REDACTED_BEARER_TOKEN]' },
   // Database Connection URIs with passwords
-  { pattern: /(postgres|postgresql|mysql|mongodb):\/\/[^:\s]+:[^@\s]+@[^\s/]+/gi, replacement: '$1://[REDACTED_USER_PASSWORD]@[REDACTED_HOST]' },
+  {
+    pattern: /(postgres|postgresql|mysql|mongodb):\/\/[^:\s]+:[^@\s]+@[^\s/]+/gi,
+    replacement: '$1://[REDACTED_USER_PASSWORD]@[REDACTED_HOST]',
+  },
   // Private SSH / RSA Keys
-  { pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----/g, replacement: '[REDACTED_PRIVATE_KEY]' },
+  {
+    pattern: /-----BEGIN [A-Z ]+PRIVATE KEY-----[\s\S]*?-----END [A-Z ]+PRIVATE KEY-----/g,
+    replacement: '[REDACTED_PRIVATE_KEY]',
+  },
   // Generic password assignments in JSON/strings
   { pattern: /("password"\s*:\s*")[^"]+(")/gi, replacement: '$1[REDACTED_PASSWORD]$2' },
   { pattern: /("client_secret"\s*:\s*")[^"]+(")/gi, replacement: '$1[REDACTED_CLIENT_SECRET]$2' },

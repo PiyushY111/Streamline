@@ -78,7 +78,7 @@ export default function AgentStudioPage() {
       setProviderInfo(fetchedProvider);
 
       if (fetchedSessions.length > 0 && !selectedSessionId) {
-        setSelectedSessionId(fetchedSessions[0].id);
+        setSelectedSessionId(fetchedSessions[0]!.id);
       }
     } catch (err) {
       console.error('Failed to load agent studio initial data', err);

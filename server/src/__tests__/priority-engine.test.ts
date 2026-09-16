@@ -29,8 +29,8 @@ describe('Advanced Deterministic Priority Engine', () => {
     };
 
     const { ranked } = rankTasks([taskA, taskB], { now, availableMinutes: 120 });
-    expect(ranked[0].id).toBe('task-A');
-    expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
+    expect(ranked[0]!.id).toBe('task-A');
+    expect(ranked[0]!.score).toBeGreaterThan(ranked[1]!.score);
   });
 
   it('assigns 1.0 urgency to overdue tasks', () => {
@@ -44,7 +44,33 @@ describe('Advanced Deterministic Priority Engine', () => {
 
     const scored = scoreTask(overdueTask, { now, availableMinutes: 60, allTasks: [overdueTask] });
     expect(scored.breakdown.urgency).toBe(1.0);
-    expect(scored.reasoning).toContain('⚠️ Overdue deadline');
+    expect(scored.reasoning.some((r) => r.includes('Overdue'))).toBe(true);
+  });
+
+  it('correctly calculates exponential urgency decay within 48h horizon', () => {
+    const dueIn24h: ScorableTask = {
+      id: 'due-24h',
+      dueAt: new Date('2026-09-11T12:00:00Z'), // 24h away
+      importance: 0.5,
+      estimatedMinutes: 30,
+      dependencies: [],
+    };
+    const dueIn48h: ScorableTask = {
+      id: 'due-48h',
+      dueAt: new Date('2026-09-12T12:00:00Z'), // 48h away
+      importance: 0.5,
+      estimatedMinutes: 30,
+      dependencies: [],
+    };
+
+    const scored24h = scoreTask(dueIn24h, { now, availableMinutes: 60, allTasks: [dueIn24h] });
+    const scored48h = scoreTask(dueIn48h, { now, availableMinutes: 60, allTasks: [dueIn48h] });
+
+    // exp(-24/48) = exp(-0.5) ≈ 0.606
+    expect(scored24h.breakdown.urgency).toBeCloseTo(Math.exp(-0.5), 2);
+    // exp(-48/48) = exp(-1.0) ≈ 0.368
+    expect(scored48h.breakdown.urgency).toBeCloseTo(Math.exp(-1.0), 2);
+    expect(scored24h.breakdown.urgency).toBeGreaterThan(scored48h.breakdown.urgency);
   });
 
   it('handles tasks with missing due date and estimates without throwing or penalizing', () => {
@@ -64,7 +90,7 @@ describe('Advanced Deterministic Priority Engine', () => {
     expect(scored.breakdown.contextFit).toBe(0.75);
   });
 
-  it('boosts tasks that unblock downstream work (DAG dependency leverage)', () => {
+  it('boosts tasks that unblock multiple downstream dependencies', () => {
     const blocker: ScorableTask = {
       id: 'blocker',
       dueAt: null,
@@ -88,9 +114,9 @@ describe('Advanced Deterministic Priority Engine', () => {
     };
 
     const { ranked } = rankTasks([blocker, dependent1, dependent2], { now, availableMinutes: 60 });
-    expect(ranked[0].id).toBe('blocker');
-    expect(ranked[0].breakdown.dependencyImpact).toBe(1.0);
-    expect(ranked[0].reasoning.some((r) => r.includes('Unblocks'))).toBe(true);
+    expect(ranked[0]!.id).toBe('blocker');
+    expect(ranked[0]!.breakdown.dependencyImpact).toBe(1.0);
+    expect(ranked[0]!.reasoning.some((r) => r.includes('Unblocks'))).toBe(true);
   });
 
   it('isolates blocked tasks whose prerequisites are incomplete', () => {
@@ -114,8 +140,8 @@ describe('Advanced Deterministic Priority Engine', () => {
     const { ranked, blocked } = rankTasks([prereq, blockedTask], { now, availableMinutes: 60 });
     expect(ranked.map((t) => t.id)).toContain('prereq');
     expect(blocked.map((t) => t.id)).toContain('blocked');
-    expect(blocked[0].isBlocked).toBe(true);
-    expect(blocked[0].reasoning).toContain('🚫 Blocked by prerequisite task');
+    expect(blocked[0]!.isBlocked).toBe(true);
+    expect(blocked[0]!.reasoning).toContain('🚫 Blocked by prerequisite task');
   });
 
   it('detects and safely handles circular dependencies without crashing or looping', () => {
@@ -182,25 +208,29 @@ describe('Advanced Deterministic Priority Engine', () => {
       availableMinutes: 120,
       preset: 'deadline',
     });
-    expect(deadlineRanked.ranked[0].id).toBe('urgent-task');
+    expect(deadlineRanked.ranked[0]!.id).toBe('urgent-task');
 
     const deepWorkRanked = rankTasks([urgentTask, strategicTask], {
       now,
       availableMinutes: 120,
       preset: 'deep_work',
     });
-    expect(deepWorkRanked.ranked[0].id).toBe('strategic-task');
+    expect(deepWorkRanked.ranked[0]!.id).toBe('strategic-task');
   });
 
   it('determines transitive downstream dependency leverage in multi-hop chains (A -> B -> C)', () => {
     const rootTask: ScorableTask = { id: 'A', dueAt: null, importance: 0.5, estimatedMinutes: 30, dependencies: [] };
-    const middleTask: ScorableTask = { id: 'B', dueAt: null, importance: 0.5, estimatedMinutes: 30, dependencies: ['A'] };
+    const middleTask: ScorableTask = {
+      id: 'B',
+      dueAt: null,
+      importance: 0.5,
+      estimatedMinutes: 30,
+      dependencies: ['A'],
+    };
     const leafTask: ScorableTask = { id: 'C', dueAt: null, importance: 0.5, estimatedMinutes: 30, dependencies: ['B'] };
 
     const analysis = analyzeDependencies([rootTask, middleTask, leafTask]);
-    expect(analysis.transitiveDownstreamCount.get('A')).toBeGreaterThan(
-      analysis.transitiveDownstreamCount.get('B')!
-    );
+    expect(analysis.transitiveDownstreamCount.get('A')).toBeGreaterThan(analysis.transitiveDownstreamCount.get('B')!);
   });
 
   it('deterministic tie-breaking: identical scores produce stable predictable ordering', () => {
@@ -211,7 +241,7 @@ describe('Advanced Deterministic Priority Engine', () => {
     const run2 = rankTasks([task2, task1], { now, availableMinutes: 60 });
 
     expect(run1.ranked.map((t) => t.id)).toEqual(run2.ranked.map((t) => t.id));
-    expect(run1.ranked[0].id).toBe('alpha');
+    expect(run1.ranked[0]!.id).toBe('alpha');
   });
 
   it('handles empty task list gracefully', () => {

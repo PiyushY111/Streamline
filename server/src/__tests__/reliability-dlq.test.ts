@@ -49,7 +49,7 @@ describe('Reliability & Dead-Letter Queue (DLQ) Suite', () => {
           failedReason: 'Permanent API quota exceeded',
           attemptsMade: 3,
           data: { emailIds: ['e-1', 'e-2'] },
-        })
+        }),
       );
     });
   });
@@ -70,7 +70,7 @@ describe('Reliability & Dead-Letter Queue (DLQ) Suite', () => {
           maxRetries: 2,
           backoffBaseMs: 10,
           operationName: 'test-retry',
-        }
+        },
       );
 
       expect(callCount).toBe(2);
@@ -92,8 +92,8 @@ describe('Reliability & Dead-Letter Queue (DLQ) Suite', () => {
             maxRetries: 3,
             backoffBaseMs: 10,
             operationName: 'test-non-retryable',
-          }
-        )
+          },
+        ),
       ).rejects.toThrow('Bad Request Parameter');
 
       expect(callCount).toBe(1);

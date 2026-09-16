@@ -10,18 +10,18 @@ export interface ModelPricing {
 }
 
 export const MODEL_PRICING_TABLE: Record<string, ModelPricing> = {
-  'gemini-3.5-flash-lite': { promptPerMillion: 0.075, completionPerMillion: 0.30 },
-  'gemini-3.6-flash': { promptPerMillion: 0.10, completionPerMillion: 0.40 },
-  'gemini-3.1-flash-lite': { promptPerMillion: 0.075, completionPerMillion: 0.30 },
-  'gemini-3.7-flash': { promptPerMillion: 0.15, completionPerMillion: 0.60 },
-  'gemini-3.1-pro-preview': { promptPerMillion: 1.25, completionPerMillion: 5.00 },
+  'gemini-3.5-flash-lite': { promptPerMillion: 0.075, completionPerMillion: 0.3 },
+  'gemini-3.6-flash': { promptPerMillion: 0.1, completionPerMillion: 0.4 },
+  'gemini-3.1-flash-lite': { promptPerMillion: 0.075, completionPerMillion: 0.3 },
+  'gemini-3.7-flash': { promptPerMillion: 0.15, completionPerMillion: 0.6 },
+  'gemini-3.1-pro-preview': { promptPerMillion: 1.25, completionPerMillion: 5.0 },
 };
 
 // Default budget limits per user
 export const AI_BUDGET_LIMITS = {
-  DAILY_TOKEN_LIMIT: 250_000,        // 250,000 tokens / day
-  DAILY_COST_LIMIT_USD: 0.50,       // $0.50 / day per user
-  SINGLE_TURN_TOKEN_LIMIT: 50_000,   // 50,000 tokens max per single turn / invocation
+  DAILY_TOKEN_LIMIT: 250_000, // 250,000 tokens / day
+  DAILY_COST_LIMIT_USD: 0.5, // $0.50 / day per user
+  SINGLE_TURN_TOKEN_LIMIT: 50_000, // 50,000 tokens max per single turn / invocation
 };
 
 export type AiOperationType = 'triage' | 'reply_draft' | 'digest' | 'summary' | 'agent_turn' | 'tool_call';
@@ -30,8 +30,12 @@ export class AiCostGuardService {
   /**
    * Computes USD cost from token counts according to model pricing
    */
-  calculateCost(model: string, promptTokens: number, completionTokens: number): { costUsd: number; formattedCost: string } {
-    const pricing = MODEL_PRICING_TABLE[model] || { promptPerMillion: 0.10, completionPerMillion: 0.40 };
+  calculateCost(
+    model: string,
+    promptTokens: number,
+    completionTokens: number,
+  ): { costUsd: number; formattedCost: string } {
+    const pricing = MODEL_PRICING_TABLE[model] || { promptPerMillion: 0.1, completionPerMillion: 0.4 };
     const promptCost = (promptTokens / 1_000_000) * pricing.promptPerMillion;
     const completionCost = (completionTokens / 1_000_000) * pricing.completionPerMillion;
     const totalCost = promptCost + completionCost;
@@ -76,10 +80,7 @@ export class AiCostGuardService {
         estimatedCostUsd: formattedCost,
       });
 
-      logger.info(
-        { userId, model, operation, totalTokens, costUsd: formattedCost },
-        'AI Token Usage recorded'
-      );
+      logger.info({ userId, model, operation, totalTokens, costUsd: formattedCost }, 'AI Token Usage recorded');
 
       return { totalTokens, costUsd, formattedCost };
     } catch (rawErr: unknown) {
@@ -139,12 +140,7 @@ export class AiCostGuardService {
           totalCost: sql<string>`COALESCE(SUM(CAST(${aiTokenUsage.estimatedCostUsd} AS NUMERIC)), 0)`,
         })
         .from(aiTokenUsage)
-        .where(
-          and(
-            eq(aiTokenUsage.userId, userId),
-            gte(aiTokenUsage.createdAt, startOfDay)
-          )
-        );
+        .where(and(eq(aiTokenUsage.userId, userId), gte(aiTokenUsage.createdAt, startOfDay)));
 
       const tokensToday = Number(records[0]?.totalTokens || 0);
       const costTodayUsd = parseFloat(records[0]?.totalCost || '0');
@@ -228,11 +224,11 @@ export class AiCostGuardService {
 
     const triageCount = triageOp?.count || 0;
     const triageCost = parseFloat(triageOp?.cost || '0');
-    const costPerEmailTriage = triageCount > 0 ? (triageCost / triageCount) : 0.0001;
+    const costPerEmailTriage = triageCount > 0 ? triageCost / triageCount : 0.0001;
 
     const sessionTurnCount = sessionOp?.count || 0;
     const sessionCost = parseFloat(sessionOp?.cost || '0');
-    const costPerSession = sessionTurnCount > 0 ? (sessionCost / sessionTurnCount) : 0.0005;
+    const costPerSession = sessionTurnCount > 0 ? sessionCost / sessionTurnCount : 0.0005;
 
     const toolCallCount = toolOp?.count || 0;
     const toolTokens = Number(toolOp?.tokens || 0);
@@ -263,7 +259,8 @@ export class AiCostGuardService {
         tokensPerToolCall,
       },
       circuitBreaker: {
-        isTripped: tokensToday >= AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT || costTodayUsd >= AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD,
+        isTripped:
+          tokensToday >= AI_BUDGET_LIMITS.DAILY_TOKEN_LIMIT || costTodayUsd >= AI_BUDGET_LIMITS.DAILY_COST_LIMIT_USD,
       },
     };
   }

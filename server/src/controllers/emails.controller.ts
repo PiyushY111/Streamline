@@ -21,7 +21,7 @@ export const getEmailById = asyncHandler(async (req: AuthenticatedRequest, res: 
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const email = await emailsService.getEmailById(id, req.user.id);
   if (!email) {
     throw new NotFoundError('Email not found');
@@ -42,7 +42,7 @@ export const markEmailAsRead = asyncHandler(async (req: AuthenticatedRequest, re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const { isRead = true } = req.body;
   const updated = await emailsService.markAsRead(id, req.user.id, isRead);
   if (!updated) {
@@ -55,7 +55,7 @@ export const toggleStarEmail = asyncHandler(async (req: AuthenticatedRequest, re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const { isStarred = true } = req.body;
   const updated = await emailsService.toggleStar(id, req.user.id, isStarred);
   if (!updated) {
@@ -68,7 +68,7 @@ export const updateEmailCategory = asyncHandler(async (req: AuthenticatedRequest
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const { category } = req.body;
   const updated = await emailsService.updateCategory(id, req.user.id, category);
   if (!updated) {
@@ -81,7 +81,7 @@ export const deleteEmail = asyncHandler(async (req: AuthenticatedRequest, res: R
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   await emailsService.deleteEmail(id, req.user.id);
   res.json({ success: true, message: 'Email deleted successfully' });
 });

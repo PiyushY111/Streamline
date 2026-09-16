@@ -14,12 +14,15 @@ export class UsersRepository {
   }
 
   async create(data: { email: string; name?: string; passwordHash: string; avatar?: string }, executor: any = db) {
-    const [newUser] = await executor.insert(users).values({
-      email: data.email.toLowerCase().trim(),
-      name: data.name,
-      passwordHash: data.passwordHash,
-      avatar: data.avatar,
-    }).returning();
+    const [newUser] = await executor
+      .insert(users)
+      .values({
+        email: data.email.toLowerCase().trim(),
+        name: data.name,
+        passwordHash: data.passwordHash,
+        avatar: data.avatar,
+      })
+      .returning();
     return newUser;
   }
 }

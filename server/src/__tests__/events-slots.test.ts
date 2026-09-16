@@ -44,13 +44,13 @@ describe('Events Repository - Smart Free Slots', () => {
     });
 
     expect(slots.length).toBe(2);
-    expect(slots[0].durationMinutes).toBe(50);
-    expect(slots[0].start.toISOString()).toBe('2026-09-09T10:00:00.000Z');
-    expect(slots[0].end.toISOString()).toBe('2026-09-09T10:50:00.000Z');
+    expect(slots[0]!.durationMinutes).toBe(50);
+    expect(slots[0]!.start.toISOString()).toBe('2026-09-09T10:00:00.000Z');
+    expect(slots[0]!.end.toISOString()).toBe('2026-09-09T10:50:00.000Z');
 
-    expect(slots[1].durationMinutes).toBe(110);
-    expect(slots[1].start.toISOString()).toBe('2026-09-09T12:10:00.000Z');
-    expect(slots[1].end.toISOString()).toBe('2026-09-09T14:00:00.000Z');
+    expect(slots[1]!.durationMinutes).toBe(110);
+    expect(slots[1]!.start.toISOString()).toBe('2026-09-09T12:10:00.000Z');
+    expect(slots[1]!.end.toISOString()).toBe('2026-09-09T14:00:00.000Z');
   });
 
   it('merges overlapping meetings and buffers properly', async () => {
@@ -89,7 +89,7 @@ describe('Events Repository - Smart Free Slots', () => {
     });
 
     expect(slots.length).toBe(2);
-    expect(slots[0].durationMinutes).toBe(20);
-    expect(slots[1].durationMinutes).toBe(50);
+    expect(slots[0]!.durationMinutes).toBe(20);
+    expect(slots[1]!.durationMinutes).toBe(50);
   });
 });

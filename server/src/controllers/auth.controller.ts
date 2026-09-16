@@ -80,7 +80,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       .where(eq(connectedAccounts.userId, result.user.id))
       .then((accounts) => {
         for (const acc of accounts) {
-          accountSyncQueue.add('sync-account', { accountId: acc.id }, { jobId: `account-sync-${acc.id}` }).catch(() => {});
+          accountSyncQueue
+            .add('sync-account', { accountId: acc.id }, { jobId: `account-sync-${acc.id}` })
+            .catch(() => {});
         }
       })
       .catch(() => {});

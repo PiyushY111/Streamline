@@ -8,7 +8,9 @@ export const memories = pgTable(
   'memories',
   {
     id: uuid('id').defaultRandom().primaryKey(),
-    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull(),
     type: text('type').notNull(), // 'preference' | 'decision' | 'project_fact'
     content: text('content').notNull(),
     sourceRef: text('source_ref'), // 'agent_session:<uuid>', 'pending_action:<uuid>', or 'explicit_user_request'
@@ -26,5 +28,5 @@ export const memories = pgTable(
     userModelVersionIdx: index('memories_user_model_version_idx').on(table.userId, table.embeddingModelVersion),
     typeCheck: check('memories_type_valid', sql`${table.type} IN ('preference', 'decision', 'project_fact')`),
     statusCheck: check('memories_status_valid', sql`${table.status} IN ('active', 'superseded', 'archived')`),
-  })
+  }),
 );

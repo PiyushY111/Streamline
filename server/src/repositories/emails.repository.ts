@@ -164,9 +164,7 @@ export class EmailsRepository {
     const accountIds = await this.getUserAccountIds(userId);
     if (accountIds.length === 0) return { rowCount: 0 };
 
-    return db
-      .delete(emails)
-      .where(and(eq(emails.id, id), inArray(emails.accountId, accountIds)));
+    return db.delete(emails).where(and(eq(emails.id, id), inArray(emails.accountId, accountIds)));
   }
 
   async createSentEmail(data: {
@@ -193,8 +191,9 @@ export class EmailsRepository {
         .from(connectedAccounts)
         .where(eq(connectedAccounts.userId, data.userId))
         .limit(1);
-      if (userAccounts.length > 0) {
-        accountId = userAccounts[0].id;
+      const firstAcc = userAccounts[0];
+      if (firstAcc) {
+        accountId = firstAcc.id;
       }
     }
 
@@ -204,11 +203,7 @@ export class EmailsRepository {
 
     const extId = data.externalMessageId || `sent_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-    let [thread] = await db
-      .select()
-      .from(emailThreads)
-      .where(eq(emailThreads.accountId, accountId))
-      .limit(1);
+    let [thread] = await db.select().from(emailThreads).where(eq(emailThreads.accountId, accountId)).limit(1);
 
     if (!thread) {
       [thread] = await db
@@ -221,6 +216,10 @@ export class EmailsRepository {
           lastMessageAt: new Date(),
         })
         .returning();
+    }
+
+    if (!thread) {
+      throw new Error('Failed to create or resolve email thread');
     }
 
     const [sentEmail] = await db

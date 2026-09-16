@@ -42,11 +42,9 @@ export const handleGmailPushWebhook = async (req: Request, res: Response): Promi
     }
 
     // Process push in background and respond immediately with 200 OK
-    googlePubSubService
-      .handlePubSubPush(payload)
-      .catch((err) => {
-        logger.error({ err: err.message, payload }, 'Error processing Pub/Sub push notification');
-      });
+    googlePubSubService.handlePubSubPush(payload).catch((err) => {
+      logger.error({ err: err.message, payload }, 'Error processing Pub/Sub push notification');
+    });
 
     res.status(200).json({ received: true });
   } catch (rawErr: unknown) {

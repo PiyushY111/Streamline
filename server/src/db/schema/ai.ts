@@ -45,23 +45,30 @@ export interface DigestActionSummary {
 }
 
 // 1. User AI Configuration & Scheduled Digest Preferences
-export const userAiPreferences = pgTable('user_ai_preferences', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull()
-    .unique(),
-  digestTime: time('digest_time').default('08:00:00').notNull(), // User's preferred digest hour (HH:MM:SS)
-  digestTimezone: text('digest_timezone').default('UTC').notNull(),
-  digestDeliveryMode: text('digest_delivery_mode').default('in_app').notNull(), // 'in_app' | 'email' | 'both'
-  isAutoTriageEnabled: boolean('is_auto_triage_enabled').default(true).notNull(),
-  vipSenders: jsonb('vip_senders').$type<string[]>().default([]).notNull(), // Senders automatically prioritized as P1
-  customInstructions: text('custom_instructions'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
-  deliveryModeCheck: check('user_ai_preferences_delivery_mode_valid', sql`${table.digestDeliveryMode} IN ('in_app', 'email', 'both')`),
-}));
+export const userAiPreferences = pgTable(
+  'user_ai_preferences',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .references(() => users.id, { onDelete: 'cascade' })
+      .notNull()
+      .unique(),
+    digestTime: time('digest_time').default('08:00:00').notNull(), // User's preferred digest hour (HH:MM:SS)
+    digestTimezone: text('digest_timezone').default('UTC').notNull(),
+    digestDeliveryMode: text('digest_delivery_mode').default('in_app').notNull(), // 'in_app' | 'email' | 'both'
+    isAutoTriageEnabled: boolean('is_auto_triage_enabled').default(true).notNull(),
+    vipSenders: jsonb('vip_senders').$type<string[]>().default([]).notNull(), // Senders automatically prioritized as P1
+    customInstructions: text('custom_instructions'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => ({
+    deliveryModeCheck: check(
+      'user_ai_preferences_delivery_mode_valid',
+      sql`${table.digestDeliveryMode} IN ('in_app', 'email', 'both')`,
+    ),
+  }),
+);
 
 // 2. Email AI Metadata (Triage, Priority & Extracted Intelligence)
 export const emailAiMetadata = pgTable(
@@ -90,10 +97,19 @@ export const emailAiMetadata = pgTable(
     threadIdx: index('email_ai_metadata_thread_idx').on(table.threadId),
     priorityIdx: index('email_ai_metadata_priority_idx').on(table.priority),
     categoryIdx: index('email_ai_metadata_category_idx').on(table.category),
-    priorityCheck: check('email_ai_metadata_priority_valid', sql`${table.priority} IN ('p1_urgent', 'p2_important', 'p3_updates', 'p4_newsletter', 'p5_low')`),
-    urgencyCheck: check('email_ai_metadata_urgency_range', sql`${table.urgencyScore} >= 1 AND ${table.urgencyScore} <= 100`),
-    categoryCheck: check('email_ai_metadata_category_valid', sql`${table.category} IN ('action_required', 'direct', 'notification', 'newsletter', 'promotional')`),
-  })
+    priorityCheck: check(
+      'email_ai_metadata_priority_valid',
+      sql`${table.priority} IN ('p1_urgent', 'p2_important', 'p3_updates', 'p4_newsletter', 'p5_low')`,
+    ),
+    urgencyCheck: check(
+      'email_ai_metadata_urgency_range',
+      sql`${table.urgencyScore} >= 1 AND ${table.urgencyScore} <= 100`,
+    ),
+    categoryCheck: check(
+      'email_ai_metadata_category_valid',
+      sql`${table.category} IN ('action_required', 'direct', 'notification', 'newsletter', 'promotional')`,
+    ),
+  }),
 );
 
 // 3. Generated Daily Digests
@@ -114,7 +130,7 @@ export const dailyDigests = pgTable(
   },
   (table) => ({
     userDigestIdx: index('daily_digests_user_idx').on(table.userId, table.digestDate),
-  })
+  }),
 );
 
 // 4. AI Token Usage, Cost Tracking & Circuit Breaker Records
@@ -136,5 +152,5 @@ export const aiTokenUsage = pgTable(
   (table) => ({
     userTokenIdx: index('ai_token_usage_user_idx').on(table.userId, table.createdAt),
     operationIdx: index('ai_token_usage_operation_idx').on(table.operation),
-  })
+  }),
 );

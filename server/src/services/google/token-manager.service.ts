@@ -57,11 +57,7 @@ export class GoogleTokenManager {
   }
 
   private async resolveClient(accountId: string): Promise<AuthenticatedClientResult | null> {
-    const [account] = await db
-      .select()
-      .from(connectedAccounts)
-      .where(eq(connectedAccounts.id, accountId))
-      .limit(1);
+    const [account] = await db.select().from(connectedAccounts).where(eq(connectedAccounts.id, accountId)).limit(1);
 
     if (!account) {
       logger.warn({ accountId }, 'Account not found when obtaining OAuth2 client');
@@ -99,28 +95,28 @@ export class GoogleTokenManager {
   private async executeTokenRefresh(
     account: typeof connectedAccounts.$inferSelect,
     oauth2Client: OAuth2Client,
-    refreshToken: string
+    refreshToken: string,
   ): Promise<AuthenticatedClientResult> {
     const accountId = account.id;
-    logger.info({ accountId, email: account.email }, 'Google OAuth access token expired or expiring soon. Refreshing...');
+    logger.info(
+      { accountId, email: account.email },
+      'Google OAuth access token expired or expiring soon. Refreshing...',
+    );
 
     try {
-      const { credentials } = await withRetryAndTimeout(
-        async () => oauth2Client.refreshAccessToken(),
-        {
-          timeoutMs: 10000,
-          maxRetries: 2,
-          backoffBaseMs: 500,
-          operationName: `google_oauth_refresh_${accountId}`,
-          shouldRetry: (err) => {
-            const msg = toError(err).message.toLowerCase();
-            if (msg.includes('invalid_grant') || msg.includes('revoked')) {
-              return false;
-            }
-            return true;
-          },
-        }
-      );
+      const { credentials } = await withRetryAndTimeout(async () => oauth2Client.refreshAccessToken(), {
+        timeoutMs: 10000,
+        maxRetries: 2,
+        backoffBaseMs: 500,
+        operationName: `google_oauth_refresh_${accountId}`,
+        shouldRetry: (err) => {
+          const msg = toError(err).message.toLowerCase();
+          if (msg.includes('invalid_grant') || msg.includes('revoked')) {
+            return false;
+          }
+          return true;
+        },
+      });
 
       if (credentials.access_token) {
         oauth2Client.setCredentials(credentials);
@@ -128,9 +124,7 @@ export class GoogleTokenManager {
         const newExpiresAt = new Date(credentials.expiry_date || Date.now() + 3600 * 1000);
 
         // Also update refresh token if Google rotated it
-        const newEncryptedRefresh = credentials.refresh_token
-          ? encrypt(credentials.refresh_token)
-          : undefined;
+        const newEncryptedRefresh = credentials.refresh_token ? encrypt(credentials.refresh_token) : undefined;
 
         await db
           .update(connectedAccounts)
@@ -164,12 +158,7 @@ export class GoogleTokenManager {
       const errString = refreshErr.message;
       const status = (rawRefreshErr as { status?: number })?.status;
 
-      if (
-        errString.includes('invalid_grant') ||
-        errString.includes('revoked') ||
-        status === 400 ||
-        status === 401
-      ) {
+      if (errString.includes('invalid_grant') || errString.includes('revoked') || status === 400 || status === 401) {
         logger.warn({ accountId }, 'Detected revoked or invalid Google OAuth grant. Marking account as error');
 
         await db

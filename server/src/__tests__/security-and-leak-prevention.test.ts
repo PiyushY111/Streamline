@@ -61,7 +61,7 @@ describe('Security & Zero-Memory-Leak Invariants Suite', () => {
       const invalid1 = memoryIdParamSchema.safeParse({ id: 'non-uuid-string' });
       expect(invalid1.success).toBe(false);
 
-      const invalid2 = memoryIdParamSchema.safeParse({ id: "1; DROP TABLE memories;--" });
+      const invalid2 = memoryIdParamSchema.safeParse({ id: '1; DROP TABLE memories;--' });
       expect(invalid2.success).toBe(false);
     });
   });
@@ -70,7 +70,7 @@ describe('Security & Zero-Memory-Leak Invariants Suite', () => {
     it('should safely record audit log without throwing Postgres 22P02 error for non-UUID test user', async () => {
       // Should not throw an unhandled rejection
       await expect(
-        auditService.logAction('mock-test-user-id', 'auth.test_action', { test: true })
+        auditService.logAction('mock-test-user-id', 'auth.test_action', { test: true }),
       ).resolves.toBeUndefined();
     });
   });

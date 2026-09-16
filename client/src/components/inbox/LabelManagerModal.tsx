@@ -36,7 +36,7 @@ export function LabelManagerModal({
   assignedLabelIds = [],
 }: LabelManagerModalProps) {
   const [newLabelName, setNewLabelName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(COLOR_PALETTE[0]);
+  const [selectedColor, setSelectedColor] = useState(COLOR_PALETTE[0] ?? '#3b82f6');
   const [isCreating, setIsCreating] = useState(false);
 
   if (!isOpen) return null;

@@ -108,4 +108,3 @@ export interface AiProvider {
    */
   chatWithTools(options: AiChatTurnOptions): Promise<AiChatTurnResponse>;
 }
-

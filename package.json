@@ -8,6 +8,8 @@
     "dev:server": "npm --prefix server run dev",
     "build": "npm --prefix server run build && npm --prefix client run build",
     "type-check": "npm --prefix server run type-check && npm --prefix client run type-check",
+    "lint": "npm --prefix server run lint && npm --prefix client run lint",
+    "format:check": "npx prettier --check \"server/src/**/*.{ts,js}\" \"client/src/**/*.{ts,tsx}\"",
     "test": "npm --prefix server run test",
     "eval": "npm --prefix server run eval"
 

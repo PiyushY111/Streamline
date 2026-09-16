@@ -19,7 +19,7 @@ export const entities = pgTable(
     userIdx: index('entities_user_idx').on(table.userId),
     userTypeIdx: index('entities_user_type_idx').on(table.userId, table.type),
     nameIdx: index('entities_name_idx').on(table.name),
-  })
+  }),
 );
 
 export const entityRelations = pgTable(
@@ -44,5 +44,5 @@ export const entityRelations = pgTable(
   (table) => ({
     userHopsIdx: index('entity_relations_hops_idx').on(table.userId, table.fromEntityId, table.toEntityId),
     relationTypeIdx: index('entity_relations_type_idx').on(table.relationType),
-  })
+  }),
 );

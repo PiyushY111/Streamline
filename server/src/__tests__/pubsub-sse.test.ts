@@ -38,17 +38,18 @@ describe('Server-Sent Events (SSE) Service', () => {
     const userId = 'user-sse-test-1';
     sseService.addClient(userId, mockRes);
 
-    expect(mockRes.writeHead).toHaveBeenCalledWith(200, expect.objectContaining({
-      'Content-Type': 'text/event-stream',
-    }));
+    expect(mockRes.writeHead).toHaveBeenCalledWith(
+      200,
+      expect.objectContaining({
+        'Content-Type': 'text/event-stream',
+      }),
+    );
     expect(mockRes.write).toHaveBeenCalledWith(expect.stringContaining(': connected'));
 
     // Emit event
     sseService.emitToUser(userId, 'email.received', { test: true });
 
-    expect(mockRes.write).toHaveBeenCalledWith(
-      'event: email.received\ndata: {"test":true}\n\n'
-    );
+    expect(mockRes.write).toHaveBeenCalledWith('event: email.received\ndata: {"test":true}\n\n');
   });
 });
 
@@ -81,11 +82,15 @@ describe('Google PubSub Service', () => {
 
     expect(result.synced).toBe(true);
     expect(result.accountId).toBe('acc-pubsub-123');
-    expect(emitSpy).toHaveBeenCalledWith('user-pubsub-456', 'email.received', expect.objectContaining({
-      accountId: 'acc-pubsub-123',
-      emailAddress: 'test@example.com',
-      historyId: '99999',
-    }));
+    expect(emitSpy).toHaveBeenCalledWith(
+      'user-pubsub-456',
+      'email.received',
+      expect.objectContaining({
+        accountId: 'acc-pubsub-123',
+        emailAddress: 'test@example.com',
+        historyId: '99999',
+      }),
+    );
   });
 
   it('should safely ignore push notification if account is not found', async () => {

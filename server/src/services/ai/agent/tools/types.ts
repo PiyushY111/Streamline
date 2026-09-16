@@ -12,4 +12,3 @@ export interface ToolDefinition<TArgs = any, TResult = any> {
   generateImpactPreview: (args: TArgs) => Record<string, unknown>;
   execute: (userId: string, args: TArgs) => Promise<TResult>;
 }
-

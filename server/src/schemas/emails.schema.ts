@@ -14,7 +14,7 @@ export const sendEmailSchema = z.object({
         mimeType: z.string(),
         size: z.number().optional(),
         content: z.string().optional(),
-      })
+      }),
     )
     .optional(),
 });

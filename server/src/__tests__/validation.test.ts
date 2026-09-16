@@ -82,7 +82,7 @@ describe('Zod Request Validation Schemas', () => {
           title: '',
           startTime: new Date().toISOString(),
           endTime: new Date().toISOString(),
-        })
+        }),
       ).toThrow();
     });
 
@@ -101,7 +101,7 @@ describe('Zod Request Validation Schemas', () => {
         createTaskSchema.parse({
           title: 'Task',
           priority: 'urgent' as any,
-        })
+        }),
       ).toThrow();
     });
   });

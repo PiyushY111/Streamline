@@ -21,8 +21,9 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
     const msg = error.message.toLowerCase();
 
     // Check for HTTP status codes commonly retryable
-    const status = (err as { status?: number; statusCode?: number })?.status ||
-                   (err as { status?: number; statusCode?: number })?.statusCode;
+    const status =
+      (err as { status?: number; statusCode?: number })?.status ||
+      (err as { status?: number; statusCode?: number })?.statusCode;
     if (status && (status === 429 || status >= 500)) {
       return true;
     }
@@ -55,7 +56,7 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
  */
 export async function withRetryAndTimeout<T>(
   operation: (signal: AbortSignal) => Promise<T>,
-  options: RetryOptions = {}
+  options: RetryOptions = {},
 ): Promise<T> {
   const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
   let attempt = 0;
@@ -87,7 +88,7 @@ export async function withRetryAndTimeout<T>(
             isRetryable,
             err: err.message,
           },
-          `External operation failed permanently`
+          `External operation failed permanently`,
         );
         throw err;
       }
@@ -104,7 +105,7 @@ export async function withRetryAndTimeout<T>(
           nextRetryInMs: Math.round(delay),
           err: err.message,
         },
-        `External operation failed, retrying with backoff`
+        `External operation failed, retrying with backoff`,
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));

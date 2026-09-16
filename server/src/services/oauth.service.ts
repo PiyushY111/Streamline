@@ -37,7 +37,7 @@ export class OAuthService {
       userId,
       providerAccountId: profile.id,
       email: profile.email,
-      label: profile.email.split('@')[0],
+      label: profile.email ? (profile.email.split('@')[0] ?? profile.email) : 'Google Account',
       color: '#3b82f6',
       accessToken: encryptedAccess,
       refreshToken: encryptedRefresh,
@@ -46,9 +46,12 @@ export class OAuthService {
       avatar: profile.picture,
     });
 
+    if (!account) {
+      throw new Error('Failed to upsert connected account record');
+    }
 
     // Trigger initial background sync asynchronously
-    syncGoogleAccountData(account.id).catch(err => {
+    syncGoogleAccountData(account.id).catch((err) => {
       logger.error({ err, accountId: account.id }, 'Initial background sync after OAuth callback failed');
     });
 

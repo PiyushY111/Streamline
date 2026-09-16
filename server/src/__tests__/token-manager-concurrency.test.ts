@@ -69,7 +69,7 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
     // Fire 25 concurrent callers simultaneously
     const CONCURRENT_CALLERS = 25;
     const concurrentRequests = Array.from({ length: CONCURRENT_CALLERS }, () =>
-      googleTokenManager.getValidOAuth2Client(mockAccountId)
+      googleTokenManager.getValidOAuth2Client(mockAccountId),
     );
 
     const results = await Promise.all(concurrentRequests);
@@ -91,7 +91,7 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
       expect.objectContaining({
         accessToken: 'encrypted-new-access-token',
         status: 'active',
-      })
+      }),
     );
   });
 
@@ -132,7 +132,7 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
 
     // Fire 5 concurrent requests that will fail
     const concurrentCalls = Array.from({ length: 5 }, () =>
-      googleTokenManager.getValidOAuth2Client('error-account-id')
+      googleTokenManager.getValidOAuth2Client('error-account-id'),
     );
 
     const results = await Promise.all(concurrentCalls);

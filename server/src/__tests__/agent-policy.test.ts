@@ -30,30 +30,31 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       expect(outcome.kind).toBe('executed');
       if (outcome.kind === 'executed') {
         expect(outcome.result).toEqual(
-          expect.arrayContaining([expect.objectContaining({ id: 't-1', title: 'Test Task' })])
+          expect.arrayContaining([expect.objectContaining({ id: 't-1', title: 'Test Task' })]),
         );
       }
-      expect(auditService.logAction).toHaveBeenCalledWith(
-        'user-1',
-        'agent.tool.read.get_tasks',
-        expect.any(Object)
-      );
+      expect(auditService.logAction).toHaveBeenCalledWith('user-1', 'agent.tool.read.get_tasks', expect.any(Object));
     });
 
     it('strictly queues WRITE tools into pending_actions and NEVER executes inline', async () => {
       const mockPendingId = 'pending-action-uuid-1';
-      const mockInsertReturning = [{
-        id: mockPendingId,
-        userId: 'user-1',
-        toolName: 'create_task',
-        status: 'pending',
-      }];
+      const mockInsertReturning = [
+        {
+          id: mockPendingId,
+          userId: 'user-1',
+          toolName: 'create_task',
+          status: 'pending',
+        },
+      ];
 
-      vi.spyOn(db, 'insert').mockImplementation(() => ({
-        values: () => ({
-          returning: vi.fn().mockResolvedValue(mockInsertReturning),
-        }),
-      } as any));
+      vi.spyOn(db, 'insert').mockImplementation(
+        () =>
+          ({
+            values: () => ({
+              returning: vi.fn().mockResolvedValue(mockInsertReturning),
+            }),
+          }) as any,
+      );
       vi.spyOn(auditService, 'logAction').mockResolvedValue(undefined as any);
       const createSpy = vi.spyOn(tasksRepository, 'create');
 
@@ -79,22 +80,27 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       expect(auditService.logAction).toHaveBeenCalledWith(
         'user-1',
         'agent.tool.queued.create_task',
-        expect.objectContaining({ pendingActionId: mockPendingId })
+        expect.objectContaining({ pendingActionId: mockPendingId }),
       );
     });
 
     it('strictly queues SEND tools (e.g. send_email) into pending_actions', async () => {
       const mockPendingId = 'pending-email-uuid-2';
-      vi.spyOn(db, 'insert').mockImplementation(() => ({
-        values: () => ({
-          returning: vi.fn().mockResolvedValue([{
-            id: mockPendingId,
-            userId: 'user-1',
-            toolName: 'send_email',
-            status: 'pending',
-          }]),
-        }),
-      } as any));
+      vi.spyOn(db, 'insert').mockImplementation(
+        () =>
+          ({
+            values: () => ({
+              returning: vi.fn().mockResolvedValue([
+                {
+                  id: mockPendingId,
+                  userId: 'user-1',
+                  toolName: 'send_email',
+                  status: 'pending',
+                },
+              ]),
+            }),
+          }) as any,
+      );
       vi.spyOn(auditService, 'logAction').mockResolvedValue(undefined as any);
 
       const outcome = await enforcePolicy('user-1', 'session-1', {
@@ -194,13 +200,13 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         expect.objectContaining({
           userId: 'user-1',
           title: 'Approved Task',
-        })
+        }),
       );
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'executed',
           idempotencyKey: 'idem-1',
-        })
+        }),
       );
     });
 
@@ -213,9 +219,9 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         }),
       } as any);
 
-      await expect(
-        executeApprovedAction('hacker-user-99', 'action-101')
-      ).rejects.toThrow('Pending action not found or not owned by user');
+      await expect(executeApprovedAction('hacker-user-99', 'action-101')).rejects.toThrow(
+        'Pending action not found or not owned by user',
+      );
     });
 
     it('rejects approval if action is already resolved (e.g. executed or rejected)', async () => {
@@ -236,9 +242,9 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         }),
       } as any);
 
-      await expect(
-        executeApprovedAction('user-1', 'action-101')
-      ).rejects.toThrow('Action already resolved with status: "executed"');
+      await expect(executeApprovedAction('user-1', 'action-101')).rejects.toThrow(
+        'Action already resolved with status: "executed"',
+      );
     });
 
     it('rejects approval if action has expired (> 24h TTL)', async () => {
@@ -263,9 +269,7 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         set: setMock,
       } as any);
 
-      await expect(
-        executeApprovedAction('user-1', 'action-101')
-      ).rejects.toThrow('This pending action has expired');
+      await expect(executeApprovedAction('user-1', 'action-101')).rejects.toThrow('This pending action has expired');
       expect(setMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'expired' }));
     });
 
@@ -293,15 +297,13 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         set: setMock,
       } as any);
 
-      await expect(
-        executeApprovedAction('user-1', 'action-fail')
-      ).rejects.toThrow('Database foreign key failure');
+      await expect(executeApprovedAction('user-1', 'action-fail')).rejects.toThrow('Database foreign key failure');
 
       expect(setMock).toHaveBeenCalledWith(
         expect.objectContaining({
           status: 'failed',
           errorJson: expect.objectContaining({ message: 'Database foreign key failure' }),
-        })
+        }),
       );
     });
 
@@ -351,7 +353,7 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       } as any);
 
       await expect(
-        executeApprovedAction('user-1', 'action-mismatch', { idempotencyKey: 'different-key' })
+        executeApprovedAction('user-1', 'action-mismatch', { idempotencyKey: 'different-key' }),
       ).rejects.toThrow('Idempotency key mismatch.');
     });
   });
@@ -384,11 +386,11 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       vi.spyOn(auditService, 'logAction').mockResolvedValue(undefined as any);
 
       const rejected = await rejectAction('user-1', 'act-rej');
-      expect(rejected.status).toBe('rejected');
+      expect(rejected?.status).toBe('rejected');
       expect(auditService.logAction).toHaveBeenCalledWith(
         'user-1',
         'agent.tool.rejected',
-        expect.objectContaining({ pendingActionId: 'act-rej' })
+        expect.objectContaining({ pendingActionId: 'act-rej' }),
       );
     });
   });
@@ -400,11 +402,7 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
         reason: 'Daily token budget exceeded',
       } as any);
 
-      const result = await agentOrchestratorService.runAgentTurn(
-        'user-1',
-        'session-1',
-        'Hello copilot'
-      );
+      const result = await agentOrchestratorService.runAgentTurn('user-1', 'session-1', 'Hello copilot');
 
       expect(result.text).toContain('budget limit reached');
       expect(result.pendingActions).toHaveLength(0);
@@ -412,7 +410,11 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
 
     it('terminates loop cleanly and does not loop infinitely when tool calls persist', async () => {
       vi.spyOn(aiCostGuardService, 'checkCircuitBreaker').mockResolvedValue({ isTripped: false } as any);
-      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue({ totalTokens: 10, costUsd: 0.00001, formattedCost: '0.000010' });
+      vi.spyOn(aiCostGuardService, 'recordUsage').mockResolvedValue({
+        totalTokens: 10,
+        costUsd: 0.00001,
+        formattedCost: '0.000010',
+      });
 
       // Mock session exists and message history
       vi.spyOn(db, 'select').mockReturnValue({
@@ -458,11 +460,7 @@ describe('Agent Policy Engine & Human-in-the-Loop Safeguards', () => {
       vi.spyOn(tasksRepository, 'listUserTasks').mockResolvedValue([]);
       vi.spyOn(auditService, 'logAction').mockResolvedValue(undefined as any);
 
-      const response = await agentOrchestratorService.runAgentTurn(
-        'user-1',
-        'session-1',
-        'What are my tasks?'
-      );
+      const response = await agentOrchestratorService.runAgentTurn('user-1', 'session-1', 'What are my tasks?');
 
       // Must terminate gracefully after MAX_TOOL_TURNS (5)
       expect(response).toBeDefined();

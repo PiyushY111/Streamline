@@ -45,7 +45,7 @@ describe('Linguistic Style Profiler Service', () => {
     expect(promptSection).toContain('Preferred Greeting: Start with "Hey"');
     expect(promptSection).toContain('Preferred Sign-off: Conclude with "Cheers,"');
     expect(promptSection).toContain('Use short bullet points when enumerating action items');
-    expect(promptSection).toContain('Example 1 from User\'s Sent History');
+    expect(promptSection).toContain("Example 1 from User's Sent History");
     expect(promptSection).toContain('Hey team, please review the PR attached. Cheers!');
   });
 });

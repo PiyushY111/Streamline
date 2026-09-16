@@ -97,7 +97,10 @@ export class GooglePubSubService {
       timestamp: new Date().toISOString(),
     });
 
-    logger.info({ accountId: account.id, userId: account.userId }, 'Real-time push sync completed and SSE event emitted');
+    logger.info(
+      { accountId: account.id, userId: account.userId },
+      'Real-time push sync completed and SSE event emitted',
+    );
     return { synced: true, accountId: account.id };
   }
 }

@@ -20,32 +20,32 @@ export interface PriorityWeights {
 
 export const PRESET_WEIGHTS: Record<PriorityPreset, PriorityWeights> = {
   balanced: {
-    urgency: 0.30,
+    urgency: 0.3,
     importance: 0.25,
-    deadlineProximity: 0.20,
+    deadlineProximity: 0.2,
     dependencyImpact: 0.15,
-    contextFit: 0.10,
+    contextFit: 0.1,
   },
   deadline: {
     urgency: 0.45,
-    importance: 0.10,
+    importance: 0.1,
     deadlineProximity: 0.35,
     dependencyImpact: 0.05,
     contextFit: 0.05,
   },
   deep_work: {
     urgency: 0.15,
-    importance: 0.40,
-    deadlineProximity: 0.10,
+    importance: 0.4,
+    deadlineProximity: 0.1,
     dependencyImpact: 0.25,
-    contextFit: 0.10,
+    contextFit: 0.1,
   },
   quick_wins: {
-    urgency: 0.20,
+    urgency: 0.2,
     importance: 0.25,
-    deadlineProximity: 0.10,
+    deadlineProximity: 0.1,
     dependencyImpact: 0.05,
-    contextFit: 0.40,
+    contextFit: 0.4,
   },
 };
 
@@ -97,11 +97,7 @@ export function computeUrgency(dueAt: Date | null, now: Date): number {
  * Compares estimated effort against remaining time until deadline.
  * Missing estimate or due date: 0.5 (neutral default).
  */
-export function computeDeadlineProximity(
-  dueAt: Date | null,
-  estimatedMinutes: number | null,
-  now: Date
-): number {
+export function computeDeadlineProximity(dueAt: Date | null, estimatedMinutes: number | null, now: Date): number {
   if (!dueAt || !estimatedMinutes || estimatedMinutes <= 0) return 0.5;
   const minutesRemaining = (dueAt.getTime() - now.getTime()) / (1000 * 60);
   if (minutesRemaining <= 0) return 1;
@@ -116,10 +112,7 @@ export function computeDeadlineProximity(
  * <= available: 1.0
  * > available: proportional penalty with partial credit for near-fits.
  */
-export function computeContextFit(
-  estimatedMinutes?: number | null,
-  availableMinutes?: number | null
-): number {
+export function computeContextFit(estimatedMinutes?: number | null, availableMinutes?: number | null): number {
   if (availableMinutes === undefined || availableMinutes === null) return 1.0;
   if (availableMinutes <= 0) return 0;
   if (!estimatedMinutes || estimatedMinutes <= 0) return 0.75;
@@ -316,7 +309,7 @@ export function scoreTask(task: ScorableTask, ctx: PriorityContext): ScoredTask 
  */
 export function rankTasks(
   tasks: ScorableTask[],
-  ctx: Omit<PriorityContext, 'allTasks' | 'depAnalysis'>
+  ctx: Omit<PriorityContext, 'allTasks' | 'depAnalysis'>,
 ): {
   ranked: ScoredTask[];
   blocked: ScoredTask[];
@@ -357,7 +350,17 @@ export function rankTasks(
 export type RankedTask = ScoredTask;
 export const WEIGHT_PRESETS = PRESET_WEIGHTS;
 
+import { Result, Ok, Err, tryCatch } from '../utils/result.js';
+
 export const priorityEngine = {
+  /**
+   * Deterministically ranks a collection of scorable tasks based on multi-factor weighted urgency,
+   * importance, deadline proximity, dependency leverage, and context focus fit.
+   *
+   * @param tasks List of candidate tasks to score and rank
+   * @param options Weight configuration, preset mode, focus duration, and anchor timestamp
+   * @returns Stable sorted list of scored tasks in descending priority order
+   */
   rankTasks: (
     tasks: ScorableTask[],
     options: {
@@ -365,8 +368,8 @@ export const priorityEngine = {
       preset?: PriorityPreset;
       availableMinutes?: number;
       now?: Date;
-    } = {}
-  ) => {
+    } = {},
+  ): ScoredTask[] => {
     const preset = options.preset || 'balanced';
     const weights = { ...PRESET_WEIGHTS[preset], ...(options.weights || {}) };
     const res = rankTasks(tasks, {
@@ -376,6 +379,25 @@ export const priorityEngine = {
     });
     return res.all;
   },
+
+  /**
+   * Safe Result-returning variant of rankTasks that traps runtime issues into a typed Result.
+   */
+  rankTasksSafe: (
+    tasks: ScorableTask[],
+    options: {
+      weights?: Partial<PriorityWeights>;
+      preset?: PriorityPreset;
+      availableMinutes?: number;
+      now?: Date;
+    } = {},
+  ): Result<ScoredTask[], Error> => {
+    return tryCatch(() => priorityEngine.rankTasks(tasks, options));
+  },
+
+  /**
+   * Partitions ranked tasks into unblocked actionable items vs dependency-blocked items.
+   */
   rankTasksPartitioned: (
     tasks: ScorableTask[],
     options: {
@@ -383,7 +405,7 @@ export const priorityEngine = {
       preset?: PriorityPreset;
       availableMinutes?: number;
       now?: Date;
-    } = {}
+    } = {},
   ) => {
     const preset = options.preset || 'balanced';
     const weights = { ...PRESET_WEIGHTS[preset], ...(options.weights || {}) };
@@ -400,4 +422,3 @@ export const priorityEngine = {
     return { hasCycles: analysis.hasCycles };
   },
 };
-

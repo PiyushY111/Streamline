@@ -47,7 +47,9 @@ export function truncateText(text: string, maxLength: number = 100): string {
  */
 export function getInitials(name?: string | null): string {
   if (!name) return 'U';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const first = parts[0] || 'U';
+  if (parts.length <= 1) return first.substring(0, 2).toUpperCase();
+  const last = parts[parts.length - 1] || '';
+  return ((first[0] || '') + (last[0] || '')).toUpperCase();
 }

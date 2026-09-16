@@ -92,7 +92,7 @@ export const updateAccount = asyncHandler(async (req: AuthenticatedRequest, res:
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const { label, color } = req.body;
   const updated = await oauthService.updateAccount(id, req.user.id, { label, color });
   if (!updated) {
@@ -112,7 +112,7 @@ export const disconnectAccount = asyncHandler(async (req: AuthenticatedRequest, 
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   await oauthService.disconnectAccount(id, req.user.id);
 
   await auditService.logAction(req.user.id, 'account.disconnected', {

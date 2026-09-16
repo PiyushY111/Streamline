@@ -34,8 +34,6 @@ export const draftReplySchema = z.object({
   replyType: z.enum(['reply', 'reply_all']).default('reply'),
 });
 
-
 export const threadIdParamSchema = z.object({
   threadId: z.string().min(1, 'Thread ID is required'),
 });
-

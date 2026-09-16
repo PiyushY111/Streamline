@@ -12,18 +12,14 @@ export interface RerankCandidate {
 
 export interface RerankedResult extends RerankCandidate {
   relevanceScore: number; // 0.0 to 1.0
-  confidencePct: number;  // 0 to 100%
+  confidencePct: number; // 0 to 100%
 }
 
 export class RerankerService {
   /**
    * Re-rank a candidate list against a query using Cohere Rerank API or intelligent local fallback
    */
-  public async rerank(
-    query: string,
-    candidates: RerankCandidate[],
-    topN: number = 5
-  ): Promise<RerankedResult[]> {
+  public async rerank(query: string, candidates: RerankCandidate[], topN: number = 5): Promise<RerankedResult[]> {
     if (!candidates || candidates.length === 0) return [];
     if (candidates.length <= topN && !process.env.COHERE_API_KEY) {
       return this.applyLocalScoring(query, candidates, topN);
@@ -36,7 +32,7 @@ export class RerankerService {
         const response = await fetch('https://api.cohere.com/v2/rerank', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${cohereApiKey}`,
+            Authorization: `Bearer ${cohereApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -76,13 +72,13 @@ export class RerankerService {
   /**
    * Local normalized scoring with keyword affinity, base RRF, and exponential temporal decay
    */
-  private applyLocalScoring(
-    query: string,
-    candidates: RerankCandidate[],
-    topN: number
-  ): RerankedResult[] {
+  private applyLocalScoring(query: string, candidates: RerankCandidate[], topN: number): RerankedResult[] {
     const queryTokens = new Set(
-      query.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter((t) => t.length > 2)
+      query
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .split(/\s+/)
+        .filter((t) => t.length > 2),
     );
 
     const now = Date.now();
@@ -112,10 +108,7 @@ export class RerankerService {
       }
 
       // Hybrid blended relevance score
-      const finalScore = Math.min(
-        0.99,
-        Math.max(0.01, (baseScore * 0.4 + tokenScore * 0.4) * (0.8 + 0.2 * timeDecay))
-      );
+      const finalScore = Math.min(0.99, Math.max(0.01, (baseScore * 0.4 + tokenScore * 0.4) * (0.8 + 0.2 * timeDecay)));
 
       return {
         ...cand,
@@ -124,9 +117,7 @@ export class RerankerService {
       };
     });
 
-    return scored
-      .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, topN);
+    return scored.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, topN);
   }
 }
 

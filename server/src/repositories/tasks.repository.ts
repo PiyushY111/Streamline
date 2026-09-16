@@ -31,11 +31,7 @@ export interface UpdateTaskInput {
 
 export class TasksRepository {
   async listUserTasks(userId: string) {
-    return db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.userId, userId))
-      .orderBy(desc(tasks.createdAt));
+    return db.select().from(tasks).where(eq(tasks.userId, userId)).orderBy(desc(tasks.createdAt));
   }
 
   async listActiveTasks(userId: string) {
@@ -98,4 +94,3 @@ export class TasksRepository {
 }
 
 export const tasksRepository = new TasksRepository();
-

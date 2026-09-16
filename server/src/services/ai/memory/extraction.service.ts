@@ -65,7 +65,7 @@ export class MemoryExtractionService {
     userMessage: string,
     agentResponse: string,
     sourceRef: string,
-    options: MemoryExtractionOptions = {}
+    options: MemoryExtractionOptions = {},
   ): Promise<void> {
     const sourceType = options.sourceType || 'user_direct_chat';
 
@@ -73,7 +73,7 @@ export class MemoryExtractionService {
     if (sourceType === 'external_untrusted_email') {
       logger.warn(
         { userId, sourceRef, sourceType },
-        'Memory extraction skipped: external untrusted email sources cannot write directly to long-term memory'
+        'Memory extraction skipped: external untrusted email sources cannot write directly to long-term memory',
       );
       return;
     }
@@ -83,7 +83,7 @@ export class MemoryExtractionService {
     if (inputPoisonCheck.isPoisoned) {
       logger.warn(
         { userId, sourceRef, pattern: inputPoisonCheck.pattern },
-        '🚨 Security Alert: Blocked memory poisoning attempt in input message'
+        '🚨 Security Alert: Blocked memory poisoning attempt in input message',
       );
       return;
     }
@@ -123,7 +123,7 @@ ${agentResponse}`;
         if (factPoisonCheck.isPoisoned) {
           logger.warn(
             { userId, sourceRef, pattern: factPoisonCheck.pattern, candidateFact: parsed.content },
-            '🚨 Security Alert: Blocked extracted hostile memory fact'
+            '🚨 Security Alert: Blocked extracted hostile memory fact',
           );
           return;
         }
@@ -139,4 +139,5 @@ ${agentResponse}`;
 }
 
 export const memoryExtractionService = new MemoryExtractionService();
-export const extractMemoryFromInteraction = memoryExtractionService.extractMemoryFromInteraction.bind(memoryExtractionService);
+export const extractMemoryFromInteraction =
+  memoryExtractionService.extractMemoryFromInteraction.bind(memoryExtractionService);

@@ -79,12 +79,21 @@ export function decrypt(encryptedData: string): string {
 
   if (parts.length === 3) {
     // Legacy unversioned format: iv:authTag:ciphertext
-    [ivHex, authTagHex, encryptedText] = parts;
+    ivHex = parts[0] ?? '';
+    authTagHex = parts[1] ?? '';
+    encryptedText = parts[2] ?? '';
   } else if (parts.length === 4) {
     // Versioned format: version:iv:authTag:ciphertext
-    [version, ivHex, authTagHex, encryptedText] = parts;
+    version = parts[0] ?? 'v1';
+    ivHex = parts[1] ?? '';
+    authTagHex = parts[2] ?? '';
+    encryptedText = parts[3] ?? '';
   } else {
     throw new Error('Invalid encrypted token format');
+  }
+
+  if (!ivHex || !authTagHex || !encryptedText) {
+    throw new Error('Invalid encrypted token components');
   }
 
   const key = keys[version];
@@ -111,4 +120,3 @@ export function reencrypt(encryptedData: string, targetVersion?: string): string
   const decrypted = decrypt(encryptedData);
   return encrypt(decrypted, targetVersion);
 }
-

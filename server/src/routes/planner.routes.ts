@@ -1,9 +1,5 @@
 import { Router } from 'express';
-import {
-  getNextTask,
-  rankTasks,
-  getWeightPresets,
-} from '../controllers/planner.controller.js';
+import { getNextTask, rankTasks, getWeightPresets } from '../controllers/planner.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 
 const router = Router();

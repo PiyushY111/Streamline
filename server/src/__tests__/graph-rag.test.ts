@@ -21,9 +21,7 @@ vi.mock('../services/ai/core/factory.js', () => ({
         { name: 'Sarah Chen', type: 'person', metadata: {} },
         { name: 'Q3 Budget', type: 'topic', metadata: {} },
       ],
-      relations: [
-        { from: 'Sarah Chen', to: 'Q3 Budget', relationType: 'discussed' },
-      ],
+      relations: [{ from: 'Sarah Chen', to: 'Q3 Budget', relationType: 'discussed' }],
     }),
   }),
 }));
@@ -31,8 +29,20 @@ vi.mock('../services/ai/core/factory.js', () => ({
 describe('Cross-Encoder Reranker Service', () => {
   it('should re-rank candidates using local scoring with temporal decay fallback', async () => {
     const candidates = [
-      { id: '1', text: 'Sarah discussed the budget yesterday', sourceType: 'memory' as const, originalScore: 0.5, timestamp: new Date() },
-      { id: '2', text: 'Lunch plans with Sarah', sourceType: 'memory' as const, originalScore: 0.5, timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60) },
+      {
+        id: '1',
+        text: 'Sarah discussed the budget yesterday',
+        sourceType: 'memory' as const,
+        originalScore: 0.5,
+        timestamp: new Date(),
+      },
+      {
+        id: '2',
+        text: 'Lunch plans with Sarah',
+        sourceType: 'memory' as const,
+        originalScore: 0.5,
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 60),
+      },
       { id: '3', text: 'Unrelated notes about server deployment', sourceType: 'memory' as const, originalScore: 0.2 },
     ];
 
@@ -40,9 +50,9 @@ describe('Cross-Encoder Reranker Service', () => {
 
     expect(results.length).toBe(2);
     // First result should have highest relevance score due to query token matches
-    expect(results[0].id).toBe('1');
-    expect(results[0].confidencePct).toBeGreaterThan(50);
-    expect(results[0].relevanceScore).toBeGreaterThan(results[1].relevanceScore);
+    expect(results[0]!.id).toBe('1');
+    expect(results[0]!.confidencePct).toBeGreaterThan(50);
+    expect(results[0]!.relevanceScore).toBeGreaterThan(results[1]!.relevanceScore);
   });
 });
 
@@ -79,7 +89,7 @@ describe('GraphRAG Service', () => {
     const graph = await graphRAGService.getUserGraphData('user-test-1');
     expect(graph.nodes.length).toBe(2);
     expect(graph.edges.length).toBe(1);
-    expect(graph.nodes[0].name).toBe('Alex');
-    expect(graph.edges[0].relationType).toBe('works_at');
+    expect(graph.nodes[0]!.name).toBe('Alex');
+    expect(graph.edges[0]!.relationType).toBe('works_at');
   });
 });

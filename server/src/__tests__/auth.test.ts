@@ -9,7 +9,7 @@ describe('Authentication & Password Hashing Unit Tests', () => {
 
     expect(hash).toBeDefined();
     expect(hash).not.toEqual(rawPassword);
-    
+
     const isValid = await bcrypt.compare(rawPassword, hash);
     expect(isValid).toBe(true);
   });

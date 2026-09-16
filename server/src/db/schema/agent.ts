@@ -16,7 +16,7 @@ export const agentSessions = pgTable(
   },
   (table) => ({
     userSessionIdx: index('agent_sessions_user_idx').on(table.userId, table.updatedAt),
-  })
+  }),
 );
 
 // Every turn in a session — user messages, model responses, and tool-call records
@@ -29,9 +29,10 @@ export const agentMessages = pgTable(
       .notNull(),
     role: text('role').notNull(), // 'user' | 'model' | 'tool'
     content: text('content'), // natural-language content, nullable for pure tool-call turns
-    toolCalls: jsonb('tool_calls').$type<
-      Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }>
-    >(),
+    toolCalls:
+      jsonb('tool_calls').$type<
+        Array<{ id?: string; name: string; args: Record<string, unknown>; thoughtSignature?: string }>
+      >(),
     toolName: text('tool_name'), // set on role='tool' result turns
     toolResult: jsonb('tool_result'),
 
@@ -51,7 +52,7 @@ export const agentMessages = pgTable(
     spanIdx: index('agent_messages_span_idx').on(table.spanId),
     latencyIdx: index('agent_messages_latency_idx').on(table.latencyMs),
     roleCheck: check('agent_messages_role_valid', sql`${table.role} IN ('user', 'model', 'tool')`),
-  })
+  }),
 );
 
 // The permission boundary, made durable. Every write/send tool call lands here
@@ -82,7 +83,7 @@ export const pendingActions = pgTable(
     userCreatedAtIdx: index('pending_actions_user_created_idx').on(table.userId, table.createdAt),
     statusCheck: check(
       'pending_actions_status_valid',
-      sql`${table.status} IN ('pending', 'approved', 'rejected', 'executed', 'failed', 'expired')`
+      sql`${table.status} IN ('pending', 'approved', 'rejected', 'executed', 'failed', 'expired')`,
     ),
-  })
+  }),
 );

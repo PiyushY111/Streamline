@@ -14,7 +14,6 @@ import { notFoundHandler } from './middlewares/notFound.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { toError } from './utils/errors.js';
 
-
 const app = express();
 
 // Request Correlation ID (assigned first so all logs carry it)
@@ -24,21 +23,19 @@ app.use(requestId);
 app.use(securityHeaders);
 
 // CORS Whitelist Configuration
-const allowedOrigins = [
-  env.CLIENT_URL,
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-].filter(Boolean);
+const allowedOrigins = [env.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS policy`));
+    },
+    credentials: true,
+  }),
+);
 
 // Global Rate Limiting & Parsing (1MB default limit)
 app.use(apiRateLimiter);
@@ -97,11 +94,7 @@ async function bootstrap() {
       logger.info('HTTP server closed to new connections.');
       try {
         await stopWorkers();
-        await Promise.allSettled([
-          accountSyncQueue.close(),
-          aiTriageQueue.close(),
-          dailyDigestQueue.close(),
-        ]);
+        await Promise.allSettled([accountSyncQueue.close(), aiTriageQueue.close(), dailyDigestQueue.close()]);
         if (redisConnection.status === 'ready' || redisConnection.status === 'connecting') {
           await redisConnection.quit();
           logger.info('Redis connection cleanly terminated.');
@@ -120,7 +113,6 @@ async function bootstrap() {
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 }
-
 
 bootstrap().catch((err) => {
   logger.error({ err }, 'Fatal error during server bootstrap');

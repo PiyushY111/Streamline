@@ -72,12 +72,7 @@ export class AccountsRepository {
     const [account] = await db
       .select()
       .from(connectedAccounts)
-      .where(
-        and(
-          eq(connectedAccounts.userId, userId),
-          eq(connectedAccounts.providerAccountId, providerAccountId)
-        )
-      )
+      .where(and(eq(connectedAccounts.userId, userId), eq(connectedAccounts.providerAccountId, providerAccountId)))
       .limit(1);
     return account || null;
   }
@@ -97,9 +92,8 @@ export class AccountsRepository {
     const existing = await this.findByUserAndProviderAccountId(data.userId, data.providerAccountId);
     if (existing) {
       // Preserve existing valid refreshToken if new token is not provided by Google
-      const finalRefreshToken = (data.refreshToken && data.refreshToken.trim().length > 0)
-        ? data.refreshToken
-        : existing.refreshToken;
+      const finalRefreshToken =
+        data.refreshToken && data.refreshToken.trim().length > 0 ? data.refreshToken : existing.refreshToken;
 
       const [updated] = await db
         .update(connectedAccounts)
@@ -157,9 +151,7 @@ export class AccountsRepository {
   }
 
   async delete(id: string, userId: string) {
-    return db
-      .delete(connectedAccounts)
-      .where(and(eq(connectedAccounts.id, id), eq(connectedAccounts.userId, userId)));
+    return db.delete(connectedAccounts).where(and(eq(connectedAccounts.id, id), eq(connectedAccounts.userId, userId)));
   }
 
   async updateAccountDetails(id: string, userId: string, data: { label?: string; color?: string }) {

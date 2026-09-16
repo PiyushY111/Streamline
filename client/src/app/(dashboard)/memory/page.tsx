@@ -879,7 +879,7 @@ export default function MemoryVaultPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredMemories.map((mem) => {
-              const meta = MEMORY_TYPES.find((t) => t.id === mem.type) || MEMORY_TYPES[0];
+              const meta = MEMORY_TYPES.find((t) => t.id === mem.type) || MEMORY_TYPES[0]!;
               const Icon = meta.icon;
               const dateStr = new Date(mem.createdAt).toLocaleDateString(undefined, {
                 month: 'short',

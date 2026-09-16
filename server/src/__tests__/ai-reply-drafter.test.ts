@@ -51,7 +51,7 @@ describe('AI Streaming Reply Drafter Service', () => {
         tone: 'professional',
         userId: 'user-123',
       },
-      mockRes
+      mockRes,
     );
 
     expect(mockRes.write).toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('AI Streaming Reply Drafter Service', () => {
         userId: 'user-123',
         emailContext: 'Team lunch on Friday',
       },
-      mockRes
+      mockRes,
     );
 
     expect(mockRes.end).toHaveBeenCalled();
@@ -98,7 +98,7 @@ describe('AI Streaming Reply Drafter Service', () => {
         userId: 'user-123',
         emailContext: 'Annual Offsite RSVP',
       },
-      mockRes
+      mockRes,
     );
 
     expect(mockRes.end).toHaveBeenCalled();

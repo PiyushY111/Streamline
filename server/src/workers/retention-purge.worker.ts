@@ -36,9 +36,7 @@ export interface RetentionPurgeResult {
 /**
  * Core database cleanup job executing automated retention TTL policies
  */
-export async function executeRetentionPurge(
-  options: RetentionPurgeOptions = {}
-): Promise<RetentionPurgeResult> {
+export async function executeRetentionPurge(options: RetentionPurgeOptions = {}): Promise<RetentionPurgeResult> {
   const startTime = Date.now();
   const pendingDays = options.pendingActionRetentionDays ?? 30;
   const sessionDays = options.idleSessionRetentionDays ?? 90;
@@ -52,7 +50,7 @@ export async function executeRetentionPurge(
 
   logger.info(
     { pendingCutoff, sessionCutoff, auditCutoff, tokenCutoff },
-    '🧹 Executing automated database retention & TTL purge'
+    '🧹 Executing automated database retention & TTL purge',
   );
 
   let purgedPendingActions = 0;
@@ -67,8 +65,8 @@ export async function executeRetentionPurge(
       .where(
         and(
           inArray(pendingActions.status, ['expired', 'rejected', 'executed', 'failed']),
-          lt(pendingActions.createdAt, pendingCutoff)
-        )
+          lt(pendingActions.createdAt, pendingCutoff),
+        ),
       )
       .returning({ id: pendingActions.id });
 
@@ -124,7 +122,7 @@ export async function executeRetentionPurge(
   const durationMs = Date.now() - startTime;
   logger.info(
     { purgedPendingActions, purgedIdleSessions, purgedAuditLogs, purgedTokenUsage, durationMs },
-    '✅ Database retention purge cycle finished'
+    '✅ Database retention purge cycle finished',
   );
 
   return {
@@ -153,7 +151,7 @@ export function createRetentionPurgeWorker(): Worker {
       const result = await executeRetentionPurge(job.data || {});
       return result;
     },
-    { connection: redisConnection, concurrency: 1 }
+    { connection: redisConnection, concurrency: 1 },
   );
 
   purgeWorkerInstance.on('completed', (job) => {

@@ -11,12 +11,7 @@ import { getAiProvider } from '../services/ai/core/factory.js';
 import { traceService } from '../services/trace.service.js';
 import { logger } from '../utils/logger.js';
 import { asyncHandler } from '../middlewares/asyncHandler.js';
-import {
-  BadRequestError,
-  UnauthorizedError,
-  NotFoundError,
-  InternalServerError,
-} from '../errors/index.js';
+import { BadRequestError, UnauthorizedError, NotFoundError, InternalServerError } from '../errors/index.js';
 import { toError } from '../utils/errors.js';
 
 export const chat = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -40,19 +35,15 @@ export const chat = asyncHandler(async (req: AuthenticatedRequest, res: Response
     if (recentSession && Date.now() - new Date(recentSession.updatedAt).getTime() < 30 * 60 * 1000) {
       sessionId = recentSession.id;
     } else {
-      const [newSession] = await db
-        .insert(agentSessions)
-        .values({ userId: req.user.id })
-        .returning();
+      const [newSession] = await db.insert(agentSessions).values({ userId: req.user.id }).returning();
+      if (!newSession) {
+        throw new Error('Failed to create agent session');
+      }
       sessionId = newSession.id;
     }
   }
 
-  const result = await agentOrchestratorService.runAgentTurn(
-    req.user.id,
-    sessionId,
-    message.trim()
-  );
+  const result = await agentOrchestratorService.runAgentTurn(req.user.id, sessionId, message.trim());
 
   res.json(result);
 });
@@ -68,29 +59,16 @@ export const chatSwarm = asyncHandler(async (req: AuthenticatedRequest, res: Res
   }
 
   if (!sessionId) {
-    const [newSession] = await db
-      .insert(agentSessions)
-      .values({ userId: req.user.id })
-      .returning();
+    const [newSession] = await db.insert(agentSessions).values({ userId: req.user.id }).returning();
+    if (!newSession) {
+      throw new Error('Failed to create agent session');
+    }
     sessionId = newSession.id;
   }
 
-  const swarmResult = await swarmSupervisor.orchestrate(
-    req.user.id,
-    sessionId,
-    message.trim()
-  );
+  const swarmResult = await swarmSupervisor.orchestrate(req.user.id, sessionId, message.trim());
 
-  res.json({
-    success: true,
-    sessionId,
-    answer: swarmResult.finalAnswer,
-    criticPassed: swarmResult.criticPassed,
-    criticFeedback: swarmResult.criticFeedback,
-    subTasks: swarmResult.subTasks,
-    intermediateResults: swarmResult.intermediateResults,
-    executionLog: swarmResult.executionLog,
-  });
+  res.json(swarmResult);
 });
 
 export const chatStream = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -114,10 +92,10 @@ export const chatStream = asyncHandler(async (req: AuthenticatedRequest, res: Re
     if (recentSession && Date.now() - new Date(recentSession.updatedAt).getTime() < 30 * 60 * 1000) {
       sessionId = recentSession.id;
     } else {
-      const [newSession] = await db
-        .insert(agentSessions)
-        .values({ userId: req.user.id })
-        .returning();
+      const [newSession] = await db.insert(agentSessions).values({ userId: req.user.id }).returning();
+      if (!newSession) {
+        throw new Error('Failed to create agent session');
+      }
       sessionId = newSession.id;
     }
   }
@@ -175,7 +153,7 @@ export const approveAction = asyncHandler(async (req: AuthenticatedRequest, res:
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const { idempotencyKey } = req.body || {};
 
   try {
@@ -192,7 +170,7 @@ export const rejectAction = asyncHandler(async (req: AuthenticatedRequest, res: 
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   try {
     const result = await rejectPolicyAction(req.user.id, id);
     res.json({ success: true, action: result });
@@ -215,7 +193,7 @@ export const getSessionMessages = asyncHandler(async (req: AuthenticatedRequest,
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const messages = await agentOrchestratorService.getSessionMessages(req.user.id, id);
   if (!messages) {
     throw new NotFoundError('Session not found');
@@ -236,7 +214,7 @@ export const deleteUserMemory = asyncHandler(async (req: AuthenticatedRequest, r
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const deleted = await memoryService.deleteMemory(req.user.id, id);
   if (!deleted) {
     throw new NotFoundError('Memory not found or access denied');
@@ -374,7 +352,7 @@ export const getTrace = asyncHandler(async (req: AuthenticatedRequest, res: Resp
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+  const sessionId = String(req.params.sessionId || '');
   const trace = await traceService.assembleTrace(req.user.id, sessionId);
   if (!trace) {
     throw new NotFoundError('Trace not found or access denied');
@@ -394,7 +372,7 @@ export const streamTrace = asyncHandler(async (req: AuthenticatedRequest, res: R
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
+  const sessionId = String(req.params.sessionId || '');
 
   const [session] = await db
     .select()

@@ -25,7 +25,7 @@ export class EntityExtractorService {
   public async extractFromText(
     text: string,
     userId: string,
-    sourceRef?: string
+    sourceRef?: string,
   ): Promise<{ entitiesCount: number; relationsCount: number }> {
     if (!text || text.trim().length < 20) {
       return { entitiesCount: 0, relationsCount: 0 };
@@ -126,8 +126,8 @@ ${text.slice(0, 3000)}
                 eq(entityRelations.userId, userId),
                 eq(entityRelations.fromEntityId, fromId),
                 eq(entityRelations.toEntityId, toId),
-                eq(entityRelations.relationType, rel.relationType)
-              )
+                eq(entityRelations.relationType, rel.relationType),
+              ),
             )
             .limit(1);
 
@@ -156,7 +156,7 @@ ${text.slice(0, 3000)}
 
       logger.info(
         { userId, extractedEntities: response.entities.length, storedRelations: relationsCount },
-        'Entity and relationship extraction completed'
+        'Entity and relationship extraction completed',
       );
 
       return { entitiesCount: entityIdMap.size, relationsCount };

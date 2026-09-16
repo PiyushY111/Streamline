@@ -9,7 +9,9 @@ export interface RollbackOptions {
   targetFile?: string;
 }
 
-export async function rollbackLastMigration(options: RollbackOptions = {}): Promise<{ executedFiles: string[]; totalStatements: number; dryRun: boolean }> {
+export async function rollbackLastMigration(
+  options: RollbackOptions = {},
+): Promise<{ executedFiles: string[]; totalStatements: number; dryRun: boolean }> {
   const dryRun = Boolean(options.dryRun);
   logger.info({ dryRun }, '🔄 Initiating database down-migration rollback process...');
 
@@ -29,13 +31,14 @@ export async function rollbackLastMigration(options: RollbackOptions = {}): Prom
     return { executedFiles: [], totalStatements: 0, dryRun };
   }
 
-  const targetFiles = options.targetFile ? [options.targetFile] : [files[0]];
+  const targetFiles: string[] = options.targetFile ? [options.targetFile] : files[0] ? [files[0]] : [];
   let totalStatements = 0;
   const executedFiles: string[] = [];
 
   const sql = neon(env.DATABASE_URL);
 
   for (const filename of targetFiles) {
+    if (!filename) continue;
     const filePath = path.join(rollbackFolder, filename);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Specified rollback file not found: ${filePath}`);
@@ -51,11 +54,12 @@ export async function rollbackLastMigration(options: RollbackOptions = {}): Prom
 
     for (let i = 0; i < statements.length; i++) {
       const stmt = statements[i];
+      if (!stmt) continue;
       if (dryRun) {
         logger.info({ step: i + 1, statement: stmt }, '🔍 [DRY-RUN] Would execute rollback statement:');
       } else {
         logger.info({ step: i + 1, statement: stmt }, '⚙️ Executing rollback statement...');
-        await sql(stmt);
+        await (sql as any)(stmt);
       }
       totalStatements++;
     }
@@ -64,7 +68,10 @@ export async function rollbackLastMigration(options: RollbackOptions = {}): Prom
   }
 
   if (dryRun) {
-    logger.info({ totalStatements, executedFiles }, '✅ [DRY-RUN] Rollback preview completed successfully with no changes applied.');
+    logger.info(
+      { totalStatements, executedFiles },
+      '✅ [DRY-RUN] Rollback preview completed successfully with no changes applied.',
+    );
   } else {
     logger.info({ totalStatements, executedFiles }, '🎉 Database rollback completed successfully!');
   }

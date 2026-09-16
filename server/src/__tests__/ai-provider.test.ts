@@ -49,7 +49,7 @@ describe('Provider-Agnostic AI Architecture', () => {
       name: 'custom-claude-mock',
       isAvailable: () => true,
       generateText: async (opt) => `Custom Claude response to: ${opt.prompt}`,
-      generateStructuredJson: async <T>() => ({ customKey: 'customValue' } as unknown as T),
+      generateStructuredJson: async <T>() => ({ customKey: 'customValue' }) as unknown as T,
       streamText: async (opt, onChunk) => {
         onChunk('chunk-1 ');
         onChunk('chunk-2');
@@ -103,17 +103,19 @@ describe('Provider-Agnostic AI Architecture', () => {
       });
 
       let attempt = 0;
-      const fallbackSpy = vi.spyOn(geminiClientModule, 'generateContentWithFallback').mockImplementation(async (_client, _models, request) => {
-        attempt++;
-        if (attempt === 1) {
-          // First attempt returns invalid data (invalid status enum)
-          return { text: JSON.stringify({ status: 'invalid_status', score: 85 }) };
-        }
-        // Check that retry prompt contained error feedback
-        const promptText = request.contents[0].parts[0].text;
-        expect(promptText).toContain('[FEEDBACK ERROR]');
-        return { text: JSON.stringify({ status: 'urgent', score: 85 }) };
-      });
+      const fallbackSpy = vi
+        .spyOn(geminiClientModule, 'generateContentWithFallback')
+        .mockImplementation(async (_client, _models, request) => {
+          attempt++;
+          if (attempt === 1) {
+            // First attempt returns invalid data (invalid status enum)
+            return { text: JSON.stringify({ status: 'invalid_status', score: 85 }) };
+          }
+          // Check that retry prompt contained error feedback
+          const promptText = request.contents[0].parts[0].text;
+          expect(promptText).toContain('[FEEDBACK ERROR]');
+          return { text: JSON.stringify({ status: 'urgent', score: 85 }) };
+        });
 
       const result = await gemini.generateStructuredJson({
         prompt: 'Classify this task',
@@ -126,4 +128,3 @@ describe('Provider-Agnostic AI Architecture', () => {
     });
   });
 });
-

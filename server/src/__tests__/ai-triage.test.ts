@@ -139,7 +139,7 @@ describe('AI Triage Service', () => {
     };
 
     const result = await triageEmail(email);
-    expect(result.confidenceScore).toBeGreaterThanOrEqual(0.70);
+    expect(result.confidenceScore).toBeGreaterThanOrEqual(0.7);
     expect(result.requiresHumanReview).toBe(false);
   });
 });

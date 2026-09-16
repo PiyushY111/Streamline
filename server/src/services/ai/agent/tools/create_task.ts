@@ -16,7 +16,8 @@ type CreateTaskArgs = z.infer<typeof createTaskSchema>;
 
 export const createTaskTool: ToolDefinition<CreateTaskArgs, any> = {
   name: 'create_task',
-  description: 'Propose creating a new task or action item. This is a WRITE action that ALWAYS requires explicit human approval before execution.',
+  description:
+    'Propose creating a new task or action item. This is a WRITE action that ALWAYS requires explicit human approval before execution.',
   permissionClass: 'write',
   schema: createTaskSchema,
   parameters: {

@@ -1,11 +1,6 @@
 import { tasksRepository } from '../repositories/tasks.repository.js';
 import { eventsRepository } from '../repositories/events.repository.js';
-import {
-  priorityEngine,
-  PriorityWeights,
-  RankedTask,
-  WEIGHT_PRESETS,
-} from './priority.service.js';
+import { priorityEngine, PriorityWeights, RankedTask, WEIGHT_PRESETS } from './priority.service.js';
 
 export interface GetNextTaskOptions {
   preset?: 'balanced' | 'deadline' | 'deep_work' | 'quick_wins';
@@ -61,9 +56,10 @@ export class PlannerService {
         bufferMinutes: 10,
       });
 
-      if (freeSlots.length > 0) {
-        availableSlot = freeSlots[0];
-        effectiveMinutes = freeSlots[0].durationMinutes;
+      const firstSlot = freeSlots[0];
+      if (firstSlot) {
+        availableSlot = firstSlot;
+        effectiveMinutes = firstSlot.durationMinutes;
       }
     }
 
@@ -80,7 +76,7 @@ export class PlannerService {
     const blockedTasks = ranked.filter((t) => t.isBlocked);
 
     // Recommended task is the highest-ranked actionable task
-    const recommendedTask = actionableTasks.length > 0 ? actionableTasks[0] : null;
+    const recommendedTask = actionableTasks[0] ?? null;
 
     // Check for cycles across dependencies
     const cycleCheck = priorityEngine.detectCycles(activeTasks);

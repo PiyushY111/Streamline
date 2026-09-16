@@ -33,7 +33,7 @@ export async function triageEmail(
     userId?: string;
     vipSenders?: string[];
     userEmail?: string;
-  }
+  },
 ): Promise<TriageResult> {
   const senderLower = email.sender.toLowerCase();
   const isVip = (options?.vipSenders || []).some((vip) => senderLower.includes(vip.toLowerCase()));
@@ -42,7 +42,10 @@ export async function triageEmail(
   if (options?.userId) {
     const circuit = await aiCostGuardService.checkCircuitBreaker(options.userId);
     if (circuit.isTripped) {
-      logger.warn({ userId: options.userId, reason: circuit.reason }, 'AI Circuit Breaker tripped, using heuristic triage');
+      logger.warn(
+        { userId: options.userId, reason: circuit.reason },
+        'AI Circuit Breaker tripped, using heuristic triage',
+      );
       return heuristicFallbackTriage(email, isVip);
     }
   }
@@ -141,10 +144,8 @@ ${(email.bodyText || '').substring(0, 4000)}
     }
 
     const confidenceScore =
-      typeof parsed.confidenceScore === 'number'
-        ? Math.max(0, Math.min(1, parsed.confidenceScore))
-        : 0.88;
-    const requiresHumanReview = confidenceScore < 0.70;
+      typeof parsed.confidenceScore === 'number' ? Math.max(0, Math.min(1, parsed.confidenceScore)) : 0.88;
+    const requiresHumanReview = confidenceScore < 0.7;
 
     const tasks: ExtractedTaskItem[] = (parsed.tasks || []).map((t: any) => ({
       id: crypto.randomUUID(),

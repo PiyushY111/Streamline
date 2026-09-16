@@ -108,7 +108,7 @@ export class GraphRAGService {
       .orderBy(
         queryEmbedding
           ? sql`${entities.embedding} <=> ${sql.raw(`'[${queryEmbedding.join(',')}]'`)}::vector`
-          : sql`RANDOM()`
+          : sql`RANDOM()`,
       )
       .limit(5);
 
@@ -188,12 +188,7 @@ export class GraphRAGService {
             weight: entityRelations.weight,
           })
           .from(entityRelations)
-          .where(
-            and(
-              eq(entityRelations.userId, userId),
-              inArray(entityRelations.fromEntityId, anchorIds)
-            )
-          )
+          .where(and(eq(entityRelations.userId, userId), inArray(entityRelations.fromEntityId, anchorIds)))
           .limit(20);
 
         traversedEdges = directEdges;
@@ -272,7 +267,7 @@ ${rerankedContext.map((c, i) => `[Fact ${i + 1} | Confidence: ${c.confidencePct}
     const latencyMs = Date.now() - startTime;
     logger.info(
       { userId, anchorsFound: anchorNodes.length, edgesTraversed: traversedEdges.length, latencyMs },
-      'GraphRAG execution completed successfully'
+      'GraphRAG execution completed successfully',
     );
 
     return {

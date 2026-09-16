@@ -39,7 +39,6 @@ router.get('/preferences', getPreferences);
 router.patch('/preferences', validateBody(updateAiPreferencesSchema), updatePreferences);
 router.get('/usage', getTokenUsageStats);
 
-
 // AI Task Radar
 router.get('/tasks/radar', getRadarTasks);
 router.post('/tasks/convert', validateBody(convertRadarTaskSchema), convertRadarTask);
@@ -55,4 +54,3 @@ router.post('/threads/:threadId/summarize', validateParams(threadIdParamSchema),
 router.post('/threads/draft-reply', validateBody(draftReplySchema), draftReply);
 
 export default router;
-

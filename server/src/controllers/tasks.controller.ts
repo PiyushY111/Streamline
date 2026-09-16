@@ -24,7 +24,7 @@ export const updateTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   const updated = await tasksService.updateTask(id, req.user.id, req.body);
   res.json({ task: updated });
 });
@@ -33,7 +33,7 @@ export const deleteTask = asyncHandler(async (req: AuthenticatedRequest, res: Re
   if (!req.user?.id) {
     throw new UnauthorizedError();
   }
-  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = String(req.params.id || '');
   await tasksService.deleteTask(id, req.user.id);
   res.json({ success: true });
 });

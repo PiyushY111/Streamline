@@ -14,16 +14,20 @@ export class DossierResearchAgent {
 
     const graphResult = await graphRAGService.queryGraphRAG(userId, instruction);
 
-    const keyEntities = graphResult.anchorEntities.concat(graphResult.traversedNodes).slice(0, 5).map((n) => ({
-      name: n.name,
-      type: n.type,
-    }));
+    const keyEntities = graphResult.anchorEntities
+      .concat(graphResult.traversedNodes)
+      .slice(0, 5)
+      .map((n) => ({
+        name: n.name,
+        type: n.type,
+      }));
 
     const verifiedFacts = graphResult.rerankedContext.map((c) => c.text).slice(0, 4);
 
-    const executiveBrief = verifiedFacts.length > 0
-      ? `Graph-verified context:\n${verifiedFacts.join('\n')}`
-      : 'No prior relationship records or notes found in knowledge graph for this topic.';
+    const executiveBrief =
+      verifiedFacts.length > 0
+        ? `Graph-verified context:\n${verifiedFacts.join('\n')}`
+        : 'No prior relationship records or notes found in knowledge graph for this topic.';
 
     return {
       query: instruction,

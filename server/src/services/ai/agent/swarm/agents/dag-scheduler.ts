@@ -39,14 +39,15 @@ export class DagSchedulerAgent {
         importance: t.importance ?? 0.5,
         estimatedMinutes: t.estimatedMinutes ?? 30,
         dependencies: t.dependencies ?? [],
-      }))
+      })),
     );
 
-    const topTask = ranked[0]
+    const firstRanked = ranked[0];
+    const topTask = firstRanked
       ? {
-          id: ranked[0].id,
-          title: userTasks.find((t) => t.id === ranked[0].id)?.title || 'Task',
-          urgencyScore: ranked[0].score,
+          id: firstRanked.id,
+          title: userTasks.find((t) => t.id === firstRanked.id)?.title || 'Task',
+          urgencyScore: firstRanked.score,
         }
       : undefined;
 
