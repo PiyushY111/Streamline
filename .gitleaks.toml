@@ -1,0 +1,59 @@
+# Gitleaks Configuration for Streamline Repository
+# Prevents accidental commits of API keys, encryption secrets, OAuth tokens, and database credentials.
+
+title = "Streamline Gitleaks Secret Detection Policy"
+
+[allowlist]
+description = "Allowed mock tokens and test fixtures"
+paths = [
+  '''(?i)__tests__/''',
+  '''(?i)evals/''',
+  '''\.env\.example$''',
+]
+regexes = [
+  '''ya29\.a0ARrdaM8x_SampleGoogleOAuthToken12345''',
+  '''mock-gemini-key''',
+  '''sample-secret''',
+]
+
+[[rules]]
+id = "google-api-key"
+description = "Google Gemini / Cloud API Key"
+regex = '''\bAIza[0-9A-Za-z-_]{35}\b'''
+keywords = ["AIza"]
+
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI API Key"
+regex = '''\bsk-[a-zA-Z0-9]{20,}\b|\bsk-proj-[a-zA-Z0-9_-]{20,}\b'''
+keywords = ["sk-", "sk-proj-"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic Claude API Key"
+regex = '''\bsk-ant-[a-zA-Z0-9_-]{20,}\b'''
+keywords = ["sk-ant-"]
+
+[[rules]]
+id = "generic-hex-encryption-key"
+description = "32-byte (64-character) Hex Encryption Key"
+regex = '''(?i)(?:encryption_key|ENCRYPTION_KEY|secret_key)\s*[:=]\s*['\"][0-9a-fA-F]{64}['\"]'''
+keywords = ["encryption_key", "ENCRYPTION_KEY", "secret_key"]
+
+[[rules]]
+id = "jwt-secret-inline"
+description = "Hardcoded JWT Secret assignment"
+regex = '''(?i)(?:jwt_secret|JWT_SECRET)\s*[:=]\s*['\"][a-zA-Z0-9!@#$%^&*()_+\-={}:;<>?,.]{16,}['\"]'''
+keywords = ["jwt_secret", "JWT_SECRET"]
+
+[[rules]]
+id = "postgres-connection-string"
+description = "PostgreSQL connection string with credentials"
+regex = '''postgres(?:ql)?:\/\/[a-zA-Z0-9_-]+:[^@\s]+@[a-zA-Z0-9.-]+(?::\d+)?\/[a-zA-Z0-9_-]+'''
+keywords = ["postgres://", "postgresql://"]
+
+[[rules]]
+id = "private-key"
+description = "Unencrypted Private Key Block"
+regex = '''-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'''
+keywords = ["BEGIN RSA PRIVATE KEY", "BEGIN PRIVATE KEY", "BEGIN EC PRIVATE KEY"]

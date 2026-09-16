@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh" 2>/dev/null || true
+
+# Streamline Pre-Commit Hook: Secret Leak Prevention & Staged File Validation
+echo "🔒 Running Streamline pre-commit security checks..."
+
+# Check if gitleaks is installed; if available, run protect mode
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "🛡️  Running Gitleaks secret scan on staged changes..."
+  gitleaks protect --staged --verbose --config=.gitleaks.toml
+  if [ $? -ne 0 ]; then
+    echo "❌ [SECURITY ERROR] Gitleaks detected secrets in staged files. Commit aborted."
+    exit 1
+  fi
+else
+  # Fast fallback regex scan if gitleaks binary is not installed in the environment
+  echo "🔍 Performing fallback regex secret audit on staged changes..."
+  STAGED_DIFF=$(git diff --cached --unified=0)
+  
+  # Check for raw Google AIza keys, OpenAI keys, or Anthropic keys in added lines
+  if echo "$STAGED_DIFF" | grep -E '^\+[^+].*AIza[0-9A-Za-z-_]{35}' >/dev/null 2>&1; then
+    echo "❌ [SECURITY ERROR] Staged diff appears to contain an unmasked Google API Key (AIza...). Commit aborted."
+    exit 1
+  fi
+  if echo "$STAGED_DIFF" | grep -E '^\+[^+].*(sk-[a-zA-Z0-9]{20,}|sk-proj-[a-zA-Z0-9_-]{20,})' >/dev/null 2>&1; then
+    echo "❌ [SECURITY ERROR] Staged diff appears to contain an unmasked OpenAI API Key (sk-...). Commit aborted."
+    exit 1
+  fi
+fi
+
+echo "✅ Pre-commit security check passed."

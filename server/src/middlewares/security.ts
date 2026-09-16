@@ -10,11 +10,31 @@ export const securityHeaders = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'https:'],
-      connectSrc: ["'self'", 'https://www.googleapis.com'],
+      connectSrc: [
+        "'self'",
+        'https://www.googleapis.com',
+        'https://generativelanguage.googleapis.com',
+        'https://api.openai.com',
+        'https://api.anthropic.com',
+      ],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
     },
   },
   crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
   frameguard: { action: 'deny' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin',
+  },
+  noSniff: true,
 });
 
 export function generateCsrfToken(): string {

@@ -187,20 +187,24 @@ export class AccountsRepository {
     return updated || null;
   }
 
-  async updateAccountStatus(id: string, status: 'active' | 'error' | 'disconnected', error?: string) {
+  async updateAccountStatus(id: string, status: 'active' | 'error' | 'disconnected', error?: string, userId?: string) {
+    const conditions = [eq(connectedAccounts.id, id)];
+    if (userId) {
+      conditions.push(eq(connectedAccounts.userId, userId));
+    }
     const [updated] = await db
       .update(connectedAccounts)
       .set({
         status,
         updatedAt: new Date(),
       })
-      .where(eq(connectedAccounts.id, id))
+      .where(and(...conditions))
       .returning({
         id: connectedAccounts.id,
         status: connectedAccounts.status,
         updatedAt: connectedAccounts.updatedAt,
       });
-    return updated;
+    return updated || null;
   }
 }
 

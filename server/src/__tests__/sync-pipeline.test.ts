@@ -10,7 +10,7 @@ describe('Google Workspace Sync Pipeline & Token Lifecycle', () => {
 
     expect(encrypted).toBeDefined();
     expect(encrypted).not.toEqual(rawAccessToken);
-    expect(encrypted.split(':')).toHaveLength(3);
+    expect(encrypted.split(':')).toHaveLength(4); // version:iv:authTag:ciphertext
   });
 
   it('should format message attachment extraction metadata accurately', () => {

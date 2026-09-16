@@ -50,7 +50,7 @@ export async function delCache(keyPattern: string): Promise<void> {
           }
         });
         stream.on('end', () => resolve());
-        stream.on('error', (err) => reject(err));
+        stream.on('error', (err: unknown) => reject(err));
       });
 
       if (collectedKeys.length > 0) {

@@ -18,6 +18,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be a 64-character hex string (32 bytes)'),
+  ACTIVE_KEY_VERSION: z.string().default('v1'),
+  ENCRYPTION_KEYS: z.string().optional(),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 characters long'),
   GOOGLE_CLIENT_ID: z.string().optional().default(''),
   GOOGLE_CLIENT_SECRET: z.string().optional().default(''),
@@ -27,7 +29,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional().default(''),
   OPENAI_BASE_URL: z.string().optional().default('https://api.openai.com/v1'),
   ANTHROPIC_API_KEY: z.string().optional().default(''),
-  GROQ_API_KEY: z.string().optional().default(''),
+  GROQ_API_KEY: process.env.GROQ_API_KEY ? z.string() : z.string().optional().default(''),
 });
 
 export const env = envSchema.parse({
@@ -37,6 +39,8 @@ export const env = envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   REDIS_URL: process.env.REDIS_URL,
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY,
+  ACTIVE_KEY_VERSION: process.env.ACTIVE_KEY_VERSION || 'v1',
+  ENCRYPTION_KEYS: process.env.ENCRYPTION_KEYS,
   JWT_SECRET: process.env.JWT_SECRET,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,

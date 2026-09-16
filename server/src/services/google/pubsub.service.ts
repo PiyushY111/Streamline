@@ -28,7 +28,11 @@ export class GooglePubSubService {
       throw new Error('Google Cloud Pub/Sub topic name is not configured (set GOOGLE_PUBSUB_TOPIC in env).');
     }
 
-    const oauth2Client = await googleTokenManager.getAuthorizedClient(accountId);
+    const result = await googleTokenManager.getValidOAuth2Client(accountId);
+    if (!result) {
+      throw new Error(`Failed to obtain authorized Google client for account ${accountId}`);
+    }
+    const oauth2Client = result.oauth2Client;
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
     logger.info({ accountId, topic: effectiveTopic }, 'Registering Gmail watch subscription with Google Pub/Sub...');
@@ -52,7 +56,11 @@ export class GooglePubSubService {
    * Stop an active Gmail watch subscription
    */
   public async stopGmailWatch(accountId: string): Promise<void> {
-    const oauth2Client = await googleTokenManager.getAuthorizedClient(accountId);
+    const result = await googleTokenManager.getValidOAuth2Client(accountId);
+    if (!result) {
+      throw new Error(`Failed to obtain authorized Google client for account ${accountId}`);
+    }
+    const oauth2Client = result.oauth2Client;
     const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
     await gmail.users.stop({ userId: 'me' });

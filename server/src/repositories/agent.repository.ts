@@ -45,22 +45,35 @@ export class AgentRepository {
     return newSession;
   }
 
-  async updateSessionTitle(sessionId: string, title: string) {
-    return db
+  async updateSessionTitle(sessionId: string, userId: string, title: string) {
+    const [updated] = await db
       .update(agentSessions)
       .set({ title, updatedAt: new Date() })
-      .where(eq(agentSessions.id, sessionId));
+      .where(and(eq(agentSessions.id, sessionId), eq(agentSessions.userId, userId)))
+      .returning();
+    return updated || null;
   }
 
-  async touchSession(sessionId: string) {
+  async touchSession(sessionId: string, userId?: string) {
+    const conditions = [eq(agentSessions.id, sessionId)];
+    if (userId) conditions.push(eq(agentSessions.userId, userId));
     return db
       .update(agentSessions)
       .set({ updatedAt: new Date() })
-      .where(eq(agentSessions.id, sessionId));
+      .where(and(...conditions));
   }
 
   // Message Methods
-  async listSessionMessages(sessionId: string) {
+  async listSessionMessages(sessionId: string, userId?: string) {
+    if (userId) {
+      const [session] = await db
+        .select({ id: agentSessions.id })
+        .from(agentSessions)
+        .where(and(eq(agentSessions.id, sessionId), eq(agentSessions.userId, userId)))
+        .limit(1);
+      if (!session) return [];
+    }
+
     return db
       .select()
       .from(agentMessages)
@@ -103,11 +116,13 @@ export class AgentRepository {
       .orderBy(desc(pendingActions.createdAt));
   }
 
-  async listSessionPendingActions(sessionId: string) {
+  async listSessionPendingActions(sessionId: string, userId?: string) {
+    const conditions = [eq(pendingActions.sessionId, sessionId)];
+    if (userId) conditions.push(eq(pendingActions.userId, userId));
     return db
       .select()
       .from(pendingActions)
-      .where(eq(pendingActions.sessionId, sessionId));
+      .where(and(...conditions));
   }
 
   async findPendingActionById(id: string, userId: string) {
@@ -121,6 +136,7 @@ export class AgentRepository {
 
   async updatePendingAction(
     id: string,
+    userId: string,
     updates: {
       status?: string;
       resultJson?: unknown;
@@ -129,10 +145,12 @@ export class AgentRepository {
       impactPreview?: Record<string, unknown>;
     }
   ) {
-    return db
+    const [updated] = await db
       .update(pendingActions)
       .set(updates as any)
-      .where(eq(pendingActions.id, id));
+      .where(and(eq(pendingActions.id, id), eq(pendingActions.userId, userId)))
+      .returning();
+    return updated || null;
   }
 }
 

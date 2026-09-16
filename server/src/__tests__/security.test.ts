@@ -71,7 +71,7 @@ describe('Security & Protection Unit Tests', () => {
       const encrypted = encrypt(rawToken);
 
       expect(encrypted).not.toEqual(rawToken);
-      expect(encrypted.split(':')).toHaveLength(3); // iv:authTag:ciphertext
+      expect(encrypted.split(':')).toHaveLength(4); // version:iv:authTag:ciphertext
 
       const decrypted = decrypt(encrypted);
       expect(decrypted).toEqual(rawToken);

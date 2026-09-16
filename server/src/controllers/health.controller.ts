@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../db/client.js';
 import { users } from '../db/schema/index.js';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { toError } from '../utils/errors.js';

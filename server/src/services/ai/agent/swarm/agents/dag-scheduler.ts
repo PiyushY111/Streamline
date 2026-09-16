@@ -20,26 +20,35 @@ export class DagSchedulerAgent {
         id: tasks.id,
         title: tasks.title,
         status: tasks.status,
-        dueDate: tasks.dueDate,
+        dueAt: tasks.dueAt,
+        importance: tasks.importance,
+        estimatedMinutes: tasks.estimatedMinutes,
+        dependencies: tasks.dependencies,
         projectId: tasks.projectId,
       })
       .from(tasks)
       .where(and(eq(tasks.userId, userId), eq(tasks.status, 'todo')))
       .limit(20);
 
-    const scoredTasks = userTasks.map((t) => {
-      const urgency = priorityEngine.calculateUrgencyScore({
-        dueDate: t.dueDate,
-        status: t.status,
-      });
-      return {
+    const ranked = priorityEngine.rankTasks(
+      userTasks.map((t) => ({
         id: t.id,
         title: t.title,
-        urgencyScore: urgency,
-      };
-    }).sort((a, b) => b.urgencyScore - a.urgencyScore);
+        status: t.status,
+        dueAt: t.dueAt,
+        importance: t.importance ?? 0.5,
+        estimatedMinutes: t.estimatedMinutes ?? 30,
+        dependencies: t.dependencies ?? [],
+      }))
+    );
 
-    const topTask = scoredTasks[0];
+    const topTask = ranked[0]
+      ? {
+          id: ranked[0].id,
+          title: userTasks.find((t) => t.id === ranked[0].id)?.title || 'Task',
+          urgencyScore: ranked[0].score,
+        }
+      : undefined;
 
     return {
       activeTasksCount: userTasks.length,

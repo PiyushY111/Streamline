@@ -1,5 +1,5 @@
 import { db } from '../../../../../db/index.js';
-import { emails, connectedAccounts } from '../../../../../db/schema/index.js';
+import { emails, connectedAccounts, emailAiMetadata } from '../../../../../db/schema/index.js';
 import { eq, and, desc } from 'drizzle-orm';
 import { getAiProvider } from '../../../core/factory.js';
 import { logger } from '../../../../../utils/logger.js';
@@ -22,12 +22,13 @@ export class InboxSentryAgent {
         id: emails.id,
         subject: emails.subject,
         sender: emails.sender,
-        snippet: emails.snippet,
-        priorityScore: emails.priorityScore,
+        bodyText: emails.bodyText,
+        urgencyScore: emailAiMetadata.urgencyScore,
         receivedAt: emails.receivedAt,
       })
       .from(emails)
       .innerJoin(connectedAccounts, eq(emails.accountId, connectedAccounts.id))
+      .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
       .where(
         and(
           eq(connectedAccounts.userId, userId),
@@ -38,12 +39,12 @@ export class InboxSentryAgent {
       .limit(10);
 
     const urgent = recentEmails
-      .filter((e) => (e.priorityScore || 0) >= 60 || /urgent|asap|important|deadline/i.test(e.subject || ''))
+      .filter((e) => (e.urgencyScore || 0) >= 60 || /urgent|asap|important|deadline/i.test(e.subject || ''))
       .map((e) => ({
         id: e.id,
         subject: e.subject || 'No Subject',
         sender: e.sender,
-        snippet: (e.snippet || '').slice(0, 150),
+        snippet: (e.bodyText || '').slice(0, 150),
       }));
 
     const provider = getAiProvider();
@@ -51,7 +52,7 @@ export class InboxSentryAgent {
     let keyCommitments: string[] = [];
 
     if (provider && provider.isAvailable() && recentEmails.length > 0) {
-      const emailContext = recentEmails.map((e) => `From: ${e.sender} | Subject: ${e.subject} | Snippet: ${e.snippet}`).join('\n');
+      const emailContext = recentEmails.map((e) => `From: ${e.sender} | Subject: ${e.subject} | Snippet: ${(e.bodyText || '').slice(0, 150)}`).join('\n');
       try {
         const res = await provider.generateStructuredJson<{ summary: string; commitments: string[] }>({
           prompt: `You are the Inbox Sentry Agent. Analyze these emails according to this instruction: "${instruction}".

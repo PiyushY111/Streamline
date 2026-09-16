@@ -10,6 +10,8 @@ export interface AiStructuredJsonOptions<T = any> {
   prompt: string;
   systemPrompt?: string;
   schema?: any;
+  temperature?: number;
+  maxTokens?: number;
   models?: string[];
 }
 

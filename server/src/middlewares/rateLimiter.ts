@@ -12,14 +12,30 @@ export const authRateLimiter = rateLimit({
   },
 });
 
-// General API rate limiter
-export const apiRateLimiter = rateLimit({
+// IP Tier (Unauthenticated traffic protection - 60 req/min)
+export const ipTierLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 300, // Limit each IP to 300 requests per minute
+  max: 60, // Limit each IP to 60 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: 'Too many requests, please slow down.',
+    error: 'Rate limit exceeded for IP. Please slow down.',
+  },
+});
+
+// Alias for general API IP-level limiter
+export const apiRateLimiter = ipTierLimiter;
+
+// Authenticated User Tier (120 req/min per user)
+export const userTierLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 120, // Limit each authenticated user to 120 requests per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req: AuthenticatedRequest) => req.user?.id || (req.ip ? ipKeyGenerator(req.ip) : 'anonymous'),
+  validate: { keyGeneratorIpFallback: false },
+  message: {
+    error: 'User request limit exceeded. Maximum 120 requests per minute.',
   },
 });
 

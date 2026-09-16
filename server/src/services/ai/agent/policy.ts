@@ -162,7 +162,7 @@ export async function executeApprovedAction(
     await db
       .update(pendingActions)
       .set({ status: 'expired', resolvedAt: new Date() })
-      .where(eq(pendingActions.id, pendingActionId));
+      .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)));
     throw new Error('This pending action has expired (24h time limit exceeded).');
   }
 
@@ -222,7 +222,7 @@ export async function executeApprovedAction(
         idempotencyKey: effectiveIdempotencyKey,
         resolvedAt: new Date(),
       })
-      .where(eq(pendingActions.id, pendingActionId));
+      .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)));
 
     await auditService.logAction(userId, `agent.tool.executed.${action.toolName}`, {
       pendingActionId,
@@ -250,7 +250,7 @@ export async function executeApprovedAction(
         errorJson: { message: err.message, stack: err.stack },
         resolvedAt: new Date(),
       })
-      .where(eq(pendingActions.id, pendingActionId));
+      .where(and(eq(pendingActions.id, pendingActionId), eq(pendingActions.userId, userId)));
 
     await auditService.logAction(userId, `agent.tool.failed.${action.toolName}`, {
       pendingActionId,

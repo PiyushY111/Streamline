@@ -244,7 +244,7 @@ export class GraphRAGService {
 
     // Hybrid Semantic Memory Search
     try {
-      const memoryResults = await memoryService.searchMemories(userId, query, { topK: 10, mode: 'hybrid' });
+      const memoryResults = await memoryService.searchMemory(userId, query, { topK: 10, mode: 'hybrid' });
       for (const mem of memoryResults) {
         candidates.push({
           id: `mem-${mem.id}`,

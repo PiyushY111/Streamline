@@ -59,15 +59,6 @@ export class AllModelsExhaustedError extends AppError {
   }
 }
 
-/**
- * Thrown when a concurrent state mutation conflict occurs (e.g. duplicate approval attempt).
- */
-export class ConflictError extends AppError {
-  constructor(message: string = 'A concurrent state modification conflict occurred') {
-    super(message, 409, 'CONFLICT');
-    this.name = 'ConflictError';
-  }
-}
 
 /**
  * Thrown when external API dependencies (Google OAuth, Gmail API, etc.) fail or timeout.

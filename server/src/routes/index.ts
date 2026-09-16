@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { listEvents, listCalendars } from '../controllers/events.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { csrfProtection } from '../middlewares/security.js';
+import { userTierLimiter } from '../middlewares/rateLimiter.js';
 
 import authRouter from './auth.routes.js';
 import webhooksRouter from './webhooks.routes.js';
@@ -31,6 +32,9 @@ router.use('/webhooks', webhooksRouter);
 
 // Apply CSRF Protection to all downstream state-changing API endpoints
 router.use(csrfProtection);
+
+// Apply User-Tier Rate Limiting (120 req/min) to API domain endpoints
+router.use(userTierLimiter);
 
 // Live Real-Time Server-Sent Events (SSE) Stream
 router.use('/live', liveRouter);
