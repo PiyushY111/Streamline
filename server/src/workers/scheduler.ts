@@ -25,20 +25,35 @@ export function startSyncScheduler() {
         logger.info({ count: activeAccounts.length }, '⏰ Cron Scheduler enqueuing background sync jobs...');
 
         for (const account of activeAccounts) {
-          const jobId = `account-sync-${account.id}`;
-          const existingJob = await accountSyncQueue.getJob(jobId);
-          if (existingJob) {
-            const state = await existingJob.getState();
-            if (state === 'active' || state === 'waiting' || state === 'delayed') {
-              continue;
+          try {
+            const jobId = `account-sync-${account.id}`;
+            const existingJob = await accountSyncQueue.getJob(jobId).catch(() => null);
+            if (existingJob) {
+              const state = await existingJob.getState().catch(() => null);
+              if (state === 'active' || state === 'waiting' || state === 'delayed') {
+                continue;
+              }
+            }
+
+            await accountSyncQueue.add('sync-account', { accountId: account.id }, { jobId });
+          } catch (queueErr: unknown) {
+            const err = toError(queueErr);
+            if (err.message.includes('max requests limit exceeded')) {
+              // Seamlessly fallback to direct in-process sync when Upstash Redis is over quota
+              const { syncGoogleAccountData } = await import('../services/google/google-sync.service.js');
+              syncGoogleAccountData(account.id).catch((syncErr) => {
+                logger.warn({ accountId: account.id, err: syncErr?.message }, 'Direct background sync warning');
+              });
+            } else {
+              logger.warn({ accountId: account.id, err: err.message }, 'Could not enqueue account sync job');
             }
           }
-
-          await accountSyncQueue.add('sync-account', { accountId: account.id }, { jobId });
         }
       } catch (rawErr: unknown) {
         const err = toError(rawErr);
-        logger.error({ err: err.message }, 'Error in Background Sync Scheduler');
+        if (!err.message.includes('max requests limit exceeded')) {
+          logger.error({ err: err.message }, 'Error in Background Sync Scheduler');
+        }
       }
     },
     2 * 60 * 1000,

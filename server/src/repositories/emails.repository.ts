@@ -55,7 +55,13 @@ export class EmailsRepository {
       })
       .from(emails)
       .leftJoin(emailAiMetadata, eq(emails.id, emailAiMetadata.emailId))
-      .where(and(inArray(emails.accountId, accountIds), eq(emails.folder, folder)))
+      .where(
+        folder === 'starred'
+          ? and(inArray(emails.accountId, accountIds), eq(emails.isStarred, true))
+          : folder === 'all'
+            ? inArray(emails.accountId, accountIds)
+            : and(inArray(emails.accountId, accountIds), eq(emails.folder, folder)),
+      )
       .orderBy(desc(emails.receivedAt))
       .limit(limit)
       .offset(offset);

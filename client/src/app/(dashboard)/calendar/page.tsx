@@ -14,6 +14,7 @@ import { QuickCreateModal } from '@/components/calendar/QuickCreateModal';
 import { EventDetailsModal } from '@/components/calendar/EventDetailsModal';
 import { ConflictBanner } from '@/components/calendar/ConflictBanner';
 import { GoogleCalendarRightToolbar } from '@/components/calendar/GoogleCalendarRightToolbar';
+import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
 
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventData[]>([]);
@@ -145,110 +146,108 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-slate-950 font-sans transition-colors duration-200">
-      {/* Top Google Workspace Header */}
-      <GoogleCalendarHeader
-        sidebarOpen={sidebarOpen}
-        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        selectedDate={selectedDate}
-        onSelectToday={() => setSelectedDate(new Date())}
-        onNavigatePrev={handleNavigatePrev}
-        onNavigateNext={handleNavigateNext}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        conflictCount={conflictEvents.length}
-        onRefresh={loadData}
-        isRefreshing={loading}
-      />
+    <SectionErrorBoundary sectionName="Calendar">
+      <div className="flex flex-col h-full w-full overflow-hidden bg-white dark:bg-slate-950 font-sans transition-colors duration-200">
+        {/* Top Google Workspace Header */}
+        <GoogleCalendarHeader
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          selectedDate={selectedDate}
+          onSelectToday={() => setSelectedDate(new Date())}
+          onNavigatePrev={handleNavigatePrev}
+          onNavigateNext={handleNavigateNext}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          conflictCount={conflictEvents.length}
+          onRefresh={loadData}
+          isRefreshing={loading}
+        />
 
-      {/* Main Container with Sidebar + Viewport */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar */}
-        {sidebarOpen && (
-          <GoogleCalendarSidebar
-            selectedDate={selectedDate}
-            onSelectDate={setSelectedDate}
-            accounts={accounts}
-            visibleAccounts={visibleAccounts}
-            onToggleAccount={toggleAccountVisibility}
-            onOpenCreateModal={(type) => setQuickCreateModal({ isOpen: true, date: selectedDate, type })}
-            guestFilter={guestFilter}
-            onGuestFilterChange={setGuestFilter}
-            onTriggerSync={loadData}
-            isSyncing={loading}
-          />
-        )}
-
-        {/* Viewport Content */}
-        <div className="flex-1 flex flex-col overflow-hidden relative">
-          {/* Double-Booking Conflict Engine Banner */}
-          <ConflictBanner conflictEvents={conflictEvents} onSelectEvent={setSelectedEvent} />
-
-          {/* Active View Switcher Component */}
-          {viewMode === 'month' && (
-            <MonthView
+        {/* Main Container with Sidebar + Viewport */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left Sidebar */}
+          {sidebarOpen && (
+            <GoogleCalendarSidebar
               selectedDate={selectedDate}
-              events={filteredEvents}
-              onSelectEvent={setSelectedEvent}
-              onQuickCreate={(d) => setQuickCreateModal({ isOpen: true, date: d })}
-            />
-          )}
-
-          {viewMode === 'week' && (
-            <WeekView
-              selectedDate={selectedDate}
-              events={filteredEvents}
-              onSelectEvent={setSelectedEvent}
-              onQuickCreateSlot={(d, h) => setQuickCreateModal({ isOpen: true, date: d, hour: h })}
-            />
-          )}
-
-          {viewMode === 'day' && (
-            <DayView
-              selectedDate={selectedDate}
-              events={filteredEvents}
-              onSelectEvent={setSelectedEvent}
-              onQuickCreateSlot={(d, h) => setQuickCreateModal({ isOpen: true, date: d, hour: h })}
-            />
-          )}
-
-          {viewMode === 'year' && (
-            <YearView
-              selectedDate={selectedDate}
-              events={filteredEvents}
               onSelectDate={setSelectedDate}
-              onSwitchToMonthView={() => setViewMode('month')}
+              accounts={accounts}
+              visibleAccounts={visibleAccounts}
+              onToggleAccount={toggleAccountVisibility}
+              onOpenCreateModal={(type) => setQuickCreateModal({ isOpen: true, date: selectedDate, type })}
+              guestFilter={guestFilter}
+              onGuestFilterChange={setGuestFilter}
+              onTriggerSync={loadData}
+              isSyncing={loading}
             />
           )}
 
-          {viewMode === 'agenda' && (
-            <ScheduleView
-              events={filteredEvents}
-              onSelectEvent={setSelectedEvent}
-              onOpenCreateModal={() => setQuickCreateModal({ isOpen: true, date: selectedDate })}
-            />
-          )}
+          {/* Center Dynamic Calendar View */}
+          <div className="flex-1 overflow-hidden relative bg-white dark:bg-[#131314]">
+            {loading ? (
+              <div className="flex h-full items-center justify-center space-x-3 text-slate-400">
+                <div className="w-5 h-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                <span className="text-xs">Loading calendar events...</span>
+              </div>
+            ) : viewMode === 'month' ? (
+              <MonthView
+                selectedDate={selectedDate}
+                events={filteredEvents}
+                onSelectEvent={(evt) => setSelectedEvent(evt)}
+                onQuickCreate={(date: Date) => setQuickCreateModal({ isOpen: true, date })}
+              />
+            ) : viewMode === 'week' ? (
+              <WeekView
+                selectedDate={selectedDate}
+                events={filteredEvents}
+                onSelectEvent={(evt) => setSelectedEvent(evt)}
+                onQuickCreateSlot={(date: Date, hour: number) => setQuickCreateModal({ isOpen: true, date, hour })}
+              />
+            ) : viewMode === 'day' ? (
+              <DayView
+                selectedDate={selectedDate}
+                events={filteredEvents}
+                onSelectEvent={(evt) => setSelectedEvent(evt)}
+                onQuickCreateSlot={(date: Date, hour: number) => setQuickCreateModal({ isOpen: true, date, hour })}
+              />
+            ) : viewMode === 'year' ? (
+              <YearView
+                selectedDate={selectedDate}
+                events={filteredEvents}
+                onSelectDate={(date: Date) => {
+                  setSelectedDate(date);
+                  setViewMode('day');
+                }}
+                onSwitchToMonthView={() => setViewMode('month')}
+              />
+            ) : (
+              <ScheduleView
+                events={filteredEvents}
+                onSelectEvent={(evt) => setSelectedEvent(evt)}
+                onOpenCreateModal={() => setQuickCreateModal({ isOpen: true, date: selectedDate })}
+              />
+            )}
+          </div>
+
+          {/* Right Side Google Toolbar Strip */}
+          <GoogleCalendarRightToolbar />
         </div>
 
-        {/* Right Side Google Toolbar Strip */}
-        <GoogleCalendarRightToolbar />
+        {/* Quick Create Event Modal */}
+        <QuickCreateModal
+          isOpen={quickCreateModal.isOpen}
+          onClose={() => setQuickCreateModal({ isOpen: false })}
+          onSave={handleCreateSave}
+          accounts={accounts}
+          initialDate={quickCreateModal.date || selectedDate}
+          initialHour={quickCreateModal.hour ?? 10}
+          initialType={quickCreateModal.type || 'event'}
+        />
+
+        {/* Event Details Drawer Modal */}
+        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onDelete={handleDeleteEvent} />
       </div>
-
-      {/* Quick Create Event Modal */}
-      <QuickCreateModal
-        isOpen={quickCreateModal.isOpen}
-        onClose={() => setQuickCreateModal({ isOpen: false })}
-        onSave={handleCreateSave}
-        accounts={accounts}
-        initialDate={quickCreateModal.date || selectedDate}
-        initialHour={quickCreateModal.hour ?? 10}
-        initialType={quickCreateModal.type || 'event'}
-      />
-
-      {/* Event Details Drawer Modal */}
-      <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} onDelete={handleDeleteEvent} />
-    </div>
+    </SectionErrorBoundary>
   );
 }

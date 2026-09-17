@@ -25,6 +25,7 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? 'light' : 'dark')}
       className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900/80 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors shadow-sm"
       title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+      aria-label={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
     >
       {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
     </button>

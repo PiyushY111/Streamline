@@ -27,12 +27,16 @@ export const triggerManualSync = asyncHandler(async (req: AuthenticatedRequest, 
 
   if (shouldWait) {
     logger.info({ userId, count: userAccounts.length }, 'Executing fast direct sync for user accounts...');
-    await Promise.allSettled(userAccounts.map((acc) => syncGoogleAccountData(acc.id)));
-    await delCache(`emails:${userId}:*`);
+    if (userAccounts.length > 0) {
+      await Promise.allSettled(userAccounts.map((acc) => syncGoogleAccountData(acc.id)));
+      await delCache(`emails:${userId}:*`).catch(() => {});
+    }
 
-    await auditService.logAction(userId, 'sync.fast_completed', {
-      accountsSynced: userAccounts.length,
-    });
+    await auditService
+      .logAction(userId, 'sync.fast_completed', {
+        accountsSynced: userAccounts.length,
+      })
+      .catch(() => {});
 
     return res.status(200).json({
       success: true,
@@ -44,21 +48,33 @@ export const triggerManualSync = asyncHandler(async (req: AuthenticatedRequest, 
   logger.info({ userId, count: userAccounts.length }, 'Triggering async manual sync for user accounts...');
 
   for (const acc of userAccounts) {
-    const jobId = `account-sync-${acc.id}`;
-    const existingJob = await accountSyncQueue.getJob(jobId);
-    if (existingJob) {
-      const state = await existingJob.getState();
-      if (state === 'active' || state === 'waiting' || state === 'delayed') {
-        continue;
+    try {
+      const jobId = `account-sync-${acc.id}`;
+      const existingJob = await accountSyncQueue.getJob(jobId).catch(() => null);
+      if (existingJob) {
+        const state = await existingJob.getState().catch(() => null);
+        if (state === 'active' || state === 'waiting' || state === 'delayed') {
+          continue;
+        }
       }
-    }
 
-    await accountSyncQueue.add('sync-account', { accountId: acc.id }, { jobId });
+      await accountSyncQueue.add('sync-account', { accountId: acc.id }, { jobId });
+    } catch (queueErr: any) {
+      logger.info(
+        { accountId: acc.id, err: queueErr?.message },
+        '⚙️ Redis queue unavailable or exceeded, executing manual sync directly in-process...',
+      );
+      syncGoogleAccountData(acc.id).catch((syncErr) => {
+        logger.warn({ accountId: acc.id, err: syncErr?.message }, 'Direct manual sync failed');
+      });
+    }
   }
 
-  await auditService.logAction(userId, 'sync.manual_triggered', {
-    accountsQueued: userAccounts.length,
-  });
+  await auditService
+    .logAction(userId, 'sync.manual_triggered', {
+      accountsQueued: userAccounts.length,
+    })
+    .catch(() => {});
 
   res.status(202).json({ success: true, message: 'Sync queued successfully', accountsQueued: userAccounts.length });
 });

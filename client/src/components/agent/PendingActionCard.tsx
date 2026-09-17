@@ -1,19 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import {
-  Calendar,
-  Mail,
-  CheckSquare,
-  AlertTriangle,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  ShieldAlert,
-  ArrowRight,
-  ExternalLink,
-} from 'lucide-react';
-import { PendingActionData, approvePendingAction, rejectPendingAction } from '@/lib/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar, Mail, CheckSquare, AlertTriangle, Clock, CheckCircle2, XCircle, ShieldAlert } from 'lucide-react';
+import { PendingActionData } from '@/lib/api';
+import { useApproveAction, useRejectAction } from '@/lib/hooks/useAgentActions';
 
 interface PendingActionCardProps {
   action: PendingActionData;
@@ -21,35 +11,71 @@ interface PendingActionCardProps {
 }
 
 export function PendingActionCard({ action, onResolved }: PendingActionCardProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [resolvedStatus, setResolvedStatus] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const rejectBtnRef = useRef<HTMLButtonElement>(null);
+  const approveBtnRef = useRef<HTMLButtonElement>(null);
+
+  const approveMutation = useApproveAction();
+  const rejectMutation = useRejectAction();
+
+  const loading = approveMutation.isPending || rejectMutation.isPending;
+
+  // Accessibility: Focus Reject button by default and handle Escape / Tab keyboard trapping
+  useEffect(() => {
+    if (!resolvedStatus) {
+      rejectBtnRef.current?.focus();
+    }
+  }, [resolvedStatus]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (resolvedStatus) return;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleReject();
+      }
+
+      if (e.key === 'Tab') {
+        const rejectBtn = rejectBtnRef.current;
+        const approveBtn = approveBtnRef.current;
+        if (!rejectBtn || !approveBtn) return;
+
+        if (e.shiftKey && document.activeElement === rejectBtn) {
+          e.preventDefault();
+          approveBtn.focus();
+        } else if (!e.shiftKey && document.activeElement === approveBtn) {
+          e.preventDefault();
+          rejectBtn.focus();
+        }
+      }
+    };
+
+    const element = cardRef.current;
+    element?.addEventListener('keydown', handleKeyDown);
+    return () => {
+      element?.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [resolvedStatus]);
 
   const handleApprove = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      await approvePendingAction(action.id);
+      await approveMutation.mutateAsync({ actionId: action.id });
       setResolvedStatus('executed');
       onResolved?.();
-    } catch (err: any) {
-      setError(err.message || 'Failed to execute action');
-    } finally {
-      setLoading(false);
+    } catch {
+      // Error handled by mutation toast
     }
   };
 
   const handleReject = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      await rejectPendingAction(action.id);
+      await rejectMutation.mutateAsync(action.id);
       setResolvedStatus('rejected');
       onResolved?.();
-    } catch (err: any) {
-      setError(err.message || 'Failed to reject action');
-    } finally {
-      setLoading(false);
+    } catch {
+      // Error handled by mutation toast
     }
   };
 
@@ -99,8 +125,12 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
 
   if (resolvedStatus === 'executed') {
     return (
-      <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center space-x-3 text-xs text-emerald-800 dark:text-emerald-300">
-        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center space-x-3 text-xs text-emerald-800 dark:text-emerald-300 shadow-sm animate-in fade-in duration-200"
+      >
+        <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
         <span>Action approved &amp; executed successfully.</span>
       </div>
     );
@@ -108,29 +138,43 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
 
   if (resolvedStatus === 'rejected') {
     return (
-      <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-3 text-xs text-slate-500">
-        <XCircle className="w-4 h-4 text-slate-400 shrink-0" />
+      <div
+        role="status"
+        aria-live="polite"
+        className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center space-x-3 text-xs text-slate-500 shadow-sm animate-in fade-in duration-200"
+      >
+        <XCircle className="w-4 h-4 text-slate-400 shrink-0" aria-hidden="true" />
         <span>Action rejected. No changes were made.</span>
       </div>
     );
   }
 
   return (
-    <div className={`p-4 rounded-2xl border ${meta.bg} space-y-3 transition-all shadow-xs`}>
+    <div
+      ref={cardRef}
+      role="region"
+      aria-label={`${meta.label} Human-in-the-Loop Review Card`}
+      aria-busy={loading}
+      data-testid="shield-action-card"
+      tabIndex={0}
+      className={`p-4 rounded-2xl border ${meta.bg} space-y-3 transition-all shadow-xs focus:outline-none focus:ring-2 focus:ring-primary/40`}
+    >
       {/* Header bar */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center space-x-2">
           <div className="p-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <Icon className={`w-4 h-4 ${meta.color}`} />
+            <Icon className={`w-4 h-4 ${meta.color}`} aria-hidden="true" />
           </div>
           <div>
-            <h4 className="text-xs font-bold text-slate-900 dark:text-white">{meta.label} Proposal</h4>
+            <h4 id={`action-title-${action.id}`} className="text-xs font-bold text-slate-900 dark:text-white">
+              {meta.label} Proposal
+            </h4>
             <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">{meta.badge}</span>
           </div>
         </div>
 
         <div className="flex items-center space-x-1 text-[10px] text-slate-500 font-medium">
-          <Clock className="w-3 h-3" />
+          <Clock className="w-3 h-3" aria-hidden="true" />
           <span>Expires in {hoursRemaining}h</span>
         </div>
       </div>
@@ -138,7 +182,7 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
       {/* Untrusted Content Origin Shield Alert */}
       {preview?._securityNotice && (
         <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex items-start space-x-2.5 text-xs animate-in fade-in duration-150">
-          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
           <div className="space-y-0.5 flex-1 min-w-0">
             <div className="flex items-center space-x-1.5 font-bold text-[10px] uppercase tracking-wider text-amber-700 dark:text-amber-400">
               <span>Shield Alert: Untrusted Inbound Trigger</span>
@@ -222,27 +266,29 @@ export function PendingActionCard({ action, onResolved }: PendingActionCardProps
         )}
       </div>
 
-      {error && (
-        <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-[11px] text-rose-700 dark:text-rose-300">
-          {error}
-        </div>
-      )}
-
-      {/* Decision Buttons */}
+      {/* Decision Buttons with Focus Trap */}
       <div className="flex items-center justify-end space-x-2 pt-1">
         <button
+          ref={rejectBtnRef}
+          type="button"
           disabled={loading}
           onClick={handleReject}
-          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-all"
+          data-testid="reject-action-btn"
+          aria-label="Reject proposed action"
+          className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-all focus:outline-none focus:ring-2 focus:ring-slate-400 cursor-pointer disabled:opacity-50"
         >
-          Reject
+          Reject (Esc)
         </button>
         <button
+          ref={approveBtnRef}
+          type="button"
           disabled={loading}
           onClick={handleApprove}
-          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all hover:scale-[1.02] active:scale-98 flex items-center space-x-1.5"
+          data-testid="approve-action-btn"
+          aria-label="Approve and execute proposed action"
+          className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-all hover:scale-[1.02] active:scale-98 flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer disabled:opacity-50"
         >
-          <CheckCircle2 className="w-3.5 h-3.5" />
+          <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
           <span>{loading ? 'Executing...' : 'Approve & Execute'}</span>
         </button>
       </div>

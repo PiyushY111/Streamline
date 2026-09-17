@@ -158,6 +158,13 @@ export function createRetentionPurgeWorker(): Worker {
     logger.info({ jobId: job.id, result: job.returnvalue }, '✅ Retention Purge Worker job completed');
   });
 
+  purgeWorkerInstance.on('error', (err) => {
+    if (err?.message?.includes('max requests limit exceeded')) {
+      return;
+    }
+    logger.warn({ err: err?.message }, 'Retention Purge Worker connection error');
+  });
+
   purgeWorkerInstance.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Retention Purge Worker job failed');
     const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');
@@ -177,14 +184,28 @@ export function startRetentionPurgeScheduler(intervalMs = 24 * 60 * 60 * 1000): 
   purgeSchedulerHandle = setInterval(async () => {
     try {
       const jobId = `retention-purge-${new Date().toISOString().slice(0, 10)}`;
-      const existingJob = await retentionPurgeQueue.getJob(jobId);
-      if (!existingJob) {
-        await retentionPurgeQueue.add('execute-purge', {}, { jobId });
-        logger.info({ jobId }, '⏰ Scheduled retention purge job enqueued');
+      try {
+        const existingJob = await retentionPurgeQueue.getJob(jobId).catch(() => null);
+        if (!existingJob) {
+          await retentionPurgeQueue.add('execute-purge', {}, { jobId });
+          logger.info({ jobId }, '⏰ Scheduled retention purge job enqueued');
+        }
+      } catch (queueErr: unknown) {
+        const qErr = toError(queueErr);
+        if (qErr.message.includes('max requests limit exceeded')) {
+          // Direct in-process purge execution
+          executeRetentionPurge({}).catch((pErr) => {
+            logger.warn({ err: pErr?.message }, 'Direct retention purge warning');
+          });
+        } else {
+          logger.warn({ err: qErr.message }, 'Failed to enqueue retention purge job');
+        }
       }
     } catch (rawErr: unknown) {
       const err = toError(rawErr);
-      logger.error({ err: err.message }, 'Error in Retention Purge Scheduler');
+      if (!err.message.includes('max requests limit exceeded')) {
+        logger.error({ err: err.message }, 'Error in Retention Purge Scheduler');
+      }
     }
   }, intervalMs);
 }

@@ -105,6 +105,8 @@ export function Sidebar() {
         {/* Collapse / Expand Trigger Button */}
         <button
           onClick={toggleCollapse}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           className="p-1.5 rounded-xl bg-slate-200/60 dark:bg-slate-900/80 border border-slate-300/60 dark:border-slate-800/80 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-300/60 dark:hover:bg-slate-800 transition-colors shadow-2xs"
           title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
         >
@@ -192,6 +194,7 @@ export function Sidebar() {
         <div className="pt-2">
           <button
             onClick={openCopilot}
+            aria-label="Open AI Copilot"
             title="Open AI Copilot (⌘K)"
             className={cn(
               'relative w-full flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group border border-indigo-200/80 dark:border-indigo-800/60 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/40 dark:to-purple-950/40 hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/50 dark:hover:to-purple-900/50 text-indigo-700 dark:text-indigo-300 shadow-2xs',

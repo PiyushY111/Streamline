@@ -42,6 +42,13 @@ export function startWorkers() {
     logger.info({ jobId: job.id }, '✅ Account Sync Worker job completed');
   });
 
+  accountSyncWorkerInstance.on('error', (err) => {
+    if (err?.message?.includes('max requests limit exceeded')) {
+      return; // Suppress Upstash quota error spam on worker polling
+    }
+    logger.warn({ err: err?.message }, 'Account Sync Worker connection error');
+  });
+
   accountSyncWorkerInstance.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Account Sync Worker job failed');
     const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');

@@ -1,5 +1,6 @@
+import { toast } from '@/components/ui/ToastProvider';
+
 const PRIMARY_API = '/api';
-const FALLBACK_API = 'http://127.0.0.1:5001/api';
 
 function getCsrfTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null;
@@ -7,7 +8,45 @@ function getCsrfTokenFromCookie(): string | null {
   return match && match[2] ? decodeURIComponent(match[2]) : null;
 }
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+let lastRateLimitToastTime = 0;
+
+async function attemptSilentTokenRefresh(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${PRIMARY_API}/auth/me`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.token && typeof window !== 'undefined') {
+          localStorage.setItem('streamline_token', data.token);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export async function safeFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    toast.warning('You are currently offline. Changes will sync once reconnected.', 'Offline Mode');
+  }
+
   const token = typeof window !== 'undefined' ? localStorage.getItem('streamline_token') : null;
   const csrfToken = getCsrfTokenFromCookie();
   const headers = new Headers(options.headers || {});
@@ -27,14 +66,43 @@ export async function safeFetch(endpoint: string, options: RequestInit = {}): Pr
     headers,
   };
 
+  let response: Response;
+
   try {
-    const res = await fetch(`${PRIMARY_API}${endpoint}`, mergedOptions);
-    if (res.ok || res.status === 400 || res.status === 401 || res.status === 403 || res.status === 404) {
-      return res;
-    }
-  } catch (err: unknown) {
-    // Relative fetch failed, fall through to absolute fallback
+    response = await fetch(`${PRIMARY_API}${endpoint}`, mergedOptions);
+  } catch (err) {
+    throw err;
   }
 
-  return fetch(`${FALLBACK_API}${endpoint}`, mergedOptions);
+  // Handle 401 Unauthorized with single silent token refresh retry
+  if (
+    response.status === 401 &&
+    !endpoint.includes('/auth/login') &&
+    !endpoint.includes('/auth/register') &&
+    !endpoint.includes('/auth/me')
+  ) {
+    const refreshed = await attemptSilentTokenRefresh();
+    if (refreshed) {
+      const freshToken = typeof window !== 'undefined' ? localStorage.getItem('streamline_token') : null;
+      if (freshToken) {
+        headers.set('Authorization', `Bearer ${freshToken}`);
+      }
+      try {
+        return await fetch(`${PRIMARY_API}${endpoint}`, { ...mergedOptions, headers });
+      } catch (retryErr) {
+        return response;
+      }
+    }
+  }
+
+  // Surface rate-limiting alert (throttled to once per 10 seconds)
+  if (response.status === 429) {
+    const now = Date.now();
+    if (now - lastRateLimitToastTime > 10000) {
+      lastRateLimitToastTime = now;
+      toast.warning('Rate limit exceeded. Please wait a moment before trying again.', 'Slow Down');
+    }
+  }
+
+  return response;
 }

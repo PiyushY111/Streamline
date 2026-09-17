@@ -11,7 +11,8 @@ export async function syncGoogleAccountData(accountId: string): Promise<void> {
 
   const clientData = await getGmailClientForAccount(accountId);
   if (!clientData) {
-    throw new Error(`Connected account not found for ID: ${accountId}`);
+    logger.warn({ accountId }, 'Connected account credentials not available. Skipping sync cycle.');
+    return;
   }
 
   const { oauth2Client } = clientData;

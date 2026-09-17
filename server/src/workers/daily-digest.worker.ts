@@ -22,6 +22,13 @@ export function createDailyDigestWorker() {
     { connection: redisConnection, concurrency: 2 },
   );
 
+  worker.on('error', (err) => {
+    if (err?.message?.includes('max requests limit exceeded')) {
+      return;
+    }
+    logger.warn({ err: err?.message }, 'Daily Digest Worker connection error');
+  });
+
   worker.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ Daily Digest Worker job failed');
     const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');
@@ -83,14 +90,28 @@ export function startDailyDigestScheduler() {
 
             if (!existingToday) {
               const jobId = `digest-${user.id}-${new Date().toISOString().split('T')[0]}`;
-              await dailyDigestQueue.add('generate-digest', { userId: user.id }, { jobId });
-              logger.info({ userId: user.id, userTimeStr }, 'Enqueued scheduled Daily Digest job');
+              try {
+                await dailyDigestQueue.add('generate-digest', { userId: user.id }, { jobId });
+                logger.info({ userId: user.id, userTimeStr }, 'Enqueued scheduled Daily Digest job');
+              } catch (queueErr: unknown) {
+                const qErr = toError(queueErr);
+                if (qErr.message.includes('max requests limit exceeded')) {
+                  // Fallback directly to in-process generator
+                  generateDailyDigestForUser(user.id).catch((genErr) => {
+                    logger.warn({ userId: user.id, err: genErr?.message }, 'Direct daily digest generation warning');
+                  });
+                } else {
+                  logger.warn({ userId: user.id, err: qErr.message }, 'Failed to enqueue daily digest job');
+                }
+              }
             }
           }
         }
       } catch (rawErr: unknown) {
         const err = toError(rawErr);
-        logger.error({ err: err.message }, 'Error in Daily Digest Cron Scheduler');
+        if (!err.message.includes('max requests limit exceeded')) {
+          logger.error({ err: err.message }, 'Error in Daily Digest Cron Scheduler');
+        }
       }
     },
     5 * 60 * 1000,

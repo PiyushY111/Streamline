@@ -34,14 +34,14 @@ router.use('/auth', authRouter);
 // Webhook Endpoints (unauthenticated, signature/token verified by provider payload)
 router.use('/webhooks', webhooksRouter);
 
+// Live Real-Time Server-Sent Events (SSE) Stream (un-throttled so long-lived streams don't consume request quotas)
+router.use('/live', liveRouter);
+
 // Apply CSRF Protection to all downstream state-changing API endpoints
 router.use(csrfProtection);
 
-// Apply User-Tier Rate Limiting (120 req/min) to API domain endpoints
+// Apply User-Tier Rate Limiting to API domain endpoints
 router.use(userTierLimiter);
-
-// Live Real-Time Server-Sent Events (SSE) Stream
-router.use('/live', liveRouter);
 
 // Core Resource & Domain Sub-Routers
 router.use('/accounts', accountsRouter);

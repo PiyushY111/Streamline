@@ -101,6 +101,13 @@ export function createAiTriageWorker() {
     { connection: redisConnection, concurrency: 3 },
   );
 
+  worker.on('error', (err) => {
+    if (err?.message?.includes('max requests limit exceeded')) {
+      return;
+    }
+    logger.warn({ err: err?.message }, 'AI Triage Worker connection error');
+  });
+
   worker.on('failed', async (job, err) => {
     logger.error({ jobId: job?.id, err: err.message }, '❌ AI Triage Worker job failed');
     const { routeToDeadLetterQueue } = await import('../queues/dlq.queue.js');

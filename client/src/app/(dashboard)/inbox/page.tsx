@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
 import {
   Inbox as InboxIcon,
   Star,
@@ -276,17 +277,32 @@ function InboxContent() {
   const loadData = async (forceSync: boolean = false) => {
     try {
       setLoading(true);
+      const [emailData, accData] = await Promise.all([
+        fetchEmails().catch(() => []),
+        fetchConnectedAccounts().catch(() => []),
+      ]);
+      if (emailData && emailData.length > 0) {
+        updateEmailsState(emailData);
+        if (!selectedEmailId && emailData[0]) {
+          setSelectedEmailId(emailData[0].id);
+        }
+      }
+      if (accData && accData.length > 0) {
+        setAccounts(accData);
+        if (!composeFromAccountId && accData[0]) {
+          setComposeFromAccountId(accData[0].id);
+        }
+      }
+
       if (forceSync) {
-        await triggerSyncApi();
-      }
-      const [emailData, accData] = await Promise.all([fetchEmails(), fetchConnectedAccounts()]);
-      updateEmailsState(emailData);
-      setAccounts(accData);
-      if (emailData.length > 0 && !selectedEmailId && emailData[0]) {
-        setSelectedEmailId(emailData[0].id);
-      }
-      if (accData.length > 0 && !composeFromAccountId && accData[0]) {
-        setComposeFromAccountId(accData[0].id);
+        triggerSyncApi(false)
+          .then(() => fetchEmails())
+          .then((freshEmails) => {
+            if (freshEmails && freshEmails.length > 0) {
+              updateEmailsState(freshEmails);
+            }
+          })
+          .catch((syncErr) => console.warn('Background sync notification:', syncErr));
       }
     } catch (err) {
       console.warn('Failed to load inbox data:', err);
@@ -2719,10 +2735,14 @@ function InboxContent() {
 
 export default function InboxPage() {
   return (
-    <Suspense
-      fallback={<div className="flex h-full items-center justify-center text-xs text-slate-400">Loading Gmail...</div>}
-    >
-      <InboxContent />
-    </Suspense>
+    <SectionErrorBoundary sectionName="Inbox">
+      <Suspense
+        fallback={
+          <div className="flex h-full items-center justify-center text-xs text-slate-400">Loading Gmail...</div>
+        }
+      >
+        <InboxContent />
+      </Suspense>
+    </SectionErrorBoundary>
   );
 }

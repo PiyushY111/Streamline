@@ -57,35 +57,51 @@ export class GoogleTokenManager {
   }
 
   private async resolveClient(accountId: string): Promise<AuthenticatedClientResult | null> {
-    const [account] = await db.select().from(connectedAccounts).where(eq(connectedAccounts.id, accountId)).limit(1);
+    try {
+      const [account] = await db.select().from(connectedAccounts).where(eq(connectedAccounts.id, accountId)).limit(1);
 
-    if (!account) {
-      logger.warn({ accountId }, 'Account not found when obtaining OAuth2 client');
+      if (!account) {
+        logger.warn({ accountId }, 'Account not found when obtaining OAuth2 client');
+        return null;
+      }
+
+      let accessToken: string;
+      let refreshToken: string | undefined;
+
+      try {
+        accessToken = decrypt(account.accessToken);
+        refreshToken = account.refreshToken ? decrypt(account.refreshToken) : undefined;
+      } catch (decryptErr: unknown) {
+        const err = toError(decryptErr);
+        logger.warn({ accountId, err: err.message }, 'Failed to decrypt account OAuth credentials');
+        return null;
+      }
+
+      const expiresAtMs = account.tokenExpiresAt ? new Date(account.tokenExpiresAt).getTime() : 0;
+      const isExpiringSoon = expiresAtMs < Date.now() + this.EXPIRY_BUFFER_MS;
+
+      const oauth2Client = createOAuth2Client();
+      oauth2Client.setCredentials({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expiry_date: expiresAtMs || undefined,
+      });
+
+      // If token is still fresh, return immediately
+      if (!isExpiringSoon || !refreshToken) {
+        return {
+          oauth2Client,
+          account,
+          refreshed: false,
+        };
+      }
+
+      return await this.executeTokenRefresh(account, oauth2Client, refreshToken);
+    } catch (err: unknown) {
+      const error = toError(err);
+      logger.error({ accountId, err: error.message }, 'Error in OAuth client resolution');
       return null;
     }
-
-    let accessToken = decrypt(account.accessToken);
-    const refreshToken = account.refreshToken ? decrypt(account.refreshToken) : undefined;
-    const expiresAtMs = account.tokenExpiresAt ? new Date(account.tokenExpiresAt).getTime() : 0;
-    const isExpiringSoon = expiresAtMs < Date.now() + this.EXPIRY_BUFFER_MS;
-
-    const oauth2Client = createOAuth2Client();
-    oauth2Client.setCredentials({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      expiry_date: expiresAtMs || undefined,
-    });
-
-    // If token is still fresh, return immediately
-    if (!isExpiringSoon || !refreshToken) {
-      return {
-        oauth2Client,
-        account,
-        refreshed: false,
-      };
-    }
-
-    return this.executeTokenRefresh(account, oauth2Client, refreshToken);
   }
 
   /**
