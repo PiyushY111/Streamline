@@ -47,8 +47,17 @@ export function isAppError(err: unknown): err is AppError {
  */
 export class AllModelsExhaustedError extends AppError {
   public readonly attemptedModels: string[];
+  /** Why the last (and typically most informative) attempt failed — see failure-classifier.ts. */
+  public readonly lastReason: string;
+  /** Per-model failure reason, in attempt order — lets callers see if the cascade failed for one consistent reason (e.g. the whole account is rate-limited) vs. mixed reasons. */
+  public readonly attemptReasons: Array<{ model: string; reason: string }>;
 
-  constructor(attemptedModels: string[], lastErrorMessage?: string) {
+  constructor(
+    attemptedModels: string[],
+    lastErrorMessage?: string,
+    lastReason: string = 'unknown',
+    attemptReasons: Array<{ model: string; reason: string }> = [],
+  ) {
     super(
       `All AI model candidates failed: [${attemptedModels.join(', ')}]. ${lastErrorMessage || 'Service temporarily degraded.'}`,
       503,
@@ -56,6 +65,8 @@ export class AllModelsExhaustedError extends AppError {
     );
     this.name = 'AllModelsExhaustedError';
     this.attemptedModels = attemptedModels;
+    this.lastReason = lastReason;
+    this.attemptReasons = attemptReasons;
   }
 }
 

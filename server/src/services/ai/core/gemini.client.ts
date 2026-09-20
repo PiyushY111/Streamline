@@ -3,6 +3,7 @@ import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 import { toError, AllModelsExhaustedError } from '../../../utils/errors.js';
 import { withRetryAndTimeout } from '../../../utils/resilience.js';
+import { classifyAiFailureReason, type AiFailureReason } from './failure-classifier.js';
 
 let geminiClientInstance: GoogleGenAI | null = null;
 
@@ -35,7 +36,9 @@ export function getGeminiClient(): GoogleGenAI | null {
 
 export async function generateContentWithFallback(ai: GoogleGenAI, models: string[], request: any): Promise<any> {
   let lastError: Error | null = null;
+  let lastReason: AiFailureReason = 'unknown';
   const attemptedModels: string[] = [];
+  const attemptReasons: Array<{ model: string; reason: AiFailureReason }> = [];
 
   for (const model of models) {
     attemptedModels.push(model);
@@ -57,18 +60,21 @@ export async function generateContentWithFallback(ai: GoogleGenAI, models: strin
       return response;
     } catch (rawErr: unknown) {
       const err = toError(rawErr);
+      const reason = classifyAiFailureReason(rawErr);
       lastError = err;
+      lastReason = reason;
+      attemptReasons.push({ model, reason });
       logger.warn(
-        { model, err: err.message },
-        'Gemini model invocation failed or timed out, trying next candidate in cascade',
+        { model, reason, err: err.message },
+        `Gemini model invocation failed (${reason}), trying next candidate in cascade`,
       );
     }
   }
 
   // All cascade tiers failed: degrade to typed domain error with clear user-facing explanation
   logger.error(
-    { attemptedModels, lastError: lastError?.message },
-    'All Gemini cascade fallback candidate tiers failed',
+    { attemptedModels, attemptReasons, lastReason, lastError: lastError?.message },
+    `All Gemini cascade fallback candidate tiers failed (last reason: ${lastReason})`,
   );
-  throw new AllModelsExhaustedError(attemptedModels, lastError?.message);
+  throw new AllModelsExhaustedError(attemptedModels, lastError?.message, lastReason, attemptReasons);
 }
