@@ -217,6 +217,17 @@ export class MemoryService {
     const modelVersion = opts.embeddingModelVersion || DEFAULT_EMBEDDING_MODEL_VERSION;
     const cleanQuery = query.trim();
 
+    // Sparse full-text matching uses an OR-of-lexemes tsquery, not plainto_tsquery's default
+    // AND-of-all-terms. plainto_tsquery requires EVERY term to appear in the document, which
+    // makes it fail on almost any real multi-word natural-language query (e.g. "how much
+    // buffer time should I leave between meetings" against "I like 15-minute buffer breaks
+    // between back-to-back calendar events" shares only "buffer" — AND semantics reject a
+    // match rank() would otherwise score well). Reusing plainto_tsquery for lexeme
+    // normalization/stemming and just swapping '&' for '|' keeps Postgres's own tokenization
+    // while fixing the boolean logic. This bug also silently affected the sparse half of the
+    // existing hybrid RRF fusion below, not just keyword-only mode — see docs/adr/0006.
+    const orTsQuery = sql`to_tsquery('english', replace(plainto_tsquery('english', ${cleanQuery})::text, ' & ', ' | '))`;
+
     try {
       const queryEmbedding = await provider.generateEmbedding(cleanQuery, { dimensions: 768 });
       const vectorLiteral = `'[${queryEmbedding.join(',')}]'`;
@@ -249,6 +260,50 @@ export class MemoryService {
 
       // Filter by max distance cutoff
       const validDenseRows = denseRows.filter((r) => r.distance !== null && Number(r.distance) <= maxDistance);
+
+      // Keyword-only mode: pure sparse tsvector search, no dense fusion. Used for RAG ablation.
+      if (mode === 'keyword') {
+        const keywordConditions = [
+          eq(memories.userId, userId),
+          eq(memories.status, 'active'),
+          eq(memories.embeddingModelVersion, modelVersion),
+          sql`to_tsvector('english', ${memories.content}) @@ ${orTsQuery}`,
+        ];
+        if (opts.type) {
+          keywordConditions.push(eq(memories.type, opts.type));
+        }
+
+        const keywordRows = await db
+          .select({
+            id: memories.id,
+            type: memories.type,
+            content: memories.content,
+            sourceRef: memories.sourceRef,
+            status: memories.status,
+            createdAt: memories.createdAt,
+            embeddingModelVersion: memories.embeddingModelVersion,
+            rank: sql<number>`ts_rank(to_tsvector('english', ${memories.content}), ${orTsQuery})`,
+          })
+          .from(memories)
+          .where(and(...keywordConditions))
+          .orderBy(desc(sql`ts_rank(to_tsvector('english', ${memories.content}), ${orTsQuery})`))
+          .limit(topK);
+
+        const results: MemoryResult[] = keywordRows.map((r) => ({
+          id: r.id,
+          type: r.type as MemoryType,
+          content: r.content,
+          distance: 0.5, // Keyword-only matches have no cosine distance; fixed mid-range placeholder.
+          score: Number(r.rank),
+          sourceRef: r.sourceRef,
+          status: r.status,
+          createdAt: r.createdAt,
+          embeddingModelVersion: r.embeddingModelVersion,
+        }));
+
+        this.recordAccessAsync(results.map((r) => r.id));
+        return results;
+      }
 
       if (mode === 'vector' || validDenseRows.length === 0) {
         const results: MemoryResult[] = validDenseRows.slice(0, topK).map((r) => ({
@@ -284,7 +339,7 @@ export class MemoryService {
           eq(memories.userId, userId),
           eq(memories.status, 'active'),
           eq(memories.embeddingModelVersion, modelVersion),
-          sql`to_tsvector('english', ${memories.content}) @@ plainto_tsquery('english', ${cleanQuery})`,
+          sql`to_tsvector('english', ${memories.content}) @@ ${orTsQuery}`,
         ];
         if (opts.type) {
           sparseConditions.push(eq(memories.type, opts.type));
@@ -299,13 +354,11 @@ export class MemoryService {
             status: memories.status,
             createdAt: memories.createdAt,
             embeddingModelVersion: memories.embeddingModelVersion,
-            rank: sql<number>`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`,
+            rank: sql<number>`ts_rank(to_tsvector('english', ${memories.content}), ${orTsQuery})`,
           })
           .from(memories)
           .where(and(...sparseConditions))
-          .orderBy(
-            desc(sql`ts_rank(to_tsvector('english', ${memories.content}), plainto_tsquery('english', ${cleanQuery}))`),
-          )
+          .orderBy(desc(sql`ts_rank(to_tsvector('english', ${memories.content}), ${orTsQuery})`))
           .limit(topK * 2);
       } catch (rawSparseErr: unknown) {
         const sparseErr = toError(rawSparseErr);

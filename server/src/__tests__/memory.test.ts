@@ -213,6 +213,73 @@ describe('Stage 3 Memory Service & Hybrid RAG Engine', () => {
       expect(results).toEqual([]);
     });
 
+    it('mode: "keyword" runs the pure sparse tsvector branch — no cosine distance, uses ts_rank as score', async () => {
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      id: 'mem-kw-1',
+                      type: 'preference',
+                      content: 'I like 15-minute buffer breaks between meetings',
+                      sourceRef: 'chat',
+                      status: 'active',
+                      createdAt: new Date(),
+                      embeddingModelVersion: 'text-embedding-004',
+                      rank: 0.0122,
+                    },
+                  ]),
+                }),
+              }),
+            }),
+          }) as any,
+      );
+
+      const results = await searchMemory('user-kw-test', 'buffer time between meetings', { mode: 'keyword' });
+
+      expect(results).toHaveLength(1);
+      expect(results[0]!.content).toContain('buffer');
+      expect(results[0]!.distance).toBe(0.5); // fixed placeholder — keyword matches have no cosine distance
+      expect(results[0]!.score).toBeCloseTo(0.0122);
+    });
+
+    it('mode: "vector" runs the dense-only branch and never issues a sparse tsvector query', async () => {
+      const selectSpy = vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                orderBy: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockResolvedValue([
+                    {
+                      id: 'mem-vec-1',
+                      type: 'decision',
+                      content: 'Decided to use PostgreSQL over MongoDB',
+                      sourceRef: 'chat',
+                      status: 'active',
+                      createdAt: new Date(),
+                      embeddingModelVersion: 'text-embedding-004',
+                      distance: 0.15,
+                    },
+                  ]),
+                }),
+              }),
+            }),
+          }) as any,
+      );
+
+      const results = await searchMemory('user-vec-test', 'database choice', { mode: 'vector' });
+
+      expect(results).toHaveLength(1);
+      expect(results[0]!.distance).toBe(0.15);
+      // Exactly one select round-trip (the dense query) — mode: 'vector' must short-circuit
+      // before ever building or issuing the sparse tsvector query.
+      expect(selectSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('should gracefully return null on save when content is too short', async () => {
       const result = await saveMemory('user-1', 'preference', 'a');
       expect(result).toBeNull();

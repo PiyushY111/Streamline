@@ -63,10 +63,58 @@ In our dual-boundary policy engine (ADR-0010), the distinction between `read` an
 ## Consequences
 
 ### Positive
-- **100% Eval Precision**: Suite 3 benchmark achieved **100.0% Precision@3** and **0.933 Mean Reciprocal Rank (MRR)** across 25 labeled scenarios.
 - **Zero Human Friction on Notes**: Users can freely ask the copilot to remember preferences without interruption.
 - **Sub-Millisecond Search**: HNSW cosine index on Neon PostgreSQL executes similarity scans in under 0.1ms.
 - **User Transparency**: Real-time "🧠 Memories" drawer tab in the UI gives users full visibility and one-click deletion over stored memories.
 
 ### Re-Evaluation Triggers
 - If real-world usage establishes a clear, sustained volume of a fourth distinct category (e.g., personal contacts or recurring workflows), add it deliberately rather than relaxing schema constraints.
+
+---
+
+## Addendum (2026-09-21): The "100% Precision@3, 0.933 MRR" Claim Above Was Never Real — Corrected With a Real Ablation
+
+The original "Positive Consequences" claim of **100.0% Precision@3 and 0.933 MRR** was never
+measured against this system. It came from `evals/retrieval-precision.eval.ts`, which at the
+time didn't call `searchMemory` at all — it monkey-patched `db.select` to always return all
+seeded rows and scored them with a hand-rolled keyword/stem matcher unrelated to the RRF fusion
+described above. That eval has been rewritten to call the real `searchMemory` hybrid-RRF path
+against seeded rows in Postgres/pgvector (see `docs/adr/0007`'s addendum), and a proper
+three-way ablation was added (`evals/retrieval-ablation.eval.ts`, `npm run eval:ablation:live`)
+running the same 25-query set through vector-only, keyword-only, and hybrid RRF.
+
+**A real bug was found and fixed in the process**: the sparse branch (both here and in the new
+keyword-only ablation mode) used `plainto_tsquery`, which ANDs every query term together — a
+query has to share *every* word with a document to match at all. For natural-language queries
+like "how much buffer time should I leave between meetings" against a stored preference like "I
+like 15-minute buffer breaks between back-to-back calendar events," only "buffer" overlaps, so
+AND semantics rejected the match outright even though `ts_rank` would have scored it well. This
+meant the sparse half of the *production* hybrid RRF fusion was silently contributing close to
+nothing for realistic conversational queries — not a keyword-only-ablation artifact, a bug in
+the code this ADR describes. Fixed by keeping `plainto_tsquery`'s tokenization/stemming but
+switching its boolean operator from AND to OR (`replace(...::text, ' & ', ' | ')` then
+`to_tsquery`), so a document ranks by *how many* terms it shares, not whether it has all of them.
+
+**Real ablation result (2026-09-21, live run against `gemini-3.5-flash-lite`, 25-query set, after
+the OR-tsquery fix)**:
+
+| Mode | Precision@k | MRR | Passed |
+|---|---|---|---|
+| Vector-only (pgvector HNSW) | 100.0% | 1.000 | 25/25 |
+| Keyword-only (tsvector, OR-fixed) | 96.0% | 0.893 | 24/25 |
+| Hybrid RRF (k=60, production default) | 100.0% | **0.980** | 25/25 |
+
+**Honest conclusion**: hybrid does **not** clearly beat vector-only on this data. It ties on
+Precision@k and is measurably *worse* on MRR (0.980 vs. 1.000) — on at least one query, RRF
+fusion pulled a keyword-ranked competitor above the best vector match, which stayed within the
+pass threshold but dropped rank. Hybrid does clearly beat keyword-only. This ablation's query
+set is preference/decision/project-fact recall in natural language — it does not exercise the
+specific failure mode the hybrid architecture was chosen for in section 2 above (exact
+acronym/code-term matching like `BullMQ`, `AES-256`, `pgvector`, where dense embeddings are
+known to drift). We have not disproven that rationale; this data simply doesn't test it. The
+honest takeaway: on natural-language personal-memory queries, the sparse branch (now that it
+actually works) is not currently earning its complexity over vector-only, and RRF's fixed 0.65/
+0.35 weighting is not tuned against any real ablation. It has not been removed, because doing so
+based on one 25-query set testing only the case it wasn't designed for would be overcorrecting in
+the other direction. A follow-up eval set specifically containing exact-term/acronym queries
+would be needed to fairly evaluate what this architecture was actually built to solve.

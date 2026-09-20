@@ -35,3 +35,15 @@ The agentic memory system (Stage 3) requires storing high-dimensional vector emb
 
 ### Negative Consequences / Re-evaluation Trigger
 * If per-user vector embedding volume exceeds 100,000 items or index build times begin impacting database connection pooling, re-evaluate dedicated vector engines.
+
+---
+
+## Addendum (2026-09-21): RAG Ablation Results — Honest Note
+
+This ADR is about *where vectors live* (pgvector on Neon vs. a separate vector DB), which the
+ablation below doesn't touch — that decision stands on the infra-consolidation argument above,
+independent of retrieval quality. But since the ablation was run as part of hardening this
+system, the result is recorded here because it's directly relevant to anyone re-evaluating this
+choice: see [ADR-0011](./0011-three-durable-memory-types-and-read-classified-storage.md)'s
+addendum for the full retrieval-quality ablation (vector-only vs. keyword-only vs. hybrid RRF)
+and the honest conclusion that hybrid did not clearly beat vector-only on the current eval set.
