@@ -12,6 +12,8 @@ client/out/
 dist/
 server/dist/
 *.tsbuildinfo
+server/coverage/
+coverage/
 
 # Environment variables
 .env

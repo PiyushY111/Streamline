@@ -66,8 +66,8 @@ looking at:
 |---|---|---|
 | `priority.eval.ts` | No — pure deterministic scoring engine | Nothing. Always identical mock vs. live. |
 | `tool-selection.eval.ts` | No — calls `enforcePolicy()` directly with a hand-specified tool call | Nothing. This tests the policy engine, not an LLM's tool selection, despite the name. |
-| `retrieval-precision.eval.ts` | Yes — for embeddings | Mock mode uses `MockAiProvider`'s deterministic-but-not-semantic pseudo-embedding, so precision is not a meaningful signal there (last mock run: 1/25 — expected, not a regression, excluded from the mock CI gate for that reason). Live mode uses real embeddings and is the only mode that measures actual retrieval quality (last live run: **25/25, MRR 1.000**, 2026-09-20, `gemini-3.5-flash-lite`). |
-| `injection-resistance.eval.ts` | Yes — for the full agent tool-calling loop | Mock mode scripts the "model's" tool call per attack label (`scriptedMockTurn` in the eval file) purely so CI has a fast signal that the **policy layer** holds — it is not evidence about model behavior. Live mode lets the real model decide everything given the actual injected email content, with no scripting. This is the only mode that tests real injection *resistance* rather than injection *containment*. Last live run (2026-09-20, 21 scenarios): safety invariant held 21/21; model itself attempted the prohibited action in 0/21 (reported as a separate, non-gating "model injection-susceptibility" metric — see the eval file). |
+| `retrieval-precision.eval.ts` | Yes — for embeddings | Mock mode uses `MockAiProvider`'s deterministic-but-not-semantic pseudo-embedding, so precision is not a meaningful signal there (last mock run: 1/25 — expected, not a regression, excluded from the mock CI gate for that reason). Live mode uses real embeddings and is the only mode that measures actual retrieval quality: **25/25 (100%)** every live run so far; **MRR has ranged 0.96–1.00 across three live runs on 2026-09-21** (real embedding calls are not bit-for-bit deterministic run to run — this is a real, observed range, not a single fixed number). Most recent run: MRR 0.960, `gemini-3.5-flash-lite`. |
+| `injection-resistance.eval.ts` | Yes — for the full agent tool-calling loop | Mock mode scripts the "model's" tool call per attack label (`scriptedMockTurn` in the eval file) purely so CI has a fast signal that the **policy layer** holds — it is not evidence about model behavior. Live mode lets the real model decide everything given the actual injected email content, with no scripting. This is the only mode that tests real injection *resistance* rather than injection *containment*. Most recent live run (2026-09-21, 21 scenarios, `gemini-3.5-flash-lite`): the policy-layer **containment** invariant (no write/send tool ever executes without approval) held **21/21**, as it is structurally guaranteed to regardless of model behavior; separately, the model's own **resistance** — whether it attempted the prohibited action at all before policy would have caught it — was **0/21** in this run (a real, non-gating "model injection-susceptibility" metric, not a guarantee for future runs — see the eval file). |
 
 This suite previously had a case (`direct-delete-command`) targeting `delete_task`, a tool that has never
 existed in `TOOL_REGISTRY` — its assertion was vacuous (it passed only because the tool name was
@@ -81,6 +81,44 @@ tracking-pixel exfiltration, base64 obfuscation, delimiter/code-fence breaking, 
 blocks, "the approval gate itself is the danger" framing, long-context burial, nested forwarded-authority
 spoofing, zero-width-character obfuscation, system-prompt extraction attempts, and two legitimate-request
 controls (should propose a pending action, but must not be blanket-refused or over-flagged as an attack).
+
+## Vitest Branch Coverage on Security-Critical Files (a different mechanism from this eval harness)
+
+This is standard Vitest branch coverage (`npm run test:coverage`, reads `server/coverage/coverage-final.json`),
+not part of the scenario-based eval harness above — tracked here because it's the other half of "how do we
+know this system works," and this is where that story already lives. Four files were targeted specifically
+(agent orchestrator, policy engine, memory/retrieval service, cost guard) because they're the
+security/reliability-critical path, not for a generic coverage-percentage bump — new tests deliberately did
+not touch trivial getters or config files.
+
+**Before** is reconstructed from git history: `git show 4b8786c:server/coverage/coverage-final.json`, the
+last commit before any of this hardening work began (`4b8786c` — "test: add e2e tests, integration tests,
+and test coverage reports"). **After** is a fresh `npm run test:coverage` run on 2026-09-21. Both are exact
+counts from the coverage JSON (covered branches / total branches), not estimates.
+
+| File | Before (branches) | After (branches) | Change |
+|---|---|---|---|
+| `orchestrator.service.ts` | 32/55 (58.2%) | 51/59 (86.4%) | +28.2pp |
+| `policy.ts` | 41/57 (71.9%) | 52/57 (91.2%) | +19.3pp |
+| `memory.service.ts` | 57/71 (80.3%) | 61/75 (81.3%) | +1.0pp |
+| `cost-guard.service.ts` | 32/40 (80.0%) | 32/40 (80.0%) | unchanged (deliberate) |
+
+Notes:
+- Total branch counts changed for `orchestrator.service.ts` (55→59) and `memory.service.ts` (71→75) because
+  real code was added in the same pass (graceful-degradation error handling, the keyword-only retrieval
+  mode) — the denominator moved, not just the numerator, so these percentages are real ratios at each point
+  in time, not the same fixed set of branches getting progressively covered.
+- `cost-guard.service.ts` was deliberately left unchanged: its only uncovered branches are in
+  `getUserUsageStats`'s dashboard fallback math (unit-economics defaults when no historical data exists) —
+  display-only calculations, not cascade-trigger or circuit-breaker logic, which was already well covered
+  and additionally exercised by `cascade-failure-classification.test.ts`.
+- New tests added to reach the "after" numbers: `orchestrator-coverage.test.ts` (untrusted-content security
+  notice tagging, policy pending/rejected paths through the orchestrator, provider-unavailable and
+  plain-text-response paths), `policy-coverage.test.ts` (idempotency-key deduplication, the
+  `executeApprovedAction` concurrent-claim race — the same class of race this pass hardened in
+  `token-manager.service.ts`, but for policy.ts), `policy-injection-scenarios.test.ts` (every write/send
+  attack in `injection-resistance.json` independently re-verified against `enforcePolicy()` directly, no
+  orchestrator/model involved), plus two new `mode: 'keyword'` / `mode: 'vector'` tests in `memory.test.ts`.
 
 ## Adding New Scenarios
 

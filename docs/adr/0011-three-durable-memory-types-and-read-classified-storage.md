@@ -28,9 +28,11 @@ We deliberately constrain memory to three durable categories enforced at the app
 Ephemeral chatter, greetings, temporary questions, and fleeting task statuses are strictly rejected from entering memory.
 
 ### 2. Hybrid Retrieval Architecture (Dense HNSW + Sparse GIN RRF)
-To ensure 100% precision across both conceptual queries and exact technical terms:
+The design goal was strong precision across both conceptual queries and exact technical terms — see
+the 2026-09-21 addendum below for the real, measured ablation result this goal produced, which was
+more nuanced than "100%":
 - **Dense Branch**: Neon PostgreSQL `pgvector` storing 768-dimension vectors indexed via Hierarchical Navigable Small World (**HNSW**) graphs using `vector_cosine_ops` ($m = 16, ef\_construction = 64$).
-- **Sparse Branch**: PostgreSQL native full-text search (`tsvector` + `plainto_tsquery`) indexed via Generalized Inverted Index (**GIN**).
+- **Sparse Branch**: PostgreSQL native full-text search (`tsvector`) indexed via Generalized Inverted Index (**GIN**). Queries are built with `plainto_tsquery`'s tokenization/stemming, then rewritten from AND to OR semantics (`replace(...::text, ' & ', ' | ')` before `to_tsquery`) — see the addendum below for why the AND-default form made this branch nearly non-functional for natural-language queries until 2026-09-21.
 - **Reciprocal Rank Fusion (RRF)**: Merges dense and sparse ranks into a unified score:
   $$RRF(d) = \sum_{m \in M} \frac{1}{60 + r_m(d)}$$
 
@@ -95,14 +97,21 @@ the code this ADR describes. Fixed by keeping `plainto_tsquery`'s tokenization/s
 switching its boolean operator from AND to OR (`replace(...::text, ' & ', ' | ')` then
 `to_tsquery`), so a document ranks by *how many* terms it shares, not whether it has all of them.
 
-**Real ablation result (2026-09-21, live run against `gemini-3.5-flash-lite`, 25-query set, after
-the OR-tsquery fix)**:
+**Real ablation result (most recent run: 2026-09-21 ~19:59 UTC, live against `gemini-3.5-flash-lite`,
+25-query set, after the OR-tsquery fix)**:
 
 | Mode | Precision@k | MRR | Passed |
 |---|---|---|---|
 | Vector-only (pgvector HNSW) | 100.0% | 1.000 | 25/25 |
-| Keyword-only (tsvector, OR-fixed) | 96.0% | 0.893 | 24/25 |
+| Keyword-only (tsvector, OR-fixed) | 96.0% | 0.920 | 24/25 |
 | Hybrid RRF (k=60, production default) | 100.0% | **0.980** | 25/25 |
+
+This was the second live ablation run on this date; the first (same query set, ~30 minutes
+earlier) read keyword-only MRR as 0.893 instead of 0.920 — vector-only and hybrid were identical
+across both runs. Keyword search over fixed seeded content should be deterministic; the most
+likely explanation is Postgres breaking exact `ts_rank` ties inconsistently across runs when two
+candidates score identically (no explicit tiebreaker is set), not embedding non-determinism. Both
+runs are honestly reported here rather than only keeping the more favorable one.
 
 **Honest conclusion**: hybrid does **not** clearly beat vector-only on this data. It ties on
 Precision@k and is measurably *worse* on MRR (0.980 vs. 1.000) — on at least one query, RRF

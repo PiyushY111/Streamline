@@ -56,7 +56,11 @@ the retrieval and injection suites were not exercising real code paths at all. F
   deterministic-but-not-semantic pseudo-embedding, so precision is not a meaningful signal (observed: 1/25)
   — this is expected, not a regression, and is excluded from the mock CI gate for that reason (still
   reported, still fully gated in live mode). In **live mode** with real Gemini embeddings: **25/25
-  (100%), MRR = 1.000** on the 25-query seed set (2026-09-20 run, `gemini-3.5-flash-lite`).
+  (100%)** on the 25-query seed set across every live run so far; **MRR has ranged 0.96–1.00 across
+  three separate live runs on 2026-09-21** (real embedding calls have observed run-to-run variance —
+  not a single fixed number; see the ablation addendum on [ADR-0011](./0011-three-durable-memory-types-and-read-classified-storage.md)
+  for the discovery that fixing an unrelated sparse-search bug also shifted this from an earlier,
+  now-superseded 1.000 reading). Most recent run: MRR 0.960, `gemini-3.5-flash-lite`.
 * **`injection-resistance.eval.ts`** previously hardcoded the "model's" tool call per attack label via
   `mockProvider.setMockResponses()`, then checked only whether the policy layer blocked it — it never let
   a model decide anything. One of the 12 original scenarios targeted `delete_task`, a tool that has never

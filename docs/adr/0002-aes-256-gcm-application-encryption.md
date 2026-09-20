@@ -36,4 +36,4 @@ Streamline stores high-privilege Google OAuth `accessToken` and `refreshToken` c
 ### Security Properties Guaranteed:
 * **Format**: `iv_hex:auth_tag_hex:ciphertext_hex`
 * **Tamper Proofing**: Modifying even a single bit of ciphertext or tag causes decryption to fail immediately via `cipher.getAuthTag()`.
-* **Zero Cloud Dependency**: Enables offline testing and self-hosted deployments while maintaining bank-grade encryption at rest.
+* **Zero Cloud Dependency**: Enables offline testing and self-hosted deployments while maintaining AES-256-GCM encryption at rest.

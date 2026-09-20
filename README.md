@@ -10,10 +10,10 @@
 [![AI Engine](https://img.shields.io/badge/AI-Google%20Gemini%203.5%20%7C%203.6-4285F4.svg)](https://ai.google.dev/)
 [![Queues](https://img.shields.io/badge/Queues-BullMQ%20%7C%20Redis-DC382D.svg)](https://bullmq.io/)
 [![Observability](https://img.shields.io/badge/Telemetry-OpenTelemetry%20Spans-F5A623.svg)](https://opentelemetry.io/)
-[![Security](https://img.shields.io/badge/Security-Dual--Boundary%20Shield-10B981.svg)](#-5-bank-grade-security--prompt-injection-defense)
+[![Security](https://img.shields.io/badge/Security-Dual--Boundary%20Shield-10B981.svg)](#-5-policy-layer-security--prompt-injection-containment)
 [![Evals](https://img.shields.io/badge/Evals-Scenario%20Benchmark%20Suite-6366F1.svg)](#-automated-eval-harness--benchmarks)
 
-**An autonomous, multi-tenant personal operating system unifying multi-account Gmail, Google Calendar, semantic memory, and proactive AI agents with bank-grade policy guardrails into a single high-performance dashboard.**
+**An autonomous, multi-tenant personal operating system unifying multi-account Gmail, Google Calendar, semantic memory, and proactive AI agents — where every mutating action (`send_email`, `create_calendar_event`, `create_task`) requires human approval through a policy engine that holds independently of what the model decides (0/21 model-attempted policy bypasses in the most recent live adversarial run — see [`evals/results/live/`](./server/evals/results/live/)).**
 
 [Explore Documentation](./docs/README.md) · [Architecture Overview](./docs/architecture/system-overview.md) · [REST API Specs](./docs/api/endpoints.md) · [ADRs](./docs/adr/README.md) · [Developer Setup](./docs/development/setup-guide.md)
 
@@ -27,9 +27,9 @@
 
 Beyond standard email clients, Streamline acts as an **autonomous personal operating system**:
 * **ReAct Agent Runtime & Tool Orchestrator**: An interactive multi-turn agent capable of scheduling events, drafting emails, managing tasks, and recalling memories using explicit thought signatures and multi-step tool execution loops.
-* **OAuth 2.0 Token Lifecycle & Multi-Account Credential Vault**: Proactive 5-minute expiry buffer checks, single-flight concurrency mutex locks (preventing thundering herd refresh storms across parallel BullMQ workers), AES-256-GCM encryption, and automated `invalid_grant` revocation handling.
-* **Dual-Boundary Policy Engine & Human-in-the-Loop Shield**: Automated interception of state-mutating actions (`send_email`, `create_calendar_event`, `create_task`) requiring cryptographic human review before execution.
-* **Policy-Layer Prompt Injection Defense**: Structural isolation of untrusted external content via delimiter neutralization, preventing indirect prompt injections from hijacking agent execution.
+* **OAuth 2.0 Token Lifecycle & Multi-Account Credential Vault**: Proactive 5-minute expiry buffer checks, an in-process single-flight mutex plus a Redis-backed distributed lock across replicas (fails open — best-effort, no hang — if Redis itself is unavailable), AES-256-GCM encryption, and automated `invalid_grant` revocation handling.
+* **Dual-Boundary Policy Engine & Human-in-the-Loop Shield**: Automated interception of state-mutating actions (`send_email`, `create_calendar_event`, `create_task`) requiring human approval before execution.
+* **Policy-Layer Prompt Injection Containment**: Untrusted external content is tagged as untrusted at the data layer, but the actual guarantee is downstream — every mutating tool call is queued for human approval regardless of what the model decides. In the most recent live adversarial run (21 real attack/control scenarios, real Gemini model, no scripting), the policy layer held 21/21, and the model itself never attempted a prohibited action either (0/21) — those are two separately measured things, see [ADR-0012](./docs/adr/0012-policy-layer-prompt-injection-defense.md).
 * **pgvector Hybrid RAG & Semantic Memory Engine**: Continuous semantic recall across 3 memory classes (*User Preferences*, *Confirmed Decisions*, *Project Facts*) via Neon pgvector HNSW cosine distance fused with PostgreSQL `tsvector` full-text search via Reciprocal Rank Fusion ($k=60$).
 * **OpenTelemetry-Compliant Observability**: Real-time waterfall trace profiler tracking per-step latencies, model vs. tool overhead, and exact token/USD cost attribution via live SSE streams.
 * **DAG Task Dependency Scheduler & Topological Urgency Engine**: Topological sorting with cycle detection (Kahn's / DFS algorithm) and exponential urgency decay scoring ($e^{-\Delta t / 48}$) to deterministically select your next best task against Google Calendar free slots.
@@ -91,8 +91,8 @@ graph TD
 
     subgraph SecurityCore ["Policy & Isolation Layer"]
         PolicyEngine["Dual-Boundary Policy Engine"]
-        Shield["Pending Action Approval Shield\n(Cryptographic Human Review)"]
-        InjectionShield["XML Delimiter Neutralizer\n(<untrusted_external_content>)"]
+        Shield["Pending Action Approval Shield\n(Authenticated Human Approval API)"]
+        InjectionShield["Untrusted-Content Tagging\n(_contentWarning field + system prompt)"]
     end
 
     subgraph AsyncEngine ["Distributed Async Engine"]
@@ -149,25 +149,10 @@ graph TD
 
 ---
 
-## 🔍 Show Me The Code: Interview Follow-Up Defense Matrix
-
-Every box in the architecture diagrams corresponds to production code. Below is the technical defense matrix detailing exact algorithms, complexity, and source references:
-
-| Diagram Box Name | What Does This Actually Do? | Core Algorithm / Complexity | Production Code Location | Interviewer Follow-Up Defense |
-| :--- | :--- | :--- | :--- | :--- |
-| **OAuth 2.0 Token Lifecycle & Refresh Mutex** | Manages Google multi-account credentials, proactive refresh buffer (<5m), and serialized concurrency locking. | In-memory single-flight promise map per `accountId` ($O(1)$) | [`token-manager.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/google/token-manager.service.ts) | Prevents thundering herd refresh storms across parallel BullMQ workers; handles `invalid_grant` with automatic status downgrades and audit logging. |
-| **ReAct Agent Runtime & Tool Execution Core** | Multi-turn reasoning loop executing registered operational tools (`gmail`, `calendar`, `tasks`, `memory`) with thought signature parsing. | ReAct pattern; regex parsing of `<thought>` signatures; deterministic step iteration | [`orchestrator.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/agent/orchestrator.service.ts) | Parses Gemini internal reasoning blocks, evaluates max turn guardrails, and pipes live step execution to SSE streams. |
-| **Dual-Boundary Policy & HITL Approval Shield** | Intercepts state-mutating operations (`send_email`, `create_calendar_event`, `create_task`) before external execution. | Two-phase commit interception; state machine (`pending` → `approved` / `rejected`) | [`policy.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/agent/policy.ts) | Mutating actions write directly to the `pending_actions` table; Google Workspace API calls are strictly blocked until explicit cryptographic human authorization. |
-| **pgvector Hybrid RAG & Semantic Memory Store** | Dense HNSW vector search fused with sparse PostgreSQL tsvector full-text search via Reciprocal Rank Fusion ($k=60$). | $RRF(d) = \sum \frac{1}{60 + \text{rank}}$; HNSW cosine distance (`<=>`); deduplication distance < 0.12 | [`memory.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/memory/memory.service.ts) | Uses Neon pgvector cosine operator `<=>`; automatically supersedes conflicting memories (`supersededBy`); records access frequencies for decay modeling. |
-| **DAG Dependency Scheduler & Urgency Engine** | Deterministic task prioritization via topological graph analysis, cycle detection, and exponential urgency decay. | Kahn's / DFS cycle detection ($O(V+E)$); exponential urgency decay $e^{-\Delta t / 48}$; Gaussian slot fit | [`priority.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/priority.service.ts) | Prevents dependency deadlocks with cycle detection; computes transitive downstream impact; factors in Google Calendar free slots for contextual fit. |
-| **AI Spend Guard & Circuit Breaker** | Tracks per-user daily token consumption and USD expenditure; trips before vendor quotas are exceeded. | Leaky bucket rate limiting + atomic daily spend ledger aggregation ($O(1)$) | [`cost-guard.service.ts`](file:///Users/piyush./Desktop/Streamline/server/src/services/ai/core/cost-guard.service.ts) | Fallback from primary Gemini models to deterministic local handlers when spend exceeds configured daily limits or provider error rates spike. |
-
----
-
 ## ✨ Core Features
 
 ### 📬 1. Unified Multi-Account Inbox & Mailbox Management
-* **Consolidated Account Feed**: Aggregate emails from multiple Google accounts into a synchronized view with zero data bleed.
+* **Consolidated Account Feed**: Aggregate emails from multiple Google accounts into a synchronized view, with every query scoped by `userId`/`accountId` at the repository layer.
 * **Smart Account Badging**: Color-coded mailbox indicators identifying account sources and sender domains.
 * **L1 Redis Caching**: Sub-millisecond response times for cached mailbox queries with automatic invalidation on mutations.
 * **Rich Thread Viewer**: Sanitized HTML rendering with attachments, inline participant badges, and full thread history.
@@ -199,11 +184,11 @@ Every box in the architecture diagrams corresponds to production code. Below is 
 * **Hybrid Search Engine**: Neon PostgreSQL `pgvector` HNSW cosine similarity search combined with full-text keyword indexing.
 * **Hybrid RAG Retrieval Inspector**: Live inspection interface to execute real-time vector queries, inspect retrieval latency, examine HNSW cosine distance (`<=>`), and preview exact prompt context injection.
 
-### 🔒 5. Bank-Grade Security & Prompt Injection Defense
-* **Policy-Layer Structural Enforcement** ([ADR-0012](./docs/adr/0012-policy-layer-prompt-injection-defense.md)): Untrusted external email bodies are strictly encapsulated inside `<untrusted_external_content>` XML delimiters with neutralized delimiters, eliminating prompt injection risks at the architectural level.
+### 🔒 5. Policy-Layer Security & Prompt Injection Containment
+* **Policy-Layer Containment, Not Model Resistance** ([ADR-0012](./docs/adr/0012-policy-layer-prompt-injection-defense.md)): Untrusted external email bodies are tagged as untrusted at the data layer (`_contentWarning` field) and in the system prompt, but the real guarantee doesn't depend on the model respecting either — every mutating tool call is independently intercepted by the policy engine and held for human approval regardless of what the model decides. Most recent live adversarial run (21 real attack/control scenarios, real Gemini model, no scripting): policy-layer containment held 21/21; the model itself also never attempted the prohibited action (0/21) — two separately measured numbers, see `evals/results/live/`.
 * **AES-256-GCM Token Encryption**: Google OAuth access and refresh tokens are encrypted at rest with unique initialization vectors and cryptographic authentication tags.
-* **OAuth 2.0 with PKCE & CSRF Protection**: Strict state parameter validation, double-submit cookie verification, and zero token exposure over public APIs.
-* **Penetration Testing Lab**: Interactive in-app security console with preset attack payloads (jailbreaks, fake system delimiters, roleplay DAN) to test and verify system resilience.
+* **OAuth 2.0 with PKCE & CSRF Protection**: Strict state parameter validation, double-submit cookie verification, and `httpOnly` session cookies so tokens are never readable by client-side JavaScript.
+* **In-App Security Console**: Interactive UI with preset attack payloads (jailbreaks, fake system delimiters, roleplay DAN) for exploring injection framing — note this in-app simulator does simple keyword pattern-matching on the pasted text, it does not route the payload through the real agent/model/policy pipeline; the real adversarial evidence above comes from `evals/injection-resistance.eval.ts` run live against the actual system, not from this console.
 
 ### 📊 6. OpenTelemetry Decision Tracing & Cost Breakdown
 * **Full-Trace Waterfall Profiler**: Visual Gantt-chart timeline mapping every sub-step of agent sessions conforming to OpenTelemetry GenAI semantic conventions.
@@ -229,7 +214,7 @@ Every box in the architecture diagrams corresponds to production code. Below is 
 | **`/agent`** | ReAct Agent Orchestrator | Multi-turn reasoning agent, tool execution runtime, pending approval cards, thought signature inspection. |
 | **`/agent/traces/[id]`** | Trace Profiler | OpenTelemetry span waterfall, step latencies, token usage, and USD cost decomposition. |
 | **`/memory`** | Memory Vault & Hybrid RAG | Semantic memory records, category filters, live pgvector HNSW + tsvector Hybrid RAG retrieval inspector. |
-| **`/security`** | Security Guardrails | Threat posture monitor, untrusted content shield status, live injection penetration testing. |
+| **`/security`** | Security Guardrails | Threat posture monitor, untrusted content shield status, in-app injection payload simulator (keyword-pattern demo — see note in the security section above for how this differs from the real `evals/injection-resistance.eval.ts` adversarial suite). |
 | **`/calendar`** | Calendar & Agenda | Synchronized multi-calendar view, free-slot finder, direct event scheduling modal. |
 | **`/tasks`** | DAG Task Scheduler | Action item radar, dependency blocker tracking, exponential urgency score ranking. |
 | **`/digest`** | Executive Digest | Daily synthesized morning briefing, newsletter summaries, actionable highlights. |
@@ -369,10 +354,17 @@ npm run type-check
 ```
 
 ### Evaluation Benchmark Matrix
-* **Priority Triage Classification** (`evals/priority.eval.ts`): Benchmarks accuracy across edge-case email scenarios against ground-truth priorities (`P1` to `P4`).
-* **Agent Tool Selection Accuracy** (`evals/tool-selection.eval.ts`): Tests parameter parsing and valid tool dispatch across multi-step natural language prompts.
-* **Memory Retrieval Precision** (`evals/retrieval-precision.eval.ts`): Evaluates cosine similarity ranking and relevance recall over the 3-tier memory store.
-* **Prompt Injection Resistance** (`evals/injection-resistance.eval.ts`): Evaluates policy-layer defense against direct overrides, fake delimiters, and indirect jailbreak attempts.
+
+`npm run eval` runs all four suites in fast, deterministic mock mode (the CI default). `npm run eval:live`
+runs them against the real configured provider at real (small) API cost — see
+[`server/evals/README.md`](./server/evals/README.md) for exactly what `--live` changes per suite (it's a
+no-op for two of the four). Most recent live run: 2026-09-21, `gemini-3.5-flash-lite`, 78/78 scenarios
+passed.
+
+* **Deterministic Priority Engine** (`evals/priority.eval.ts`): A pure deterministic task-scoring engine (urgency decay, dependency graph) — no AI model call at all, despite living in an "AI eval" directory. 10/10 scenarios.
+* **Policy Engine Boundary Tests** (`evals/tool-selection.eval.ts`): Calls `enforcePolicy()` directly with a hand-specified tool call — tests the policy engine's allow/deny decisions, not an LLM's tool selection. 22/22 scenarios.
+* **Hybrid RAG Retrieval Precision** (`evals/retrieval-precision.eval.ts`): The real `searchMemory` hybrid-RRF path against seeded pgvector rows. 25/25 (100%) on every live run so far; MRR has ranged 0.96–1.00 across three live runs (real embedding calls vary slightly run to run). A three-way ablation (vector-only vs. keyword-only vs. hybrid) lives in `evals/retrieval-ablation.eval.ts` — see [ADR-0011](./docs/adr/0011-three-durable-memory-types-and-read-classified-storage.md) for the honest result: hybrid does not clearly beat vector-only on this query set.
+* **Prompt-Injection Containment & Resistance** (`evals/injection-resistance.eval.ts`): In live mode, the real model runs the full agent loop against 21 real attack/control emails with no scripting. Two separate numbers are measured: policy-layer **containment** (write/send tools never execute without approval) is a structural guarantee, held 21/21; the model's own **resistance** (whether it avoided attempting the prohibited action at all) is a real, non-guaranteed behavioral measurement — 0/21 attempted in the most recent run.
 
 ---
 

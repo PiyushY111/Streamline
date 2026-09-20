@@ -1,0 +1,33 @@
+{
+  "mode": "live",
+  "timestamp": "2026-09-20T20:00:56.249Z",
+  "results": [
+    {
+      "mode": "vector",
+      "total": 25,
+      "passed": 25,
+      "precisionAtK": 100,
+      "mrr": 1,
+      "failedScenarioIds": []
+    },
+    {
+      "mode": "keyword",
+      "total": 25,
+      "passed": 24,
+      "precisionAtK": 96,
+      "mrr": 0.92,
+      "failedScenarioIds": [
+        "preference-deep-work"
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "total": 25,
+      "passed": 25,
+      "precisionAtK": 100,
+      "mrr": 0.98,
+      "failedScenarioIds": []
+    }
+  ],
+  "hybridBeatsBoth": false
+}

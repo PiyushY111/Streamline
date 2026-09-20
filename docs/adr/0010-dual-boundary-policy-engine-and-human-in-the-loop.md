@@ -51,10 +51,10 @@ All tool calls proposed by any AI provider pass through strict Zod schemas befor
 ## Consequences
 
 ### Positive
-- **Zero Unauthorized Side Effects**: Complete defense-in-depth against prompt injection and autonomous model blunders.
+- **No Unauthorized Side Effects Without Human Sign-Off**: Write/send tool calls are queued for approval regardless of why the model proposed them — including prompt injection or an autonomous model mistake. This is containment (nothing executes without approval), not a claim that injection or mistakes can't happen upstream of the queue.
 - **Auditability**: Every tool proposal, queueing event, user approval, rejection, and execution is permanently tracked in `audit_logs` and `pending_actions`.
 - **User Confidence**: Users see structured, clear approval cards before consequential actions occur.
-- **100% Eval Coverage**: Validated against 22 benchmark scenarios covering read queries, write staging, approval flows, schema rejections, and injection attempts.
+- **22/22 Scenarios Passing**: `evals/tool-selection.eval.ts` — read queries, write staging, approval flows, schema rejections, and injection-shaped attempts, all calling `enforcePolicy()` directly.
 
 ### Negative / Trade-offs
 - **Human Latency**: Write actions require an explicit click or confirmation from the user in the UI, slightly increasing interaction friction in exchange for total security.
