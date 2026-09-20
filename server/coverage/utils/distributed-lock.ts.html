@@ -3,7 +3,7 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for utils/resilience.ts</title>
+    <title>Code coverage report for utils/distributed-lock.ts</title>
     <meta charset="utf-8" />
     <link rel="stylesheet" href="../prettify.css" />
     <link rel="stylesheet" href="../base.css" />
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../index.html">All files</a> / <a href="index.html">utils</a> resilience.ts</h1>
+        <h1><a href="../index.html">All files</a> / <a href="index.html">utils</a> distributed-lock.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.89% </span>
+                <span class="strong">91.42% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>34/37</span>
+                <span class='fraction'>32/35</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">89.65% </span>
+                <span class="strong">86.66% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>26/29</span>
+                <span class='fraction'>13/15</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>3/4</span>
+                <span class='fraction'>4/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">91.66% </span>
+                <span class="strong">91.17% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>33/36</span>
+                <span class='fraction'>31/34</span>
             </div>
         
             
@@ -173,13 +173,7 @@
 <a name='L108'></a><a href='#L108'>108</a>
 <a name='L109'></a><a href='#L109'>109</a>
 <a name='L110'></a><a href='#L110'>110</a>
-<a name='L111'></a><a href='#L111'>111</a>
-<a name='L112'></a><a href='#L112'>112</a>
-<a name='L113'></a><a href='#L113'>113</a>
-<a name='L114'></a><a href='#L114'>114</a>
-<a name='L115'></a><a href='#L115'>115</a>
-<a name='L116'></a><a href='#L116'>116</a>
-<a name='L117'></a><a href='#L117'>117</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L111'></a><a href='#L111'>111</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -191,41 +185,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">22x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">1x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">5x</span>
-<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">4x</span>
@@ -239,177 +203,195 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">20x</span>
+<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">20x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-yes">13x</span>
 <span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">6x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">7x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { logger } from './logger.js';
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { randomUUID } from 'node:crypto';
+import { redisConnection } from '../queues/connection.js';
+import { logger } from './logger.js';
 import { toError } from './errors.js';
 &nbsp;
-export interface RetryOptions {
-  timeoutMs?: number;
-  maxRetries?: number;
-  backoffBaseMs?: number;
-  maxBackoffMs?: number;
-  operationName?: string;
-  shouldRetry?: (err: unknown) =&gt; boolean;
+/**
+ * Redis-backed distributed mutex. Guards operations that must run at most once at a time
+ * across multiple server replicas (e.g. OAuth token refresh for a given account), where a
+ * plain in-process Map/mutex only protects within a single process.
+ *
+ * Uses SET key val NX PX ttl for atomic acquisition and a compare-and-delete Lua script for
+ * release, so a process only ever releases a lock it still owns (never someone else's lock
+ * acquired after its own TTL expired).
+ *
+ * Fails open: if Redis itself is unavailable (connection error, Upstash quota exhaustion), lock
+ * acquisition is reported as "degraded" rather than throwing, so callers can fall back to
+ * best-effort in-process-only behavior instead of that Redis outage taking down account sync.
+ */
+&nbsp;
+const UNLOCK_SCRIPT = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+  return redis.call("del", KEYS[1])
+else
+  return 0
+end
+`;
+&nbsp;
+export interface LockAcquireAttempt {
+  acquired: boolean;
+  /** True when acquisition failed because Redis itself errored, not due to lock contention. */
+  degraded: boolean;
 }
 &nbsp;
-const DEFAULT_RETRY_OPTIONS: Required&lt;RetryOptions&gt; = {
-  timeoutMs: 15000,
-  maxRetries: 2,
-  backoffBaseMs: 500,
-  maxBackoffMs: 5000,
-  operationName: 'external_operation',
-  shouldRetry: (err: unknown) =&gt; {
-    const error = toError(err);
-    const msg = error.message.toLowerCase();
+async function tryAcquire(key: string, token: string, ttlMs: number): Promise&lt;LockAcquireAttempt&gt; {
+  try {
+    const res = await redisConnection.set(key, token, 'PX', ttlMs, 'NX');
+    return { acquired: res === 'OK', degraded: false };
+  } catch (rawErr: unknown) {
+    const err = toError(rawErr);
+    logger.warn({ key, err: err.message }, 'Distributed lock acquisition failed (Redis unavailable) — degrading to in-process-only locking for this call');
+    return { acquired: false, degraded: true };
+  }
+}
 &nbsp;
-    // Check for HTTP status codes commonly retryable
-    const status =
-      (err as { status?: number; statusCode?: number })?.status ||
-      (err as { status?: number; statusCode?: number })?.statusCode;
-    <span class="missing-if-branch" title="if path not taken" >I</span>if (status &amp;&amp; (status === 429 || status &gt;= 500)) {
-<span class="cstat-no" title="statement not covered" >      return true;</span>
-    }
+async function release(key: string, token: string): Promise&lt;void&gt; {
+  try {
+    await redisConnection.eval(UNLOCK_SCRIPT, 1, key, token);
+  } catch (rawErr: unknown) {
+    const err = <span class="cstat-no" title="statement not covered" >toError(rawErr);</span>
+<span class="cstat-no" title="statement not covered" >    logger.warn({ key, err: err.message }, 'Distributed lock release failed (non-fatal — lock will expire via TTL)');</span>
+  }
+}
 &nbsp;
-    // Network / timeout strings
-    if (
-      msg.includes('timeout') ||
-      msg.includes('econnreset') ||
-      msg.includes('etimedout') ||
-      msg.includes('socket hang up') ||
-      msg.includes('aborted') ||
-      msg.includes('resource exhausted') ||
-      msg.includes('rate limit') ||
-      msg.includes('temporarily unavailable')
-    ) {
-      return true;
-    }
-&nbsp;
-    // Do not retry 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
-    if (status &amp;&amp; status &gt;= 400 &amp;&amp; status &lt; 500) {
-      return false;
-    }
-&nbsp;
-    return true;
-  },
-};
+export interface WithDistributedLockResult&lt;T&gt; {
+  result: T;
+  /** True if a real Redis lock was held while `fn` ran. */
+  lockAcquired: boolean;
+  /** True if Redis was unavailable and `fn` ran without any cross-replica protection. */
+  degraded: boolean;
+  /** True if another holder had the lock and we gave up waiting and ran `fn` anyway. */
+  timedOutWaiting: boolean;
+}
 &nbsp;
 /**
- * Executes an async operation with per-attempt timeout and exponential backoff with jitter.
+ * Runs `fn` while holding a distributed lock on `key`. If another process holds it, polls until
+ * released or `maxWaitMs` elapses. On timeout or Redis unavailability, still runs `fn` (callers
+ * doing a refresh-style operation should re-check whether the work is still needed once inside
+ * `fn`, since another holder may have already done it) rather than deadlocking.
  */
-export async function withRetryAndTimeout&lt;T&gt;(
-  operation: (signal: AbortSignal) =&gt; Promise&lt;T&gt;,
-  options: RetryOptions = {},
-): Promise&lt;T&gt; {
-  const config = { ...DEFAULT_RETRY_OPTIONS, ...options };
-  let attempt = 0;
-  let lastError: Error | null = null;
+export async function withDistributedLock&lt;T&gt;(
+  key: string,
+  ttlMs: number,
+  fn: () =&gt; Promise&lt;T&gt;,
+  opts: { maxWaitMs?: number; pollIntervalMs?: number } = {},
+): Promise&lt;WithDistributedLockResult&lt;T&gt;&gt; {
+  const maxWaitMs = opts.maxWaitMs ?? <span class="branch-1 cbranch-no" title="branch not covered" >12000;</span>
+  const pollIntervalMs = opts.pollIntervalMs ?? 250;
+  const deadline = Date.now() + maxWaitMs;
+  const token = randomUUID();
 &nbsp;
-  while (attempt &lt;= config.maxRetries) {
-    const controller = new AbortController();
-    const timeoutId = <span class="fstat-no" title="function not covered" >setTimeout(() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >      controller.abort(new Error(`Operation "${config.operationName}" timed out after ${config.timeoutMs}ms`));</span>
-    }, config.timeoutMs);
+  let acquired = false;
+  let degraded = false;
 &nbsp;
-    try {
-      const result = await operation(controller.signal);
-      clearTimeout(timeoutId);
-      return result;
-    } catch (rawErr: unknown) {
-      clearTimeout(timeoutId);
-      const err = toError(rawErr);
-      lastError = err;
-      attempt++;
-&nbsp;
-      const isRetryable = config.shouldRetry(rawErr);
-      if (attempt &gt; config.maxRetries || !isRetryable) {
-        logger.warn(
-          {
-            operationName: config.operationName,
-            attempt,
-            maxRetries: config.maxRetries,
-            isRetryable,
-            err: err.message,
-          },
-          `External operation failed permanently`,
-        );
-        throw err;
-      }
-&nbsp;
-      // Exponential backoff with full jitter
-      const exponentialDelay = config.backoffBaseMs * Math.pow(2, attempt - 1);
-      const jitter = Math.random() * (config.backoffBaseMs / 2);
-      const delay = Math.min(exponentialDelay + jitter, config.maxBackoffMs);
-&nbsp;
-      logger.warn(
-        {
-          operationName: config.operationName,
-          attempt,
-          nextRetryInMs: Math.round(delay),
-          err: err.message,
-        },
-        `External operation failed, retrying with backoff`,
-      );
-&nbsp;
-      await new Promise((resolve) =&gt; setTimeout(resolve, delay));
+  while (Date.now() &lt; deadline) {
+    const attempt = await tryAcquire(key, token, ttlMs);
+    if (attempt.acquired) {
+      acquired = true;
+      break;
     }
+    if (attempt.degraded) {
+      degraded = true;
+      break;
+    }
+    await new Promise((r) =&gt; setTimeout(r, pollIntervalMs));
   }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  throw lastError || new Error(`Exhausted retries for ${config.operationName}`);</span>
+  const timedOutWaiting = !acquired &amp;&amp; !degraded;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (timedOutWaiting) {
+<span class="cstat-no" title="statement not covered" >    logger.warn({ key, maxWaitMs }, 'Distributed lock wait timed out; proceeding without lock (best-effort)');</span>
+  }
+&nbsp;
+  try {
+    const result = await fn();
+    return { result, lockAcquired: acquired, degraded, timedOutWaiting };
+  } finally {
+    if (acquired) {
+      await release(key, token);
+    }
+  }
 }
 &nbsp;</pre></td></tr></table></pre>
 

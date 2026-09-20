@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.41% </span>
+                <span class="strong">80.55% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>24/31</span>
+                <span class='fraction'>29/36</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.41% </span>
+                <span class="strong">80.55% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>24/31</span>
+                <span class='fraction'>29/36</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -137,18 +137,25 @@
 <a name='L72'></a><a href='#L72'>72</a>
 <a name='L73'></a><a href='#L73'>73</a>
 <a name='L74'></a><a href='#L74'>74</a>
-<a name='L75'></a><a href='#L75'>75</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">15x</span>
-<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
+<span class="cline-any cline-yes">19x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">2x</span>
@@ -173,6 +180,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -198,6 +207,9 @@
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -216,6 +228,7 @@ import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 import { toError, AllModelsExhaustedError } from '../../../utils/errors.js';
 import { withRetryAndTimeout } from '../../../utils/resilience.js';
+import { classifyAiFailureReason, type AiFailureReason } from './failure-classifier.js';
 &nbsp;
 let geminiClientInstance: GoogleGenAI | null = null;
 &nbsp;
@@ -248,7 +261,9 @@ export function getGeminiClient(): GoogleGenAI | null {
 &nbsp;
 export async function generateContentWithFallback(ai: GoogleGenAI, models: string[], request: any): Promise&lt;any&gt; {
   let lastError: Error | null = null;
+  let lastReason: AiFailureReason = 'unknown';
   const attemptedModels: string[] = [];
+  const attemptReasons: Array&lt;{ model: string; reason: AiFailureReason }&gt; = [];
 &nbsp;
   for (const model of models) {
     attemptedModels.push(model);
@@ -270,20 +285,23 @@ export async function generateContentWithFallback(ai: GoogleGenAI, models: strin
 <span class="cstat-no" title="statement not covered" >      return response;</span>
     } catch (rawErr: unknown) {
       const err = toError(rawErr);
+      const reason = classifyAiFailureReason(rawErr);
       lastError = err;
+      lastReason = reason;
+      attemptReasons.push({ model, reason });
       logger.warn(
-        { model, err: err.message },
-        'Gemini model invocation failed or timed out, trying next candidate in cascade',
+        { model, reason, err: err.message },
+        `Gemini model invocation failed (${reason}), trying next candidate in cascade`,
       );
     }
   }
 &nbsp;
   // All cascade tiers failed: degrade to typed domain error with clear user-facing explanation
   logger.error(
-    { attemptedModels, lastError: lastError?.message },
-    'All Gemini cascade fallback candidate tiers failed',
+    { attemptedModels, attemptReasons, lastReason, lastError: lastError?.message },
+    `All Gemini cascade fallback candidate tiers failed (last reason: ${lastReason})`,
   );
-  throw new AllModelsExhaustedError(attemptedModels, lastError?.message);
+  throw new AllModelsExhaustedError(attemptedModels, lastError?.message, lastReason, attemptReasons);
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -292,7 +310,7 @@ export async function generateContentWithFallback(ai: GoogleGenAI, models: strin
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-16T19:21:08.640Z
+                at 2026-09-20T19:26:20.399Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

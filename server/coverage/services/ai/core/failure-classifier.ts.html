@@ -3,15 +3,15 @@
 <html lang="en">
 
 <head>
-    <title>Code coverage report for services/ai/agent/tools/send_email.ts</title>
+    <title>Code coverage report for services/ai/core/failure-classifier.ts</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="../../../../prettify.css" />
-    <link rel="stylesheet" href="../../../../base.css" />
-    <link rel="shortcut icon" type="image/x-icon" href="../../../../favicon.png" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style type='text/css'>
         .coverage-summary .sorter {
-            background-image: url(../../../../sort-arrow-sprite.png);
+            background-image: url(../../../sort-arrow-sprite.png);
         }
     </style>
 </head>
@@ -19,34 +19,34 @@
 <body>
 <div class='wrapper'>
     <div class='pad1'>
-        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">services/ai/agent/tools</a> send_email.ts</h1>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">services/ai/core</a> failure-classifier.ts</h1>
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">60% </span>
+                <span class="strong">96% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>3/5</span>
+                <span class='fraction'>24/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">75% </span>
+                <span class="strong">97.36% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/4</span>
+                <span class='fraction'>37/38</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>1/2</span>
+                <span class='fraction'>2/2</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">60% </span>
+                <span class="strong">95.65% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>3/5</span>
+                <span class='fraction'>22/23</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -138,11 +138,7 @@
 <a name='L73'></a><a href='#L73'>73</a>
 <a name='L74'></a><a href='#L74'>74</a>
 <a name='L75'></a><a href='#L75'>75</a>
-<a name='L76'></a><a href='#L76'>76</a>
-<a name='L77'></a><a href='#L77'>77</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
+<a name='L76'></a><a href='#L76'>76</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -161,45 +157,51 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">8x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">6x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">13x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -207,90 +209,85 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { z } from 'zod';
-import type { ToolDefinition } from './types.js';
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Classifies WHY an AI provider call failed, for structured logging and trace spans.
+ *
+ * Before this, every cascade fallback attempt (gemini.client.ts) and every cost-guard
+ * short-circuit (cost-guard.service.ts / orchestrator.service.ts) logged only that something
+ * failed — "Gemini model invocation failed or timed out" covered rate limits, timeouts, auth
+ * errors, and 5xx failures identically, and cost-guard trips weren't logged at all. This makes
+ * the distinction explicit and consistent across both call sites.
+ */
+export type AiFailureReason =
+  | 'rate_limit'
+  | 'timeout'
+  | 'server_error'
+  | 'client_error'
+  | 'cost_guard_daily_limit'
+  | 'cost_guard_single_turn_limit'
+  | 'unknown';
 &nbsp;
-const sendEmailSchema = z.object({
-  to: z.string().min(1, 'Recipient email is required'),
-  subject: z.string().min(1, 'Subject line is required'),
-  body: z.string().min(1, 'Email body is required'),
-  accountId: z.string().uuid().optional(),
-  idempotencyKey: z.string().optional(),
-  attachments: z
-    .array(
-      z.object({
-        filename: z.string(),
-        mimeType: z.string().optional(),
-        size: z.number().optional(),
-        url: z.string().optional(),
-        content: z.string().optional(),
-        previewUrl: z.string().optional(),
-      }),
-    )
-    .optional(),
-});
+function extractHttpStatus(err: unknown): number | undefined {
+  const candidate = err as { status?: unknown; statusCode?: unknown; code?: unknown } | null;
+  const direct = candidate?.status ?? candidate?.statusCode ?? candidate?.code;
+  if (typeof direct === 'number') return direct;
 &nbsp;
-type SendEmailArgs = z.infer&lt;typeof sendEmailSchema&gt;;
+  // The @google/genai SDK sometimes surfaces the real status only inside a JSON-stringified
+  // message, e.g. `{"error":{"code":403,"status":"PERMISSION_DENIED","message":"..."}}`.
+  const message = (err as { message?: unknown })?.message;
+  if (typeof message === 'string') {
+    try {
+      const parsed = JSON.parse(message);
+      const nestedCode = parsed?.error?.code;
+      if (typeof nestedCode === 'number') return nestedCode;
+    } catch {
+      // Not JSON — fall through to text-based classification.
+    }
+  }
+  return undefined;
+}
 &nbsp;
-export const sendEmailTool: ToolDefinition&lt;SendEmailArgs, any&gt; = {
-  name: 'send_email',
-  description:
-    'Propose dispatching an external email to a recipient via Google Workspace / Gmail. This is a highly consequential SEND action that ALWAYS requires explicit human approval before transmission.',
-  permissionClass: 'send',
-  schema: sendEmailSchema,
-  parameters: {
-    type: 'object',
-    properties: {
-      to: { type: 'string', description: 'Recipient email address (e.g. sarah@example.com)' },
-      subject: { type: 'string', description: 'Subject line of the email' },
-      body: { type: 'string', description: 'The body text content to be sent to the recipient' },
-      accountId: { type: 'string', description: 'Optional connected account UUID to send from' },
-      idempotencyKey: { type: 'string', description: 'Unique idempotency key to prevent duplicate email dispatch' },
-      attachments: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            filename: { type: 'string' },
-            mimeType: { type: 'string' },
-            size: { type: 'number' },
-            url: { type: 'string' },
-          },
-          required: ['filename'],
-        },
-        description: 'Optional list of file attachments to include with the email',
-      },
-    },
-    required: ['to', 'subject', 'body'],
-  },
-  generateImpactPreview: (args) =&gt; ({
-    action: 'Send External Email',
-    to: args.to,
-    subject: args.subject,
-    body: args.body,
-    bodySnippet: args.body.length &gt; 200 ? <span class="branch-0 cbranch-no" title="branch not covered" >`${args.body.slice(0, 200)}...` : a</span>rgs.body,
-    characterCount: args.body.length,
-    attachments: args.attachments || [],
-    consequence: 'External email will be sent from your connected account immediately upon approval.',
-  }),
-  execute: <span class="fstat-no" title="function not covered" >async (u</span>serId, args) =&gt; {
-    const { emailsService } = <span class="cstat-no" title="statement not covered" >await import('../../../../services/emails.service.js');</span>
-<span class="cstat-no" title="statement not covered" >    return emailsService.sendEmail(userId, {</span>
-      to: args.to,
-      subject: args.subject,
-      body: args.body,
-      accountId: args.accountId,
-    });
-  },
-};
+export function classifyAiFailureReason(err: unknown): AiFailureReason {
+  const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  const status = extractHttpStatus(err);
+&nbsp;
+  if (status === 429 || message.includes('rate limit') || message.includes('resource_exhausted') || message.includes('quota')) {
+    return 'rate_limit';
+  }
+&nbsp;
+  if (
+    message.includes('timeout') ||
+    message.includes('timed out') ||
+    message.includes('deadline exceeded') ||
+    message.includes('etimedout')
+  ) {
+    return 'timeout';
+  }
+&nbsp;
+  if (status !== undefined &amp;&amp; status &gt;= 500) {
+    return 'server_error';
+  }
+&nbsp;
+  if (status !== undefined &amp;&amp; status &gt;= 400) {
+    return 'client_error';
+  }
+&nbsp;
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (
+    message.includes('permission_denied') ||
+    message.includes('unauthorized') ||
+    message.includes('invalid_argument') ||
+    message.includes('invalid_grant') ||
+    message.includes('unauthenticated')
+  ) {
+<span class="cstat-no" title="statement not covered" >    return 'client_error';</span>
+  }
+&nbsp;
+  return 'unknown';
+}
 &nbsp;</pre></td></tr></table></pre>
 
                 <div class='push'></div><!-- for sticky footer -->
@@ -300,14 +297,14 @@ export const sendEmailTool: ToolDefinition&lt;SendEmailArgs, any&gt; = {
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
                 at 2026-09-20T19:26:20.399Z
             </div>
-        <script src="../../../../prettify.js"></script>
+        <script src="../../../prettify.js"></script>
         <script>
             window.onload = function () {
                 prettyPrint();
             };
         </script>
-        <script src="../../../../sorter.js"></script>
-        <script src="../../../../block-navigation.js"></script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
     </body>
 </html>
     

@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/10</span>
+                <span class='fraction'>8/10</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">87.5% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>7/8</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">75% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/4</span>
+                <span class='fraction'>3/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">20% </span>
+                <span class="strong">80% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/10</span>
+                <span class='fraction'>8/10</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -128,20 +128,18 @@
 <a name='L63'></a><a href='#L63'>63</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -161,11 +159,13 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -192,8 +192,8 @@ import type { ToolDefinition } from './types.js';
 &nbsp;
 const createCalendarEventSchema = z.object({
   title: z.string().min(1, 'Event title is required'),
-  startTime: z.string().<span class="fstat-no" title="function not covered" >refine((v</span>al) =&gt; <span class="cstat-no" title="statement not covered" >!isNaN(Date.parse(val)), '</span>Start time must be a valid ISO datetime'),
-  endTime: z.string().<span class="fstat-no" title="function not covered" >refine((v</span>al) =&gt; <span class="cstat-no" title="statement not covered" >!isNaN(Date.parse(val)), '</span>End time must be a valid ISO datetime'),
+  startTime: z.string().refine((val) =&gt; !isNaN(Date.parse(val)), 'Start time must be a valid ISO datetime'),
+  endTime: z.string().refine((val) =&gt; !isNaN(Date.parse(val)), 'End time must be a valid ISO datetime'),
   description: z.string().optional(),
   location: z.string().optional(),
   idempotencyKey: z.string().optional(),
@@ -222,12 +222,12 @@ export const createCalendarEventTool: ToolDefinition&lt;CreateCalendarEventArgs,
     },
     required: ['title', 'startTime', 'endTime'],
   },
-<span class="fstat-no" title="function not covered" >  generateImpactPreview: (a</span>rgs) =&gt; {
-    const s = <span class="cstat-no" title="statement not covered" >new Date(args.startTime);</span>
-    const e = <span class="cstat-no" title="statement not covered" >new Date(args.endTime);</span>
+  generateImpactPreview: (args) =&gt; {
+    const s = new Date(args.startTime);
+    const e = new Date(args.endTime);
     const durationMins =
-<span class="cstat-no" title="statement not covered" >      !isNaN(s.getTime()) &amp;&amp; !isNaN(e.getTime()) ? Math.round((e.getTime() - s.getTime()) / 60000) : 60;</span>
-<span class="cstat-no" title="statement not covered" >    return {</span>
+      !isNaN(s.getTime()) &amp;&amp; !isNaN(e.getTime()) ? Math.round((e.getTime() - s.getTime()) / 60000) : <span class="branch-1 cbranch-no" title="branch not covered" >60;</span>
+    return {
       action: 'Create Calendar Event',
       title: args.title,
       startTime: args.startTime,
@@ -256,7 +256,7 @@ export const createCalendarEventTool: ToolDefinition&lt;CreateCalendarEventArgs,
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-09-16T19:21:08.640Z
+                at 2026-09-20T19:26:20.399Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>
