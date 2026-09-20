@@ -3,6 +3,7 @@ import { googleTokenManager } from '../services/google/token-manager.service.js'
 import { db } from '../db/index.js';
 import * as googleOAuthUtils from '../utils/google-oauth.js';
 import * as encryptionUtils from '../utils/encryption.js';
+import { redisConnection } from '../queues/connection.js';
 
 describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
   const mockAccountId = '00000000-0000-4000-a000-000000000099';
@@ -10,6 +11,10 @@ describe('TokenManager Single-Flight Mutex Concurrency Stress Test', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // In-process mutex tests — make the Redis distributed lock a no-op so these stay
+    // hermetic and focused on the single-process behavior being tested here.
+    vi.spyOn(redisConnection, 'set').mockResolvedValue('OK' as any);
+    vi.spyOn(redisConnection, 'eval').mockResolvedValue(1 as any);
   });
 
   it('serializes 50 concurrent requests (thundering herd) for an expiring token and invokes Google refresh API exactly once', async () => {

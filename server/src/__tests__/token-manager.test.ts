@@ -4,10 +4,16 @@ import { db } from '../db/index.js';
 import * as encryption from '../utils/encryption.js';
 import * as googleOAuth from '../utils/google-oauth.js';
 import { auditService } from '../services/audit.service.js';
+import { redisConnection } from '../queues/connection.js';
 
 describe('OAuth 2.0 Token Lifecycle & Refresh Mutex Manager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // These tests exercise the in-process singleflight mutex specifically, not the
+    // cross-replica Redis lock (see token-manager-distributed-lock.test.ts for that) —
+    // make lock acquisition always succeed immediately so it's a no-op here.
+    vi.spyOn(redisConnection, 'set').mockResolvedValue('OK' as any);
+    vi.spyOn(redisConnection, 'eval').mockResolvedValue(1 as any);
   });
 
   it('returns valid client without refreshing if token expiration is beyond 5-minute buffer', async () => {
