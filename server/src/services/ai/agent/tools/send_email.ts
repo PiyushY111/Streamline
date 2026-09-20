@@ -7,6 +7,18 @@ const sendEmailSchema = z.object({
   body: z.string().min(1, 'Email body is required'),
   accountId: z.string().uuid().optional(),
   idempotencyKey: z.string().optional(),
+  attachments: z
+    .array(
+      z.object({
+        filename: z.string(),
+        mimeType: z.string().optional(),
+        size: z.number().optional(),
+        url: z.string().optional(),
+        content: z.string().optional(),
+        previewUrl: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 type SendEmailArgs = z.infer<typeof sendEmailSchema>;
@@ -25,6 +37,20 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
       body: { type: 'string', description: 'The body text content to be sent to the recipient' },
       accountId: { type: 'string', description: 'Optional connected account UUID to send from' },
       idempotencyKey: { type: 'string', description: 'Unique idempotency key to prevent duplicate email dispatch' },
+      attachments: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            filename: { type: 'string' },
+            mimeType: { type: 'string' },
+            size: { type: 'number' },
+            url: { type: 'string' },
+          },
+          required: ['filename'],
+        },
+        description: 'Optional list of file attachments to include with the email',
+      },
     },
     required: ['to', 'subject', 'body'],
   },
@@ -32,8 +58,10 @@ export const sendEmailTool: ToolDefinition<SendEmailArgs, any> = {
     action: 'Send External Email',
     to: args.to,
     subject: args.subject,
-    bodySnippet: args.body.length > 150 ? `${args.body.slice(0, 150)}...` : args.body,
+    body: args.body,
+    bodySnippet: args.body.length > 200 ? `${args.body.slice(0, 200)}...` : args.body,
     characterCount: args.body.length,
+    attachments: args.attachments || [],
     consequence: 'External email will be sent from your connected account immediately upon approval.',
   }),
   execute: async (userId, args) => {
