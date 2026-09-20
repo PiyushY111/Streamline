@@ -45,6 +45,13 @@ export const agentMessages = pgTable(
     tokenCandidateCount: integer('token_candidate_count').default(0),
     costUsd: text('cost_usd').default('0.000000'),
 
+    // Set only on role='model' rows that represent a degraded turn (cascade fully exhausted,
+    // or a cost-guard trip) instead of a real model response — see failure-classifier.ts for
+    // the taxonomy. Null for normal successful turns. Lets trace.service.ts render these as
+    // distinct ERROR/INTERCEPTED spans instead of silently vanishing (previously nothing was
+    // persisted at all for these cases).
+    degradedReason: text('degraded_reason'),
+
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => ({
@@ -52,6 +59,10 @@ export const agentMessages = pgTable(
     spanIdx: index('agent_messages_span_idx').on(table.spanId),
     latencyIdx: index('agent_messages_latency_idx').on(table.latencyMs),
     roleCheck: check('agent_messages_role_valid', sql`${table.role} IN ('user', 'model', 'tool')`),
+    degradedReasonCheck: check(
+      'agent_messages_degraded_reason_valid',
+      sql`${table.degradedReason} IS NULL OR ${table.degradedReason} IN ('rate_limit', 'timeout', 'server_error', 'client_error', 'cost_guard_daily_limit', 'cost_guard_single_turn_limit', 'unknown')`,
+    ),
   }),
 );
 

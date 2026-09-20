@@ -1,0 +1,2 @@
+ALTER TABLE "agent_messages" ADD COLUMN "degraded_reason" text;--> statement-breakpoint
+ALTER TABLE "agent_messages" ADD CONSTRAINT "agent_messages_degraded_reason_valid" CHECK ("agent_messages"."degraded_reason" IS NULL OR "agent_messages"."degraded_reason" IN ('rate_limit', 'timeout', 'server_error', 'client_error', 'cost_guard_daily_limit', 'cost_guard_single_turn_limit', 'unknown'));

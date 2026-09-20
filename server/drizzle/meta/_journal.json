@@ -15,6 +15,20 @@
       "when": 1789017818644,
       "tag": "0001_zippy_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789928375749,
+      "tag": "0002_fearless_sumo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789930751075,
+      "tag": "0003_many_weapon_omega",
+      "breakpoints": true
     }
   ]
 }
