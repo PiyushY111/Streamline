@@ -1,14 +1,13 @@
 import { runSuite } from './runner.js';
 import { searchMemory, MemoryType } from '../src/services/ai/memory/memory.service.js';
-import { SEED_EVAL_MEMORIES } from './seed-memory-eval-data.js';
-import { db } from '../src/db/index.js';
-import { memories } from '../src/db/schema/index.js';
-import { setAiProvider } from '../src/services/ai/core/factory.js';
+import { setAiProvider, getAiProvider } from '../src/services/ai/core/factory.js';
 import { MockAiProvider } from '../src/services/ai/core/providers/mock.provider.js';
+import { isLiveEvalMode, getLiveProviderName } from './eval-config.js';
+import { ensureEvalUser, reseedEvalMemories, clearEvalMemories } from './retrieval-eval-helpers.js';
 
 interface RetrievalScenarioInput {
   query: string;
-  type?: string;
+  type?: MemoryType;
   topK?: number;
 }
 
@@ -17,80 +16,43 @@ interface RetrievalScenarioExpected {
   maxRank: number;
 }
 
-const EVAL_USER_ID = '00000000-0000-0000-0000-000000000099';
+const EVAL_USER_EMAIL = 'eval-retrieval-precision@streamline.internal';
 
+/**
+ * Exercises the REAL hybrid RRF retrieval path (memory.service.ts:searchMemory) against
+ * seeded rows in Postgres/pgvector — not a reimplemented scorer. In mock mode, embeddings
+ * come from MockAiProvider's deterministic pseudo-embedding (character-code based), which
+ * is NOT semantically meaningful, so only the sparse/tsvector half of the RRF fusion is a
+ * reliable signal; dense-only queries with no keyword overlap may fail in mock mode even
+ * though the code path is real. Live mode uses real embeddings and is the only mode that
+ * measures actual semantic retrieval quality. See evals/README.md.
+ */
 export async function runRetrievalEvals() {
-  // Ensure provider is available for offline deterministic evaluation
-  const mockProvider = new MockAiProvider();
-  setAiProvider(mockProvider);
+  const live = isLiveEvalMode();
+  if (live) {
+    setAiProvider(getAiProvider(getLiveProviderName()));
+  } else {
+    setAiProvider(new MockAiProvider());
+  }
+  const provider = getAiProvider();
 
-  // Setup deterministic in-memory mock for eval environment
-  const originalSelect = db.select;
-
-  // Pre-seed memories in memory store
-  const seededRows = SEED_EVAL_MEMORIES.map((m, i) => ({
-    id: `eval-mem-${i + 1}`,
-    userId: EVAL_USER_ID,
-    type: m.type,
-    content: m.content,
-    sourceRef: m.sourceRef,
-    status: 'active',
-    createdAt: new Date(),
-  }));
-
-  // Intercept db.select to evaluate query matching deterministically
-  db.select = ((fields: any) => ({
-    from: (table: any) => ({
-      where: (condition: any) => ({
-        orderBy: (orderExpr: any) => ({
-          limit: async (limitCount: number) => {
-            return seededRows.map((row) => ({
-              ...row,
-              distance: 0.1,
-            }));
-          },
-        }),
-      }),
-    }),
-  })) as any;
+  const userId = await ensureEvalUser(EVAL_USER_EMAIL);
+  await reseedEvalMemories(userId, provider);
 
   try {
     let totalRankScore = 0;
     let totalQueries = 0;
 
     const report = await runSuite<RetrievalScenarioInput, RetrievalScenarioExpected>(
-      'retrieval-precision-and-mrr',
+      live ? 'retrieval-precision-and-mrr-live' : 'retrieval-precision-and-mrr',
       'retrieval-precision.json',
       async (input) => {
-        // Find matching candidates based on text relevance & type filter
-        let filtered = seededRows;
-        if (input.type) {
-          filtered = filtered.filter((r) => r.type === input.type);
-        }
-
-        // Rank by keyword overlap, subword stems, and semantic relevance
-        const tokens = input.query
-          .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, ' ')
-          .split(/\s+/)
-          .filter((t) => t.length > 2);
-
-        const scored = filtered.map((item) => {
-          let score = 0;
-          const text = item.content.toLowerCase();
-          for (const token of tokens) {
-            const stem = token.length > 4 ? token.slice(0, 4) : token;
-            if (text.includes(token)) {
-              score += 3;
-            } else if (text.includes(stem)) {
-              score += 1.5;
-            }
-          }
-          return { item, score };
+        const results = await searchMemory(userId, input.query, {
+          type: input.type,
+          topK: input.topK || 5,
+          mode: 'hybrid',
         });
-
-        scored.sort((a, b) => b.score - a.score);
-        return scored.slice(0, input.topK || 5).map((s) => s.item.content);
+        return results.map((r) => r.content);
       },
       (actual: any, expected) => {
         totalQueries++;
@@ -107,14 +69,14 @@ export async function runRetrievalEvals() {
       },
     );
 
-    const mrr = totalQueries > 0 ? (totalRankScore / totalQueries).toFixed(3) : '1.000';
+    const mrr = totalQueries > 0 ? (totalRankScore / totalQueries).toFixed(3) : '0.000';
     console.log(
-      `  📊 Retrieval Evaluation Metrics: Precision@3 = ${((report.passed / report.total) * 100).toFixed(1)}%, MRR = ${mrr}`,
+      `  📊 Retrieval Evaluation Metrics [${live ? 'LIVE:' + provider.name : 'MOCK'}]: Precision@k = ${((report.passed / report.total) * 100).toFixed(1)}%, MRR = ${mrr}`,
     );
 
     return report;
   } finally {
-    db.select = originalSelect;
+    await clearEvalMemories(userId);
     setAiProvider(null);
   }
 }

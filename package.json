@@ -12,7 +12,8 @@
     "format:check": "npx prettier --check \"server/src/**/*.{ts,js}\" \"client/src/**/*.{ts,tsx}\"",
     "test": "npm --prefix server run test",
     "test:coverage": "npm --prefix server run test:coverage",
-    "eval": "npm --prefix server run eval"
+    "eval": "npm --prefix server run eval",
+    "eval:live": "npm --prefix server run eval:live"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

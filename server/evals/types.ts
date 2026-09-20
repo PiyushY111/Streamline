@@ -20,5 +20,6 @@ export interface EvalReport {
   total: number;
   passed: number;
   failed: number;
+  durationMs: number;
   results: EvalResult[];
 }

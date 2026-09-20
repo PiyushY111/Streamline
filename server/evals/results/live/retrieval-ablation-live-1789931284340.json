@@ -1,0 +1,57 @@
+{
+  "mode": "live",
+  "timestamp": "2026-09-20T19:08:04.340Z",
+  "results": [
+    {
+      "mode": "vector",
+      "total": 25,
+      "passed": 25,
+      "precisionAtK": 100,
+      "mrr": 1,
+      "failedScenarioIds": []
+    },
+    {
+      "mode": "keyword",
+      "total": 25,
+      "passed": 0,
+      "precisionAtK": 0,
+      "mrr": 0,
+      "failedScenarioIds": [
+        "preference-deep-work",
+        "preference-estimation",
+        "preference-buffers",
+        "preference-email-style",
+        "preference-external-calls",
+        "preference-fridays",
+        "preference-no-agenda",
+        "decision-database-choice",
+        "decision-github-sync",
+        "decision-streaming-protocol",
+        "decision-background-jobs",
+        "decision-memory-policy",
+        "decision-token-encryption",
+        "decision-vector-index",
+        "decision-action-ttl",
+        "fact-draftly-collab",
+        "fact-db-backups",
+        "fact-priority-decay",
+        "fact-calendar-buffer",
+        "fact-ai-budget",
+        "fact-vector-dims",
+        "fact-cycle-detection",
+        "distractor-db-choice-vs-backup",
+        "distractor-jobs-vs-session",
+        "type-filtered-preference"
+      ]
+    },
+    {
+      "mode": "hybrid",
+      "total": 25,
+      "passed": 25,
+      "precisionAtK": 100,
+      "mrr": 1,
+      "failedScenarioIds": []
+    }
+  ],
+  "hybridBeatsBoth": false
+}

@@ -9,7 +9,7 @@ export async function runSuite<TInput, TExpected>(
   suiteName: string,
   scenarioFile: string,
   execute: (input: TInput) => Promise<unknown>,
-  compare: (actual: unknown, expected: TExpected) => boolean,
+  compare: (actual: unknown, expected: TExpected, scenarioId?: string) => boolean,
 ): Promise<EvalReport> {
   const scenarioPath = path.join(__dirname, 'scenarios', scenarioFile);
   if (!fs.existsSync(scenarioPath)) {
@@ -18,13 +18,14 @@ export async function runSuite<TInput, TExpected>(
 
   const scenarios: EvalScenario<TInput, TExpected>[] = JSON.parse(fs.readFileSync(scenarioPath, 'utf-8'));
 
+  const startedAt = Date.now();
   const results: EvalResult[] = [];
   for (const scenario of scenarios) {
     let actual: unknown;
     let passed = false;
     try {
       actual = await execute(scenario.input);
-      passed = compare(actual, scenario.expected);
+      passed = compare(actual, scenario.expected, scenario.id);
     } catch (err: any) {
       actual = { error: err.message };
       passed = false;
@@ -43,6 +44,7 @@ export async function runSuite<TInput, TExpected>(
     total: results.length,
     passed: results.filter((r) => r.passed).length,
     failed: results.filter((r) => !r.passed).length,
+    durationMs: Date.now() - startedAt,
     results,
   };
 

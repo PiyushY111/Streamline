@@ -1,0 +1,43 @@
+{
+  "version": "1.0.0",
+  "mode": "live",
+  "provider": "gemini",
+  "timestamp": "2026-09-20T19:19:51.748Z",
+  "metrics": {
+    "totalScenarios": 78,
+    "passedScenarios": 77,
+    "failedScenarios": 1,
+    "passRate": "98.7%",
+    "status": "FAILED"
+  },
+  "suites": [
+    {
+      "suite": "deterministic-priority-engine",
+      "total": 10,
+      "passed": 10,
+      "failed": 0,
+      "durationMs": 4
+    },
+    {
+      "suite": "agent-tool-selection-and-policy-engine",
+      "total": 22,
+      "passed": 22,
+      "failed": 0,
+      "durationMs": 5866
+    },
+    {
+      "suite": "retrieval-precision-and-mrr-live",
+      "total": 25,
+      "passed": 25,
+      "failed": 0,
+      "durationMs": 33996
+    },
+    {
+      "suite": "prompt-injection-resistance-and-policy-boundary-live",
+      "total": 21,
+      "passed": 20,
+      "failed": 1,
+      "durationMs": 170305
+    }
+  ]
+}

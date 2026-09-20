@@ -40,9 +40,17 @@ pnpm-debug.log*
 
 # Agents & Skills
 .agents/
+.claude/
 
 # AI Eval results
 server/evals/results/*.json
 !server/evals/results/.gitkeep
 !server/evals/results/benchmark-summary.json
+
+# Live eval runs (real model, real cost) are kept as historical record, never overwritten
+!server/evals/results/live/
+!server/evals/results/live/*.json
+
+# Mock-mode ablation smoke-test artifacts are not meaningful data (see retrieval-ablation.eval.ts) — don't track
+server/evals/results/mock-smoke/
 
