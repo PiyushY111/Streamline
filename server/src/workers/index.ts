@@ -8,7 +8,7 @@ import {
   startRetentionPurgeScheduler,
   stopRetentionPurgeScheduler,
 } from './retention-purge.worker.js';
-import { stopSyncScheduler } from './scheduler.js';
+import { initAccountSyncScheduler, runAccountSyncTick, ACCOUNT_SYNC_TICK_JOB_NAME } from './scheduler.js';
 import { logger } from '../utils/logger.js';
 import { runWithContext } from '../utils/context.js';
 
@@ -17,7 +17,7 @@ let aiTriageWorkerInstance: Worker | null = null;
 let dailyDigestWorkerInstance: Worker | null = null;
 let retentionPurgeWorkerInstance: Worker | null = null;
 
-export function startWorkers() {
+export async function startWorkers(): Promise<void> {
   logger.info('🚀 Starting BullMQ account sync background worker...');
 
   accountSyncWorkerInstance = new Worker(
@@ -29,6 +29,11 @@ export function startWorkers() {
           source: 'account_sync_worker',
         },
         async () => {
+          // The scheduler's periodic 'sync-tick' fan-out job vs. an actual per-account sync job.
+          if (job.name === ACCOUNT_SYNC_TICK_JOB_NAME) {
+            await runAccountSyncTick();
+            return;
+          }
           const { accountId } = job.data;
           logger.info({ jobId: job.id, accountId }, '⚙️ Background Worker processing Account Sync job...');
           await syncGoogleAccountData(accountId);
@@ -62,12 +67,21 @@ export function startWorkers() {
   startDailyDigestScheduler();
   startRetentionPurgeScheduler();
 
+  // Redis-backed job scheduler for account sync — safe to call from every replica's startup;
+  // see scheduler.ts for why this replaced an in-process setInterval.
+  try {
+    await initAccountSyncScheduler();
+  } catch (rawErr: unknown) {
+    logger.warn({ err: (rawErr as Error)?.message }, 'Could not register account sync job scheduler (non-fatal)');
+  }
+
   logger.info('✨ All BullMQ background workers and AI schedulers initialized and active!');
 }
 
 export async function stopWorkers(): Promise<void> {
   logger.info('🛑 Stopping all background workers and cron schedulers...');
-  stopSyncScheduler();
+  // Note: the account sync scheduler is intentionally NOT stopped/removed here — it's a
+  // cluster-wide Redis definition, not owned by this replica. See scheduler.ts.
   stopDailyDigestScheduler();
   stopRetentionPurgeScheduler();
 

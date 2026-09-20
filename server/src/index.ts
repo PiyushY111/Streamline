@@ -5,7 +5,6 @@ import { env } from './config/env.js';
 import { logger } from './utils/logger.js';
 import apiRouter from './routes/index.js';
 import { startWorkers, stopWorkers } from './workers/index.js';
-import { startSyncScheduler } from './workers/scheduler.js';
 import { accountSyncQueue, aiTriageQueue, dailyDigestQueue, redisConnection } from './queues/index.js';
 import { securityHeaders } from './middlewares/security.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
@@ -84,8 +83,9 @@ async function bootstrap() {
   const server = app.listen(port, '0.0.0.0', () => {
     logger.info({ port, env: env.NODE_ENV }, `⚡ Streamline Backend API running on port ${port}`);
 
-    startWorkers();
-    startSyncScheduler();
+    startWorkers().catch((err) => {
+      logger.error({ err: err?.message }, 'Failed to start background workers');
+    });
   });
 
   let isShuttingDown = false;

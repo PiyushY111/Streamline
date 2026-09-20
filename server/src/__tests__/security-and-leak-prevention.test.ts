@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { signOAuthState, verifyOAuthState } from '../utils/google-oauth.js';
-import { stopSyncScheduler, startSyncScheduler } from '../workers/scheduler.js';
+import { initAccountSyncScheduler } from '../workers/scheduler.js';
+import { accountSyncQueue } from '../queues/index.js';
 import { stopDailyDigestScheduler, startDailyDigestScheduler } from '../workers/daily-digest.worker.js';
 import { stopWorkers } from '../workers/index.js';
 import { auditService } from '../services/audit.service.js';
@@ -9,11 +10,20 @@ import { memoryIdParamSchema } from '../schemas/index.js';
 
 describe('Security & Zero-Memory-Leak Invariants Suite', () => {
   describe('1. Schedulers and Worker Teardown Lifecycle', () => {
-    it('should start and cleanly stop the background sync scheduler without hanging handles', () => {
-      expect(() => startSyncScheduler()).not.toThrow();
-      expect(() => stopSyncScheduler()).not.toThrow();
-      // Calling stop a second time should be completely safe and idempotent
-      expect(() => stopSyncScheduler()).not.toThrow();
+    it('registers the account sync BullMQ job scheduler idempotently, converging on one stable ID', async () => {
+      // Mocked here (not real Redis) — see scheduler.test.ts for why: the shared dev Upstash
+      // instance is currently over its daily request quota from this session's testing.
+      const upsertSpy = vi.spyOn(accountSyncQueue, 'upsertJobScheduler').mockResolvedValue({} as any);
+
+      // initAccountSyncScheduler is an upsert — safe to call repeatedly (simulating multiple
+      // replica startups) without throwing or creating duplicate schedule definitions.
+      await expect(initAccountSyncScheduler()).resolves.toBeUndefined();
+      await expect(initAccountSyncScheduler()).resolves.toBeUndefined();
+
+      expect(upsertSpy).toHaveBeenCalledTimes(2);
+      const [firstCallId] = upsertSpy.mock.calls[0]!;
+      const [secondCallId] = upsertSpy.mock.calls[1]!;
+      expect(firstCallId).toBe(secondCallId); // same schedulerId every time -> converges to one definition
     });
 
     it('should start and cleanly stop the daily digest scheduler without hanging handles', () => {
