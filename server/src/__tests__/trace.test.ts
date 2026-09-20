@@ -230,6 +230,97 @@ describe('Stage 5 — Observability, OpenTelemetry Tracing & Decision Studio', (
       expect(interceptedSpan?.attributes['agent.tool_name']).toBe('create_calendar_event');
     });
 
+    it('reports the REAL persisted memory-recall latency for retrievalLatencyMs, not a fabricated placeholder', async () => {
+      const mockSession = {
+        id: 'session-uuid-retrieval',
+        userId: 'user-1',
+        title: 'Retrieval Latency Check',
+        createdAt: new Date('2026-09-10T10:00:00Z'),
+        updatedAt: new Date('2026-09-10T10:01:00Z'),
+      };
+
+      // orchestrator-context.ts persists the real proactive recall latency onto the
+      // latencyMs column of the user-role row — here simulated as 217ms, deliberately far
+      // from the old hardcoded 39ms placeholder this used to report.
+      const mockMessages = [
+        {
+          id: 'msg-r1',
+          sessionId: 'session-uuid-retrieval',
+          role: 'user',
+          content: 'What did we decide about the database?',
+          spanId: 'span-r1',
+          retrievedMemoryIds: ['mem-r1'],
+          latencyMs: 217,
+          createdAt: new Date('2026-09-10T10:00:01Z'),
+        },
+        {
+          id: 'msg-r2',
+          sessionId: 'session-uuid-retrieval',
+          role: 'tool',
+          toolName: 'search_memory',
+          toolResult: { results: ['Decided to use Postgres'] },
+          spanId: 'span-r2',
+          latencyMs: 88,
+          createdAt: new Date('2026-09-10T10:00:02Z'),
+        },
+        {
+          id: 'msg-r3',
+          sessionId: 'session-uuid-retrieval',
+          role: 'tool',
+          toolName: 'get_tasks',
+          toolResult: { tasks: [] },
+          spanId: 'span-r3',
+          latencyMs: 30,
+          createdAt: new Date('2026-09-10T10:00:03Z'),
+        },
+        {
+          id: 'msg-r4',
+          sessionId: 'session-uuid-retrieval',
+          role: 'model',
+          content: 'You decided to use Postgres for relational integrity.',
+          spanId: 'span-r4',
+          latencyMs: 400,
+          tokenPromptCount: 300,
+          tokenCandidateCount: 40,
+          costUsd: '0.000050',
+          createdAt: new Date('2026-09-10T10:00:04Z'),
+        },
+      ];
+
+      const mockMemories = [{ id: 'mem-r1', type: 'decision', content: 'Decided to use Postgres over MongoDB.' }];
+
+      vi.spyOn(db, 'select').mockImplementation(
+        () =>
+          ({
+            from: (table: any) => ({
+              where: () => {
+                if (table === agentSessions) return { limit: vi.fn().mockResolvedValue([mockSession]) };
+                if (table === agentMessages) return { orderBy: vi.fn().mockResolvedValue(mockMessages) };
+                if (table === pendingActions) return Promise.resolve([]);
+                if (table === memories) return Promise.resolve(mockMemories);
+                return Promise.resolve([]);
+              },
+            }),
+          }) as any,
+      );
+
+      const trace = await traceService.assembleTrace('user-1', 'session-uuid-retrieval');
+      expect(trace).not.toBeNull();
+      if (!trace) return;
+
+      // Retrieval latency = proactive recall (217) + explicit search_memory tool call (88).
+      expect(trace.summary.retrievalLatencyMs).toBe(217 + 88);
+      // get_tasks (30) is genuine tool execution, kept out of retrieval and model buckets.
+      expect(trace.summary.toolLatencyMs).toBe(30);
+      expect(trace.summary.modelLatencyMs).toBe(400);
+      expect(trace.summary.totalLatencyMs).toBe(217 + 88 + 30 + 400);
+
+      const contextSpan = trace.waterfallSpans.find((s) => s.name === 'memory.vector_recall');
+      expect(contextSpan?.durationMs).toBe(217);
+      const contextStep = trace.timelineSteps.find((s) => s.kind === 'context_retrieved');
+      expect(contextStep?.latencyMs).toBe(217);
+    });
+
     it('updates pending step status to executed after action approval', async () => {
       const mockSession = {
         id: 'session-uuid-2',

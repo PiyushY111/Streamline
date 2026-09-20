@@ -30,6 +30,8 @@ export interface OTelSpan {
     'agent.untrusted_content_detected'?: boolean;
     'agent.action_id'?: string;
     'agent.action_status'?: string;
+    /** Why this turn degraded instead of producing a real model response — see failure-classifier.ts. */
+    'agent.degraded_reason'?: string;
   };
 }
 
@@ -53,6 +55,7 @@ export interface TraceStep {
     untrustedContentWarning?: boolean;
     reasoning?: string;
     impactPreview?: Record<string, unknown>;
+    degradedReason?: string;
   };
 }
 
@@ -64,6 +67,8 @@ export interface TraceSummary {
   totalLatencyMs: number;
   modelLatencyMs: number;
   toolLatencyMs: number;
+  /** RAG retrieval latency only (proactive per-turn memory recall + explicit search_memory tool calls) — kept separate from generation (modelLatencyMs) and other tool execution (toolLatencyMs), not folded into either. */
+  retrievalLatencyMs: number;
   stepCount: number;
   toolCallsCount: number;
   pendingActionsCount: number;
@@ -149,6 +154,7 @@ export class TraceService {
 
     let totalModelLatency = 0;
     let totalToolLatency = 0;
+    let totalRetrievalLatency = 0;
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
     let totalEstimatedCost = 0;
@@ -189,11 +195,15 @@ export class TraceService {
           },
         });
 
-        // If memories were recalled on this turn, add a Context Retrieved step
+        // If memories were recalled on this turn, add a Context Retrieved step.
+        // `latency` here is the REAL proactive recall latency (see orchestrator-context.ts,
+        // which persists it onto this user-role row) — not a fabricated placeholder.
         if (msg.retrievedMemoryIds && msg.retrievedMemoryIds.length > 0) {
           const recalledSnippets = msg.retrievedMemoryIds
             .map((id) => memoryLookup[id])
             .filter((item): item is { id: string; type: string; snippet: string } => Boolean(item));
+
+          totalRetrievalLatency += latency;
 
           timelineSteps.push({
             id: `mem-${msg.id}`,
@@ -203,6 +213,7 @@ export class TraceService {
             kind: 'context_retrieved',
             label: `Semantic Memory Recall (${recalledSnippets.length} facts injected)`,
             detail: recalledSnippets,
+            latencyMs: latency,
             metadata: {
               memorySnippets: recalledSnippets,
             },
@@ -215,8 +226,8 @@ export class TraceService {
             name: 'memory.vector_recall',
             kind: 'INTERNAL',
             startTimeMs: relativeOffsetMs + 6,
-            endTimeMs: relativeOffsetMs + 45,
-            durationMs: 39,
+            endTimeMs: relativeOffsetMs + 6 + latency,
+            durationMs: latency,
             statusCode: 'OK',
             attributes: {
               'agent.step_kind': 'context_retrieved',
@@ -275,13 +286,15 @@ export class TraceService {
             },
           });
         } else if (msg.content) {
+          const degradedReason = (msg as { degradedReason?: string | null }).degradedReason || undefined;
+
           timelineSteps.push({
             id: msg.id,
             spanId,
             parentSpanId,
             timestamp: msg.createdAt.toISOString(),
             kind: 'model_response',
-            label: 'Agent Response',
+            label: degradedReason ? `AI Degraded (${degradedReason})` : 'Agent Response',
             detail: msg.content,
             latencyMs: latency,
             metadata: {
@@ -291,6 +304,7 @@ export class TraceService {
                 total: (msg.tokenPromptCount || 0) + (msg.tokenCandidateCount || 0),
               },
               costUsd: msg.costUsd || '0.000000',
+              degradedReason,
             },
           });
 
@@ -298,15 +312,17 @@ export class TraceService {
             traceId: sessionId,
             spanId,
             parentSpanId,
-            name: 'ai.generate_response',
+            name: degradedReason ? `ai.degraded.${degradedReason}` : 'ai.generate_response',
             kind: 'CLIENT',
             startTimeMs: relativeOffsetMs,
             endTimeMs: relativeOffsetMs + latency,
             durationMs: latency,
-            statusCode: 'OK',
+            statusCode: degradedReason ? 'ERROR' : 'OK',
+            statusMessage: degradedReason,
             attributes: {
               'gen_ai.system': 'gemini',
               'gen_ai.request.model': 'gemini-3.5-flash-lite',
+              'agent.degraded_reason': degradedReason,
               'gen_ai.usage.prompt_tokens': msg.tokenPromptCount || 0,
               'gen_ai.usage.completion_tokens': msg.tokenCandidateCount || 0,
               'gen_ai.usage.total_tokens': (msg.tokenPromptCount || 0) + (msg.tokenCandidateCount || 0),
@@ -319,9 +335,16 @@ export class TraceService {
 
       if (msg.role === 'tool') {
         toolCallsCount++;
-        totalToolLatency += latency;
-
         const toolName = msg.toolName || 'unknown_tool';
+
+        // search_memory is a retrieval operation, not generic tool execution — keep it out
+        // of toolLatencyMs so retrieval latency isn't silently mixed with tool latency.
+        if (toolName === 'search_memory') {
+          totalRetrievalLatency += latency;
+        } else {
+          totalToolLatency += latency;
+        }
+
         const toolDef = TOOL_REGISTRY[toolName];
         const permissionClass = toolDef?.permissionClass || 'read';
 
@@ -421,7 +444,7 @@ export class TraceService {
     }
 
     const totalTokens = totalPromptTokens + totalCompletionTokens;
-    const totalLatency = totalModelLatency + totalToolLatency;
+    const totalLatency = totalModelLatency + totalToolLatency + totalRetrievalLatency;
 
     // 6. Cost decomposition metrics
     const systemPromptEstimate = Math.min(totalPromptTokens, 450);
@@ -437,6 +460,7 @@ export class TraceService {
       totalLatencyMs: totalLatency,
       modelLatencyMs: totalModelLatency,
       toolLatencyMs: totalToolLatency,
+      retrievalLatencyMs: totalRetrievalLatency,
       stepCount: timelineSteps.length,
       toolCallsCount,
       pendingActionsCount: actions.length,
