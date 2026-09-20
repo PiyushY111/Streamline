@@ -79,13 +79,16 @@ export async function assembleTurnContext(
     });
   }
 
-  // 4. Persist sanitized user turn with root span ID and memory provenance
+  // 4. Persist sanitized user turn with root span ID, memory provenance, and the REAL
+  // retrieval latency (reusing the generic latencyMs column) — this is what lets
+  // trace.service.ts report actual retrieval latency instead of a fabricated placeholder.
   await db.insert(agentMessages).values({
     sessionId,
     role: 'user',
     content: redactSecrets(userMessage),
     spanId: rootSpanId,
     retrievedMemoryIds,
+    latencyMs: memRecallLatencyMs,
   });
 
   // 5. Construct injection-safe system instruction with recalled memories

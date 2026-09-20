@@ -7,6 +7,7 @@ import { agentSessions, agentMessages, pendingActions } from '../../../db/schema
 import { eq, and, desc, asc, gt } from 'drizzle-orm';
 import { logger } from '../../../utils/logger.js';
 import { redactSecrets } from '../../../utils/redactor.js';
+import { toError, AllModelsExhaustedError } from '../../../utils/errors.js';
 import {
   agentTraceEmitter,
   AgentLoopDetectedError,
@@ -49,6 +50,24 @@ export class AgentOrchestratorService {
     const circuit = await aiCostGuardService.checkCircuitBreaker(userId);
     if (circuit.isTripped) {
       const refusal = `⚠️ AI budget limit reached for today: ${circuit.reason}`;
+      logger.warn(
+        {
+          userId,
+          sessionId,
+          reason: 'cost_guard_daily_limit',
+          tokensToday: circuit.tokensToday,
+          costTodayUsd: circuit.costTodayUsd,
+        },
+        'Agent turn short-circuited: cost guard daily limit tripped',
+      );
+      // Persisted so this shows up in trace.service.ts spans instead of leaving no trace at all.
+      await db.insert(agentMessages).values({
+        sessionId,
+        role: 'model',
+        content: refusal,
+        spanId: rootSpanId,
+        degradedReason: 'cost_guard_daily_limit',
+      });
       options.onStreamEvent?.({ type: 'text_chunk', chunk: refusal });
       return { text: refusal, pendingActions: [], sessionId, spanId: rootSpanId };
     }
@@ -89,12 +108,35 @@ export class AgentOrchestratorService {
 
       // Query active AI provider
       const modelStart = Date.now();
-      const response = await provider.chatWithTools({
-        messages: chatMessages,
-        systemInstruction: turnInstruction,
-        tools,
-        models: options.models,
-      });
+      let response;
+      try {
+        response = await provider.chatWithTools({
+          messages: chatMessages,
+          systemInstruction: turnInstruction,
+          tools,
+          models: options.models,
+        });
+      } catch (rawErr: unknown) {
+        const err = toError(rawErr);
+        const reason = err instanceof AllModelsExhaustedError ? err.lastReason : 'unknown';
+        const attemptedModels = err instanceof AllModelsExhaustedError ? err.attemptedModels : undefined;
+        logger.error(
+          { userId, sessionId, reason, attemptedModels, err: err.message },
+          `Agent turn model call failed (${reason}) — degrading gracefully instead of crashing the turn`,
+        );
+        finalText = `⚠️ AI service is temporarily degraded (${reason}). Please try again shortly.`;
+        await db.insert(agentMessages).values({
+          sessionId,
+          role: 'model',
+          content: finalText,
+          spanId: modelSpanId,
+          parentSpanId: rootSpanId,
+          latencyMs: Date.now() - modelStart,
+          degradedReason: reason,
+        });
+        options.onStreamEvent?.({ type: 'text_chunk', chunk: finalText });
+        break;
+      }
       const modelLatencyMs = Date.now() - modelStart;
 
       // Token attribution & Cost Guard recording
@@ -116,7 +158,10 @@ export class AgentOrchestratorService {
       // Check single-turn token circuit breaker limit
       const singleTurnGuard = aiCostGuardService.checkSingleTurnLimit(promptTokens + completionTokens);
       if (singleTurnGuard.isExceeded) {
-        logger.warn({ userId, sessionId, tokens: promptTokens + completionTokens }, 'Single-turn token limit exceeded');
+        logger.warn(
+          { userId, sessionId, reason: 'cost_guard_single_turn_limit', tokens: promptTokens + completionTokens },
+          'Single-turn token limit exceeded',
+        );
         finalText = `⚠️ Single-turn AI token limit exceeded (${singleTurnGuard.tokensInTurn} tokens). Execution stopped.`;
         await db.insert(agentMessages).values({
           sessionId,
@@ -128,6 +173,7 @@ export class AgentOrchestratorService {
           tokenPromptCount: promptTokens,
           tokenCandidateCount: completionTokens,
           costUsd: costResult.formattedCost,
+          degradedReason: 'cost_guard_single_turn_limit',
         });
         options.onStreamEvent?.({ type: 'text_chunk', chunk: finalText });
         break;
