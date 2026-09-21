@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import type { GenerateContentParameters, GenerateContentResponse } from '@google/genai';
 import { env } from '../../../config/env.js';
 import { logger } from '../../../utils/logger.js';
 import { toError, AllModelsExhaustedError } from '../../../utils/errors.js';
@@ -34,7 +35,11 @@ export function getGeminiClient(): GoogleGenAI | null {
   }
 }
 
-export async function generateContentWithFallback(ai: GoogleGenAI, models: string[], request: any): Promise<any> {
+export async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  models: string[],
+  request: Omit<GenerateContentParameters, 'model'>,
+): Promise<GenerateContentResponse> {
   let lastError: Error | null = null;
   let lastReason: AiFailureReason = 'unknown';
   const attemptedModels: string[] = [];

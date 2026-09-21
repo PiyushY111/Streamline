@@ -8,10 +8,11 @@ export interface AiGenerateTextOptions {
   models?: string[];
 }
 
-export interface AiStructuredJsonOptions<T = any> {
+export interface AiStructuredJsonOptions<T = unknown> {
   prompt: string;
   systemPrompt?: string;
-  schema?: any;
+  /** Provider-native response schema (shape varies per provider SDK: Gemini's Schema, OpenAI's JSON Schema, etc). */
+  schema?: unknown;
   zodSchema?: ZodType<T>;
   maxRetries?: number;
   temperature?: number;
@@ -36,7 +37,7 @@ export interface AiToolDefinition {
   description: string;
   parameters: {
     type: 'object';
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
     required?: string[];
   };
 }
@@ -91,7 +92,7 @@ export interface AiProvider {
   /**
    * Structured JSON generation conforming to a schema.
    */
-  generateStructuredJson<T = any>(options: AiStructuredJsonOptions<T>): Promise<T>;
+  generateStructuredJson<T = unknown>(options: AiStructuredJsonOptions<T>): Promise<T>;
 
   /**
    * Stream draft tokens/chunks over SSE or callbacks.

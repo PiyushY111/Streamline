@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import type { Content, EmbedContentResponse, FunctionCall, GenerateContentConfig, Part, Schema } from '@google/genai';
 import { env } from '../../../../config/env.js';
 import { logger } from '../../../../utils/logger.js';
 import { toError } from '../../../../utils/errors.js';
@@ -16,6 +16,13 @@ import {
   getGeminiClient,
 } from '../gemini.client.js';
 
+/** Some Gemini API responses include a legacy snake_case `thought_signature` field not in the current SDK types. */
+type PartWithLegacyThoughtSignature = Part & { thought_signature?: string };
+type FunctionCallWithLegacyThoughtSignature = FunctionCall & {
+  thoughtSignature?: string;
+  thought_signature?: string;
+};
+
 export class GeminiProvider implements AiProvider {
   readonly name = 'gemini';
 
@@ -30,7 +37,7 @@ export class GeminiProvider implements AiProvider {
     }
 
     const models = options.models || [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS];
-    const contents: any[] = [];
+    const contents: Content[] = [];
     if (options.systemPrompt) {
       contents.push({ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${options.prompt}` }] });
     } else {
@@ -48,7 +55,7 @@ export class GeminiProvider implements AiProvider {
     return response.text || '';
   }
 
-  async generateStructuredJson<T = any>(options: AiStructuredJsonOptions<T>): Promise<T> {
+  async generateStructuredJson<T = unknown>(options: AiStructuredJsonOptions<T>): Promise<T> {
     const client = getGeminiClient();
     if (!client) {
       throw new Error('Gemini client not available (missing GEMINI_API_KEY)');
@@ -57,11 +64,11 @@ export class GeminiProvider implements AiProvider {
     const models = options.models || [PRIMARY_FLASH_MODEL, ...FALLBACK_FLASH_MODELS];
     const maxRetries = options.maxRetries ?? 2;
     let currentPrompt = options.prompt;
-    let lastError: any = null;
+    let lastError: unknown = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const contents: any[] = [];
+        const contents: Content[] = [];
         if (options.systemPrompt) {
           contents.push({ role: 'user', parts: [{ text: `${options.systemPrompt}\n\n${currentPrompt}` }] });
         } else {
@@ -72,7 +79,7 @@ export class GeminiProvider implements AiProvider {
           contents,
           config: {
             responseMimeType: 'application/json',
-            responseSchema: options.schema,
+            responseSchema: options.schema as GenerateContentConfig['responseSchema'],
             temperature: options.temperature,
             maxOutputTokens: options.maxTokens,
           },
@@ -82,7 +89,8 @@ export class GeminiProvider implements AiProvider {
         let parsedJson: unknown;
         try {
           parsedJson = JSON.parse(rawText);
-        } catch (jsonErr: any) {
+        } catch (rawJsonErr: unknown) {
+          const jsonErr = toError(rawJsonErr);
           if (attempt < maxRetries) {
             logger.warn(
               { attempt, error: jsonErr.message },
@@ -112,8 +120,8 @@ export class GeminiProvider implements AiProvider {
         }
 
         return parsedJson as T;
-      } catch (err: any) {
-        lastError = err;
+      } catch (rawErr: unknown) {
+        lastError = rawErr;
         if (attempt >= maxRetries) {
           throw lastError;
         }
@@ -138,7 +146,7 @@ export class GeminiProvider implements AiProvider {
 
     let fullText = '';
     let succeeded = false;
-    let lastError: any = null;
+    let lastError: Error | null = null;
 
     for (const model of candidateModels) {
       try {
@@ -195,16 +203,21 @@ export class GeminiProvider implements AiProvider {
     const targetDims = options?.dimensions || 768;
     const modelCandidates = [options?.model || 'gemini-embedding-001', 'gemini-embedding-2', 'text-embedding-004'];
 
-    let lastError: any = null;
+    let lastError: Error | null = null;
     for (const model of modelCandidates) {
       try {
-        const response: any = await client.models.embedContent({
-          model,
-          contents: text,
-          config: {
-            outputDimensionality: targetDims,
+        // `embedding` (singular) isn't in the SDK's current EmbedContentResponse type but has
+        // been observed from some API versions/backends; kept as a fallback alongside the
+        // documented `embeddings` (plural) field.
+        const response: EmbedContentResponse & { embedding?: { values?: number[] } } = await client.models.embedContent(
+          {
+            model,
+            contents: text,
+            config: {
+              outputDimensionality: targetDims,
+            },
           },
-        });
+        );
 
         const values: number[] = response.embedding?.values || response.embeddings?.[0]?.values || [];
         if (values && values.length > 0) {
@@ -238,19 +251,15 @@ export class GeminiProvider implements AiProvider {
         return { role: 'user', parts: [{ text: m.content || '' }] };
       }
       if (m.role === 'model') {
-        const parts: any[] = [];
+        const parts: Part[] = [];
         if (m.content) parts.push({ text: m.content });
         if (m.toolCalls && m.toolCalls.length > 0) {
           for (const tc of m.toolCalls) {
-            const partObj: any = {
-              functionCall: {
-                name: tc.name,
-                args: tc.args || {},
-              },
-            };
+            const functionCall: FunctionCall = { name: tc.name, args: tc.args || {} };
             if (tc.id) {
-              partObj.functionCall.id = tc.id;
+              functionCall.id = tc.id;
             }
+            const partObj: Part = { functionCall };
             if (tc.thoughtSignature) {
               partObj.thoughtSignature = tc.thoughtSignature;
             }
@@ -275,7 +284,7 @@ export class GeminiProvider implements AiProvider {
       return { role: 'user', parts: [{ text: m.content || '' }] };
     });
 
-    const config: any = {
+    const config: GenerateContentConfig = {
       temperature: options.temperature ?? 0.2,
     };
 
@@ -289,7 +298,9 @@ export class GeminiProvider implements AiProvider {
           functionDeclarations: options.tools.map((t) => ({
             name: t.name,
             description: t.description,
-            parameters: t.parameters,
+            // AiToolDefinition.parameters is a provider-agnostic JSON-Schema-shaped object;
+            // it is already constructed to conform to Gemini's Schema shape at the call sites.
+            parameters: t.parameters as unknown as Schema,
           })),
         },
       ];
@@ -305,16 +316,18 @@ export class GeminiProvider implements AiProvider {
     const candidateParts = response.candidates?.[0]?.content?.parts || [];
     for (const part of candidateParts) {
       if (part.functionCall) {
+        const legacyPart = part as PartWithLegacyThoughtSignature;
+        const legacyFunctionCall = part.functionCall as FunctionCallWithLegacyThoughtSignature;
         const thoughtSignature =
           part.thoughtSignature ||
-          (part as any).thought_signature ||
-          (part.functionCall as any)?.thoughtSignature ||
-          (part.functionCall as any)?.thought_signature;
+          legacyPart.thought_signature ||
+          legacyFunctionCall.thoughtSignature ||
+          legacyFunctionCall.thought_signature;
 
         toolCalls.push({
           id: part.functionCall.id,
-          name: part.functionCall.name,
-          args: (part.functionCall.args as Record<string, unknown>) || {},
+          name: part.functionCall.name || '',
+          args: part.functionCall.args || {},
           thoughtSignature,
         });
       }
@@ -323,9 +336,9 @@ export class GeminiProvider implements AiProvider {
     if (toolCalls.length === 0 && response.functionCalls && response.functionCalls.length > 0) {
       for (const fc of response.functionCalls) {
         toolCalls.push({
-          id: (fc as any).id,
-          name: fc.name,
-          args: (fc.args as Record<string, unknown>) || {},
+          id: fc.id,
+          name: fc.name || '',
+          args: fc.args || {},
         });
       }
     }

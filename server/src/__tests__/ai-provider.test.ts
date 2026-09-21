@@ -6,6 +6,7 @@ import { GeminiProvider } from '../services/ai/core/providers/gemini.provider.js
 import { OpenAiCompatibleProvider } from '../services/ai/core/providers/openai-compatible.provider.js';
 import { MockAiProvider } from '../services/ai/core/providers/mock.provider.js';
 import type { AiProvider } from '../services/ai/core/types.js';
+import type { Content, GenerateContentResponse } from '@google/genai';
 
 describe('Provider-Agnostic AI Architecture', () => {
   beforeEach(() => {
@@ -109,12 +110,13 @@ describe('Provider-Agnostic AI Architecture', () => {
           attempt++;
           if (attempt === 1) {
             // First attempt returns invalid data (invalid status enum)
-            return { text: JSON.stringify({ status: 'invalid_status', score: 85 }) };
+            return { text: JSON.stringify({ status: 'invalid_status', score: 85 }) } as GenerateContentResponse;
           }
           // Check that retry prompt contained error feedback
-          const promptText = request.contents[0].parts[0].text;
+          const contents = request.contents as Content[];
+          const promptText = contents[0]?.parts?.[0]?.text;
           expect(promptText).toContain('[FEEDBACK ERROR]');
-          return { text: JSON.stringify({ status: 'urgent', score: 85 }) };
+          return { text: JSON.stringify({ status: 'urgent', score: 85 }) } as GenerateContentResponse;
         });
 
       const result = await gemini.generateStructuredJson({
