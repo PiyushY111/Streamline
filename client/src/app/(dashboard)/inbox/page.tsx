@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useMemo, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
 import {
@@ -82,6 +82,11 @@ import { GmailSettingsModal, GmailAppSettings } from '@/components/inbox/GmailSe
 import { AiReplyDrafterModal } from '@/components/inbox/AiReplyDrafterModal';
 import { useCopilot } from '@/providers/CopilotContext';
 import { PendingActionsBanner } from '@/components/agent/PendingActionsBanner';
+import { getEmailCategory, detectSmartTopic } from '@/lib/inbox/categorize';
+import { formatFileSize } from '@/lib/inbox/format';
+import { filterEmails, groupThreads, paginate } from '@/lib/inbox/filters';
+import { ITEMS_PER_PAGE, STORAGE_KEYS, DEFAULT_CUSTOM_LABELS, DEFAULT_TEMPLATES, DEFAULT_APP_SETTINGS } from '@/lib/inbox/constants';
+import type { ActiveFolder, ComposeAttachment, UndoToastState } from '@/lib/inbox/types';
 
 function InboxContent() {
   const { openCopilot, pendingCount } = useCopilot();
@@ -92,9 +97,7 @@ function InboxContent() {
   const [accounts, setAccounts] = useState<AccountData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
-  const [activeFolder, setActiveFolder] = useState<
-    'inbox' | 'starred' | 'snoozed' | 'sent' | 'drafts' | 'trash' | 'attachments'
-  >('inbox');
+  const [activeFolder, setActiveFolder] = useState<ActiveFolder>('inbox');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedAccountFilter, setSelectedAccountFilter] = useState<string | 'all'>('all');
 
@@ -116,11 +119,7 @@ function InboxContent() {
   const [isAiDraftModalOpen, setIsAiDraftModalOpen] = useState(false);
   const [isAutoLabeling, setIsAutoLabeling] = useState(false);
 
-  const [customLabels, setCustomLabels] = useState<CustomLabel[]>([
-    { id: 'lbl-1', name: 'Work', color: '#3b82f6' },
-    { id: 'lbl-2', name: 'Finance', color: '#f97316' },
-    { id: 'lbl-3', name: 'Urgent', color: '#ef4444' },
-  ]);
+  const [customLabels, setCustomLabels] = useState<CustomLabel[]>(DEFAULT_CUSTOM_LABELS);
   const [emailLabelsMap, setEmailLabelsMap] = useState<Record<string, string[]>>({});
   const [isLabelModalOpen, setIsLabelModalOpen] = useState(false);
   const [labelTargetEmailId, setLabelTargetEmailId] = useState<string | null>(null);
@@ -128,20 +127,7 @@ function InboxContent() {
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
 
   // Email Templates State
-  const [savedTemplates, setSavedTemplates] = useState<EmailTemplate[]>([
-    {
-      id: 'tpl-1',
-      title: 'Meeting Confirmation',
-      subject: 'Confirmed: Meeting Schedule',
-      body: 'Hi,\n\nThanks for reaching out! This email confirms our upcoming meeting.\n\nBest regards,',
-    },
-    {
-      id: 'tpl-2',
-      title: 'Project Status Update',
-      subject: 'Project Status & Milestones',
-      body: 'Hi team,\n\nHere is a quick status update on our ongoing project deliverables.\n\nBest,',
-    },
-  ]);
+  const [savedTemplates, setSavedTemplates] = useState<EmailTemplate[]>(DEFAULT_TEMPLATES);
   const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
   // Confidential Mode State
@@ -150,26 +136,10 @@ function InboxContent() {
 
   // Gmail Settings State
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [appSettings, setAppSettings] = useState<GmailAppSettings>({
-    undoSendSeconds: 5,
-    defaultReplyMode: 'reply',
-    vacationResponderActive: false,
-    vacationSubject: 'Out of Office',
-    vacationMessage: 'I am currently away on vacation.',
-    notificationsEnabled: true,
-    defaultPageSize: 50,
-    keyboardShortcutsEnabled: true,
-    readingPaneLayout: 'list',
-    enabledCategories: { primary: true, promotions: true, social: true, updates: true },
-  });
+  const [appSettings, setAppSettings] = useState<GmailAppSettings>(DEFAULT_APP_SETTINGS);
 
   // Undo Send Toast State
-  const [undoToast, setUndoToast] = useState<{
-    active: boolean;
-    message: string;
-    countdown: number;
-    onUndo: () => void;
-  } | null>(null);
+  const [undoToast, setUndoToast] = useState<UndoToastState | null>(null);
   const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Scheduled Send state in Compose
@@ -190,9 +160,7 @@ function InboxContent() {
   const [isReplying, setIsReplying] = useState(false);
   const [replyMode, setReplyMode] = useState<'reply' | 'forward'>('reply');
   const [replyText, setReplyText] = useState('');
-  const [replyFiles, setReplyFiles] = useState<
-    Array<{ filename: string; contentType: string; size: number; content: string }>
-  >([]);
+  const [replyFiles, setReplyFiles] = useState<ComposeAttachment[]>([]);
   const [isSendingReply, setIsSendingReply] = useState(false);
 
   // Compose modal state
@@ -204,18 +172,16 @@ function InboxContent() {
   const [showBcc, setShowBcc] = useState(false);
   const [composeSubject, setComposeSubject] = useState('');
   const [composeBody, setComposeBody] = useState('');
-  const [composeFiles, setComposeFiles] = useState<
-    Array<{ filename: string; contentType: string; size: number; content: string }>
-  >([]);
+  const [composeFiles, setComposeFiles] = useState<ComposeAttachment[]>([]);
   const [isSendingCompose, setIsSendingCompose] = useState(false);
 
   // Pagination state (50 items per page like Gmail)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const itemsPerPage = ITEMS_PER_PAGE;
 
   // Restore Drafts & Custom Labels from localStorage
   useEffect(() => {
-    const savedDraft = localStorage.getItem('gmail_compose_draft');
+    const savedDraft = localStorage.getItem(STORAGE_KEYS.composeDraft);
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
@@ -226,14 +192,14 @@ function InboxContent() {
       } catch (e) {}
     }
 
-    const savedLabels = localStorage.getItem('gmail_custom_labels');
+    const savedLabels = localStorage.getItem(STORAGE_KEYS.customLabels);
     if (savedLabels) {
       try {
         setCustomLabels(JSON.parse(savedLabels));
       } catch (e) {}
     }
 
-    const savedEmailLabels = localStorage.getItem('gmail_email_labels_map');
+    const savedEmailLabels = localStorage.getItem(STORAGE_KEYS.emailLabelsMap);
     if (savedEmailLabels) {
       try {
         setEmailLabelsMap(JSON.parse(savedEmailLabels));
@@ -245,7 +211,7 @@ function InboxContent() {
   useEffect(() => {
     if (composeTo || composeSubject || composeBody || composeFromAccountId) {
       localStorage.setItem(
-        'gmail_compose_draft',
+        STORAGE_KEYS.composeDraft,
         JSON.stringify({
           to: composeTo,
           subject: composeSubject,
@@ -445,136 +411,38 @@ function InboxContent() {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  const getEmailCategory = (email: EmailData): string => {
-    if (email.aiPriority) {
-      if (email.aiPriority === 'p1_urgent') return 'p1_urgent';
-      if (email.aiPriority === 'p2_important') return 'p2_important';
-      if (email.aiPriority === 'p3_updates') return 'p3_updates';
-      if (email.aiPriority === 'p4_newsletter') return 'p4_newsletter';
-      if (email.aiPriority === 'p5_low') return 'p4_newsletter';
-    }
-
-    const cat = (email.category || '').toLowerCase();
-    if (cat === 'promotions') return 'p4_newsletter';
-    if (cat === 'social') return 'p3_updates';
-    if (cat === 'updates') return 'p3_updates';
-
-    const senderLower = email.sender.toLowerCase();
-    const subjectLower = email.subject.toLowerCase();
-
-    if (
-      senderLower.includes('newsletter') ||
-      senderLower.includes('substack') ||
-      senderLower.includes('digest') ||
-      senderLower.includes('marketing')
-    ) {
-      return 'p4_newsletter';
-    }
-
-    if (
-      senderLower.includes('noreply') ||
-      senderLower.includes('notification') ||
-      subjectLower.includes('receipt') ||
-      subjectLower.includes('invoice') ||
-      subjectLower.includes('security')
-    ) {
-      return 'p3_updates';
-    }
-
-    if (subjectLower.includes('urgent') || subjectLower.includes('action required') || subjectLower.includes('asap')) {
-      return 'p1_urgent';
-    }
-
-    return 'p2_important';
-  };
-
   // Filter emails by active folder, category tab, account label, custom label, search query, and advanced filters
-  const filteredEmails = emails.filter((email) => {
-    // Account / Mailbox Label filter
-    if (selectedAccountFilter !== 'all' && email.accountId !== selectedAccountFilter) {
-      return false;
-    }
+  const filteredEmails = useMemo(
+    () =>
+      filterEmails(emails, {
+        selectedAccountFilter,
+        selectedCustomLabelFilter,
+        emailLabelsMap,
+        activeFolder,
+        snoozedMetaMap,
+        activeCategory,
+        searchQuery,
+        advancedFilters,
+      }),
+    [
+      emails,
+      selectedAccountFilter,
+      selectedCustomLabelFilter,
+      emailLabelsMap,
+      activeFolder,
+      snoozedMetaMap,
+      activeCategory,
+      searchQuery,
+      advancedFilters,
+    ],
+  );
 
-    // Custom Label filter
-    if (selectedCustomLabelFilter !== 'all') {
-      const assigned = emailLabelsMap[email.id] || [];
-      if (!assigned.includes(selectedCustomLabelFilter)) return false;
-    }
-
-    // Folder filter
-    if (activeFolder === 'starred') {
-      if (!email.isStarred) return false;
-    } else if (activeFolder === 'sent') {
-      if ((email as any).folder !== 'sent' && !email.sender.includes('@gmail.com')) return false;
-    } else if (activeFolder === 'drafts') {
-      if ((email as any).folder !== 'drafts') return false;
-    } else if (activeFolder === 'trash') {
-      if ((email as any).folder !== 'trash') return false;
-    } else if (activeFolder === 'snoozed') {
-      if ((email as any).folder !== 'snoozed' && !snoozedMetaMap[email.id]) return false;
-    } else if (activeFolder === 'inbox') {
-      if ((email as any).folder && (email as any).folder !== 'inbox') return false;
-    }
-
-    // Category filter for Inbox
-    if (activeFolder === 'inbox' && activeCategory !== 'all') {
-      const emailCat = getEmailCategory(email);
-      if (emailCat !== activeCategory) {
-        return false;
-      }
-    }
-
-    // Search query filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const match =
-        email.subject.toLowerCase().includes(q) ||
-        email.sender.toLowerCase().includes(q) ||
-        email.snippet.toLowerCase().includes(q);
-      if (!match) return false;
-    }
-
-    // Advanced Filters
-    if (advancedFilters) {
-      if (advancedFilters.from && !email.sender.toLowerCase().includes(advancedFilters.from.toLowerCase()))
-        return false;
-      if (advancedFilters.to && !email.recipients.toLowerCase().includes(advancedFilters.to.toLowerCase()))
-        return false;
-      if (advancedFilters.subject && !email.subject.toLowerCase().includes(advancedFilters.subject.toLowerCase()))
-        return false;
-      if (advancedFilters.hasAttachment) {
-        const hasAtt = (email as any).attachments && (email as any).attachments.length > 0;
-        if (!hasAtt) return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Group emails by threadId
-  const uniqueThreadsMap = new Map<string, { latestEmail: EmailData; messageCount: number }>();
-  filteredEmails.forEach((email) => {
-    const existing = uniqueThreadsMap.get(email.threadId);
-    if (!existing) {
-      uniqueThreadsMap.set(email.threadId, { latestEmail: email, messageCount: 1 });
-    } else {
-      existing.messageCount++;
-      if (new Date(email.receivedAt).getTime() > new Date(existing.latestEmail.receivedAt).getTime()) {
-        existing.latestEmail = email;
-      }
-    }
-  });
-
-  const groupedThreads = Array.from(uniqueThreadsMap.values()).map((t) => ({
-    ...t.latestEmail,
-    messageCount: t.messageCount,
-  }));
-
-  const totalCount = groupedThreads.length;
-  const totalPages = Math.ceil(totalCount / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalCount);
-  const paginatedEmails = groupedThreads.slice(startIndex, endIndex);
+  // Group emails by threadId, then paginate like Gmail (50 per page)
+  const groupedThreads = useMemo(() => groupThreads(filteredEmails), [filteredEmails]);
+  const { totalCount, totalPages, startIndex, endIndex, items: paginatedEmails } = useMemo(
+    () => paginate(groupedThreads, currentPage, itemsPerPage),
+    [groupedThreads, currentPage, itemsPerPage],
+  );
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
 
@@ -670,14 +538,6 @@ function InboxContent() {
       };
       reader.readAsDataURL(file);
     });
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   };
 
   const toggleSelectAll = () => {
@@ -795,7 +655,7 @@ function InboxContent() {
     const newLbl: CustomLabel = { id: `lbl-${Date.now()}`, name, color };
     const updated = [...customLabels, newLbl];
     setCustomLabels(updated);
-    localStorage.setItem('gmail_custom_labels', JSON.stringify(updated));
+    localStorage.setItem(STORAGE_KEYS.customLabels, JSON.stringify(updated));
   };
 
   const handleToggleLabelOnEmail = (emailId: string, labelId: string) => {
@@ -803,7 +663,7 @@ function InboxContent() {
       const current = prev[emailId] || [];
       const updated = current.includes(labelId) ? current.filter((l) => l !== labelId) : [...current, labelId];
       const nextMap = { ...prev, [emailId]: updated };
-      localStorage.setItem('gmail_email_labels_map', JSON.stringify(nextMap));
+      localStorage.setItem(STORAGE_KEYS.emailLabelsMap, JSON.stringify(nextMap));
       return nextMap;
     });
   };
@@ -905,7 +765,7 @@ function InboxContent() {
     setComposeSubject('');
     setComposeBody('');
     setComposeFiles([]);
-    localStorage.removeItem('gmail_compose_draft');
+    localStorage.removeItem(STORAGE_KEYS.composeDraft);
 
     let seconds = 5;
     const toastObj = {
@@ -1648,39 +1508,7 @@ function InboxContent() {
 
                           {/* Gemini AI Smart Topic Tag */}
                           {(() => {
-                            const topic =
-                              email.aiNewsletterTopic ||
-                              (() => {
-                                const s = `${email.sender} ${email.subject}`.toLowerCase();
-                                if (
-                                  s.includes('nst') ||
-                                  s.includes('office') ||
-                                  s.includes('rishihood') ||
-                                  s.includes('exam') ||
-                                  s.includes('csai') ||
-                                  s.includes('registrar')
-                                )
-                                  return '🎓 Academics';
-                                if (
-                                  s.includes('dev club') ||
-                                  s.includes('devclub') ||
-                                  s.includes('bootcamp') ||
-                                  s.includes('hack')
-                                )
-                                  return '💼 DevClub';
-                                if (
-                                  s.includes('atlassian') ||
-                                  s.includes('github') ||
-                                  s.includes('ai') ||
-                                  s.includes('code') ||
-                                  s.includes('tech')
-                                )
-                                  return '🚀 Tech & AI';
-                                if (s.includes('linkedin')) return '👥 Community';
-                                if (getEmailCategory(email) === 'p4_newsletter') return '📰 Newsletter';
-                                return null;
-                              })();
-
+                            const topic = detectSmartTopic(email);
                             if (!topic) return null;
                             return (
                               <span
@@ -2633,7 +2461,7 @@ function InboxContent() {
                     setComposeBody('');
                     setComposeFiles([]);
                     setConfidentialConfig(null);
-                    localStorage.removeItem('gmail_compose_draft');
+                    localStorage.removeItem(STORAGE_KEYS.composeDraft);
                   }}
                   className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
                   title="Discard draft"
@@ -2701,7 +2529,7 @@ function InboxContent() {
         onDeleteLabel={(id) => {
           const updated = customLabels.filter((l) => l.id !== id);
           setCustomLabels(updated);
-          localStorage.setItem('gmail_custom_labels', JSON.stringify(updated));
+          localStorage.setItem(STORAGE_KEYS.customLabels, JSON.stringify(updated));
         }}
       />
 
