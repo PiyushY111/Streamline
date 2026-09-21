@@ -18,3 +18,32 @@ export function isLiveEvalMode(): boolean {
 export function getLiveProviderName(): string {
   return process.env.AI_PROVIDER || 'gemini';
 }
+
+const DB_PROBE_TIMEOUT_MS = 5000;
+
+/**
+ * Probes whether DATABASE_URL points at a real, reachable database.
+ *
+ * Two eval suites (retrieval-precision.eval.ts, injection-resistance.eval.ts) persist
+ * seeded users/memories/sessions via Drizzle and hard-fail (not gracefully degrade) if
+ * the database is unreachable -- unlike tool-selection.eval.ts, which happens to touch
+ * the same `db` client but treats every query failure as non-fatal. A dummy
+ * DATABASE_URL (e.g. the vitest test-env default) has no listener at all, so a real
+ * connection attempt fails fast; this lets run-all.ts skip those two suites cleanly
+ * instead of crashing the whole harness.
+ */
+export async function isDatabaseReachable(): Promise<boolean> {
+  try {
+    const { db } = await import('../src/db/client.js');
+    const { sql } = await import('drizzle-orm');
+    await Promise.race([
+      db.execute(sql`select 1`),
+      new Promise((_resolve, reject) =>
+        setTimeout(() => reject(new Error('Database reachability probe timed out')), DB_PROBE_TIMEOUT_MS),
+      ),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}

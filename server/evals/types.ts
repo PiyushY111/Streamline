@@ -22,4 +22,7 @@ export interface EvalReport {
   failed: number;
   durationMs: number;
   results: EvalResult[];
+  /** True when the suite was not run at all (e.g. no reachable database) rather than run-and-failed. */
+  skipped?: boolean;
+  skipReason?: string;
 }
