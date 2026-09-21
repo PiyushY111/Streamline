@@ -52,20 +52,15 @@ import {
 } from 'lucide-react';
 
 import {
-  fetchEmails,
-  fetchConnectedAccounts,
   markEmailAsReadApi,
   toggleStarEmailApi,
   deleteEmailApi,
-  sendEmailApi,
-  triggerSyncApi,
   updateEmailCategoryApi,
   fetchEmailByIdApi,
   EmailData,
-  AccountData,
 } from '@/lib/api';
 import { safeFetch } from '@/lib/api/client';
-import { useLiveEvents } from '@/lib/hooks/useLiveEvents';
+import { useInboxThreads } from '@/lib/hooks/useInboxThreads';
 
 import { SanitizedEmailBody } from '@/components/inbox/thread/SanitizedEmailBody';
 import { formatEmailDate } from '@/lib/utils';
@@ -93,9 +88,6 @@ function InboxContent() {
   const searchParams = useSearchParams();
   const urlEmailId = searchParams.get('id');
 
-  const [emails, setEmails] = useState<EmailData[]>([]);
-  const [accounts, setAccounts] = useState<AccountData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAccountDropdownOpen, setIsAccountDropdownOpen] = useState(false);
   const [activeFolder, setActiveFolder] = useState<ActiveFolder>('inbox');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -179,6 +171,20 @@ function InboxContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = ITEMS_PER_PAGE;
 
+  const { emails, accounts, loading, loadData, setEmails } = useInboxThreads({
+    hasSelectedEmail: Boolean(selectedEmailId),
+    onFirstEmailLoaded: setSelectedEmailId,
+    hasComposeFromAccount: Boolean(composeFromAccountId),
+    onFirstAccountLoaded: setComposeFromAccountId,
+  });
+
+  // Cancel a pending "undo send" if the user navigates away before it fires.
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearInterval(undoTimerRef.current);
+    };
+  }, []);
+
   // Restore Drafts & Custom Labels from localStorage
   useEffect(() => {
     const savedDraft = localStorage.getItem(STORAGE_KEYS.composeDraft);
@@ -221,120 +227,6 @@ function InboxContent() {
       );
     }
   }, [composeTo, composeSubject, composeBody, composeFromAccountId]);
-
-  const updateEmailsState = (incoming: EmailData[]) => {
-    setEmails((prev) => {
-      const prevMap = new Map(prev.map((e) => [e.id, e]));
-      return incoming.map((item) => {
-        const existing = prevMap.get(item.id);
-        if (existing) {
-          return {
-            ...item,
-            bodyHtml: existing.bodyHtml || item.bodyHtml,
-            bodyText: existing.bodyText || item.bodyText,
-            attachments: existing.attachments || item.attachments,
-          };
-        }
-        return item;
-      });
-    });
-  };
-
-  const loadData = async (forceSync: boolean = false) => {
-    try {
-      setLoading(true);
-      const [emailData, accData] = await Promise.all([
-        fetchEmails().catch(() => []),
-        fetchConnectedAccounts().catch(() => []),
-      ]);
-      if (emailData && emailData.length > 0) {
-        updateEmailsState(emailData);
-        if (!selectedEmailId && emailData[0]) {
-          setSelectedEmailId(emailData[0].id);
-        }
-      }
-      if (accData && accData.length > 0) {
-        setAccounts(accData);
-        if (!composeFromAccountId && accData[0]) {
-          setComposeFromAccountId(accData[0].id);
-        }
-      }
-
-      if (forceSync) {
-        triggerSyncApi(false)
-          .then(() => fetchEmails())
-          .then((freshEmails) => {
-            if (freshEmails && freshEmails.length > 0) {
-              updateEmailsState(freshEmails);
-            }
-          })
-          .catch((syncErr) => console.warn('Background sync notification:', syncErr));
-      }
-    } catch (err) {
-      console.warn('Failed to load inbox data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Initial load with live fast-sync to immediately pull latest incoming emails
-    loadData(true);
-
-    // Auto-sync polling every 25 seconds to guarantee all incoming emails are updated within < 30s
-    const pollInterval = setInterval(() => {
-      triggerSyncApi(true)
-        .then(() => fetchEmails())
-        .then((emailData) => {
-          if (emailData && emailData.length > 0) updateEmailsState(emailData);
-        })
-        .catch(() => {});
-    }, 25000);
-
-    // Immediate fast sync when user returns to this browser tab
-    const handleFocus = () => {
-      triggerSyncApi(true)
-        .then(() => fetchEmails())
-        .then((emailData) => {
-          if (emailData && emailData.length > 0) updateEmailsState(emailData);
-        })
-        .catch(() => {});
-    };
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('focus', handleFocus);
-      if (undoTimerRef.current) {
-        clearInterval(undoTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Zero-latency Push Ingestion via Server-Sent Events (Google Cloud Pub/Sub < 500ms updates)
-  useLiveEvents({
-    onEmailReceived: () => {
-      fetchEmails()
-        .then((emailData) => {
-          if (emailData && emailData.length > 0) updateEmailsState(emailData);
-        })
-        .catch(() => {});
-    },
-    onSyncCompleted: () => {
-      fetchEmails()
-        .then((emailData) => {
-          if (emailData && emailData.length > 0) updateEmailsState(emailData);
-        })
-        .catch(() => {});
-    },
-    onTriageCompleted: () => {
-      fetchEmails()
-        .then((emailData) => {
-          if (emailData && emailData.length > 0) updateEmailsState(emailData);
-        })
-        .catch(() => {});
-    },
-  });
 
   // Automatically fetch full HTML body for all messages in current thread if missing
   useEffect(() => {
