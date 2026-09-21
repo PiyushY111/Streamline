@@ -5,31 +5,24 @@ import { useSearchParams } from 'next/navigation';
 import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
 import { Undo2 } from 'lucide-react';
 
-import {
-  markEmailAsReadApi,
-  toggleStarEmailApi,
-  deleteEmailApi,
-  updateEmailCategoryApi,
-  fetchEmailByIdApi,
-  EmailData,
-} from '@/lib/api';
+import { fetchEmailByIdApi } from '@/lib/api';
 import { safeFetch } from '@/lib/api/client';
 import { useInboxThreads } from '@/lib/hooks/useInboxThreads';
+import { useEmailActions } from '@/lib/hooks/useEmailActions';
 
-import { AdvancedSearchModal, SearchFilterState } from '@/components/inbox/AdvancedSearchModal';
-import { SnoozeModal } from '@/components/inbox/SnoozeModal';
-import { LabelManagerModal, CustomLabel } from '@/components/inbox/LabelManagerModal';
+import { SearchFilterState } from '@/components/inbox/AdvancedSearchModal';
+import { CustomLabel } from '@/components/inbox/LabelManagerModal';
 import { WorkspaceRightPanel } from '@/components/inbox/WorkspaceRightPanel';
-import { EmailTemplatesModal, EmailTemplate } from '@/components/inbox/EmailTemplatesModal';
-import { ConfidentialModeModal } from '@/components/inbox/ConfidentialModeModal';
+import { EmailTemplate } from '@/components/inbox/EmailTemplatesModal';
 import { AttachmentsView } from '@/components/inbox/AttachmentsView';
-import { GmailSettingsModal, GmailAppSettings } from '@/components/inbox/GmailSettingsModal';
+import { GmailAppSettings } from '@/components/inbox/GmailSettingsModal';
 import { useCopilot } from '@/providers/CopilotContext';
 import { InboxHeader } from '@/components/inbox/InboxHeader';
 import { InboxSidebar } from '@/components/inbox/InboxSidebar';
 import { EmailListPanel } from '@/components/inbox/EmailListPanel';
 import { ThreadReaderPanel } from '@/components/inbox/ThreadReaderPanel';
 import { ComposeDock } from '@/components/inbox/ComposeDock';
+import { InboxProductivityModals } from '@/components/inbox/InboxProductivityModals';
 import { useUndoToast } from '@/lib/hooks/useUndoToast';
 import { useComposeDraft } from '@/lib/hooks/useComposeDraft';
 import { useReplyDrafter } from '@/lib/hooks/useReplyDrafter';
@@ -63,7 +56,6 @@ function InboxContent() {
   const [snoozeTargetEmailId, setSnoozeTargetEmailId] = useState<string | null>(null);
   const [snoozedMetaMap, setSnoozedMetaMap] = useState<Record<string, string>>({});
   const [isAiDraftModalOpen, setIsAiDraftModalOpen] = useState(false);
-  const [isAutoLabeling, setIsAutoLabeling] = useState(false);
 
   const [customLabels, setCustomLabels] = useState<CustomLabel[]>(DEFAULT_CUSTOM_LABELS);
   const [emailLabelsMap, setEmailLabelsMap] = useState<Record<string, string[]>>({});
@@ -82,9 +74,6 @@ function InboxContent() {
   // Gmail Settings State
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [appSettings, setAppSettings] = useState<GmailAppSettings>(DEFAULT_APP_SETTINGS);
-
-  // Floating Compose modal state
-  const [iframeHeights, setIframeHeights] = useState<Record<string, number>>({});
 
   // Pagination state (50 items per page like Gmail)
   const [currentPage, setCurrentPage] = useState(1);
@@ -177,24 +166,6 @@ function InboxContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [viewMode]);
 
-  // Listen for iframe height adjustments
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && event.data.frameId && typeof event.data.height === 'number') {
-        const newH = Math.ceil(event.data.height);
-        setIframeHeights((prev) => {
-          const prevH = prev[event.data.frameId];
-          if (prevH === undefined || Math.abs(prevH - newH) > 4) {
-            return { ...prev, [event.data.frameId]: newH };
-          }
-          return prev;
-        });
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
   // Filter emails by active folder, category tab, account label, custom label, search query, and advanced filters
   const filteredEmails = useMemo(
     () =>
@@ -229,6 +200,35 @@ function InboxContent() {
   );
 
   const selectedEmail = emails.find((e) => e.id === selectedEmailId);
+
+  const {
+    isAutoLabeling,
+    toggleSelectAll,
+    toggleSelectEmail,
+    handleBackToList,
+    handleCategoryShift,
+    handleAutoLabelAll,
+    handleLabelSingleEmail,
+    handleSelectEmail,
+    handleToggleStar,
+    handleDeleteEmail,
+    handleSnoozeEmail,
+    handleBulkDelete,
+    handleBulkMarkRead,
+  } = useEmailActions({
+    emails,
+    setEmails,
+    paginatedEmails,
+    selectedEmailId,
+    setSelectedEmailId,
+    setIsReadingThread,
+    setIsAiDraftModalOpen,
+    selectedEmailIds,
+    setSelectedEmailIds,
+    snoozeTargetEmailId,
+    setSnoozedMetaMap,
+    loadData,
+  });
 
   // All messages in current selected thread
   const currentThreadMessages = selectedEmail
@@ -289,116 +289,6 @@ function InboxContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEmail, selectedEmailId, paginatedEmails]);
 
-  const toggleSelectAll = () => {
-    if (selectedEmailIds.length === paginatedEmails.length && paginatedEmails.length > 0) {
-      setSelectedEmailIds([]);
-    } else {
-      setSelectedEmailIds(paginatedEmails.map((e) => e.id));
-    }
-  };
-
-  const toggleSelectEmail = (id: string) => {
-    setSelectedEmailIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
-  };
-
-  const handleBackToList = () => {
-    setIsReadingThread(false);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.delete('id');
-      window.history.pushState({}, '', url.pathname + url.search);
-    }
-  };
-
-  const handleCategoryShift = async (emailId: string, newCategory: 'primary' | 'promotions' | 'social' | 'updates') => {
-    setEmails((prev) => prev.map((e) => (e.id === emailId ? { ...e, category: newCategory } : e)));
-    try {
-      await updateEmailCategoryApi(emailId, newCategory);
-    } catch (err) {
-      console.warn('Failed to shift email category:', err);
-    }
-  };
-
-  const handleAutoLabelAll = async () => {
-    setIsAutoLabeling(true);
-    try {
-      const res = await safeFetch('/ai/triage/all', { method: 'POST' });
-      if (res.ok) {
-        await loadData(true);
-      }
-    } catch (err) {
-      console.warn('Auto-labeling error:', err);
-    } finally {
-      setIsAutoLabeling(false);
-    }
-  };
-
-  const handleLabelSingleEmail = async (emailId: string) => {
-    try {
-      const res = await safeFetch(`/ai/emails/${emailId}/triage`, { method: 'POST' });
-      if (res.ok) {
-        await loadData(true);
-      }
-    } catch (err) {
-      console.warn('Single email label error:', err);
-    }
-  };
-
-  const handleSelectEmail = async (email: EmailData) => {
-    setSelectedEmailId(email.id);
-    setIsReadingThread(true);
-    setIsAiDraftModalOpen(false);
-
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.searchParams.set('id', email.id);
-      window.history.pushState({}, '', url.pathname + url.search);
-    }
-
-    if (!email.isRead) {
-      setEmails((prev) => prev.map((e) => (e.id === email.id ? { ...e, isRead: true } : e)));
-      markEmailAsReadApi(email.id, true).catch((err) => {
-        console.warn('Failed to mark email as read:', err);
-      });
-    }
-
-    // Immediately fetch full HTML content for the selected email
-    try {
-      const full = await fetchEmailByIdApi(email.id);
-      if (full) {
-        setEmails((prev) => prev.map((e) => (e.id === email.id ? { ...e, ...full } : e)));
-      }
-    } catch (err) {
-      console.warn('Failed to fetch full email body:', err);
-    }
-  };
-
-  const handleToggleStar = (emailId: string) => {
-    const target = emails.find((e) => e.id === emailId);
-    const nextStarred = target ? !target.isStarred : true;
-    setEmails((prev) => prev.map((e) => (e.id === emailId ? { ...e, isStarred: nextStarred } : e)));
-    toggleStarEmailApi(emailId, nextStarred).catch((err) => {
-      console.warn('Failed to star email:', err);
-    });
-  };
-
-  const handleDeleteEmail = (emailId: string) => {
-    setEmails((prev) => prev.filter((e) => e.id !== emailId));
-    if (selectedEmailId === emailId) {
-      setSelectedEmailId(null);
-      handleBackToList();
-    }
-    deleteEmailApi(emailId).catch((err) => {
-      console.warn('Failed to delete email:', err);
-    });
-  };
-
-  const handleSnoozeEmail = (snoozeDate: Date, label: string) => {
-    if (!snoozeTargetEmailId) return;
-    setEmails((prev) => prev.map((e) => (e.id === snoozeTargetEmailId ? { ...e, folder: 'snoozed' as any } : e)));
-    setSnoozedMetaMap((prev) => ({ ...prev, [snoozeTargetEmailId]: label }));
-  };
-
   const handleCreateCustomLabel = (name: string, color: string) => {
     const newLbl: CustomLabel = { id: `lbl-${Date.now()}`, name, color };
     const updated = [...customLabels, newLbl];
@@ -414,28 +304,6 @@ function InboxContent() {
       localStorage.setItem(STORAGE_KEYS.emailLabelsMap, JSON.stringify(nextMap));
       return nextMap;
     });
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedEmailIds.length === 0) return;
-    setEmails((prev) => prev.filter((e) => !selectedEmailIds.includes(e.id)));
-    if (selectedEmailId && selectedEmailIds.includes(selectedEmailId)) {
-      setSelectedEmailId(null);
-      handleBackToList();
-    }
-    selectedEmailIds.forEach((id) => {
-      fetch(`/api/emails/${id}`, { method: 'DELETE' }).catch(() => {});
-    });
-    setSelectedEmailIds([]);
-  };
-
-  const handleBulkMarkRead = () => {
-    if (selectedEmailIds.length === 0) return;
-    setEmails((prev) => prev.map((e) => (selectedEmailIds.includes(e.id) ? { ...e, isRead: true } : e)));
-    selectedEmailIds.forEach((id) => {
-      fetch(`/api/emails/${id}/read`, { method: 'PATCH' }).catch(() => {});
-    });
-    setSelectedEmailIds([]);
   };
 
   const unreadInboxCount = emails.filter(
@@ -639,63 +507,55 @@ function InboxContent() {
         onOpenConfidentialModal={() => setIsConfidentialModalOpen(true)}
       />
 
-      {/* Modals */}
-      <AdvancedSearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        onApplyFilters={(filters) => setAdvancedFilters(filters)}
-        onResetFilters={() => setAdvancedFilters(null)}
-      />
-
-      <SnoozeModal
-        isOpen={isSnoozeModalOpen}
-        onClose={() => setIsSnoozeModalOpen(false)}
-        onSnooze={handleSnoozeEmail}
-      />
-
-      <LabelManagerModal
-        isOpen={isLabelModalOpen}
-        onClose={() => setIsLabelModalOpen(false)}
-        labels={customLabels}
-        onCreateLabel={handleCreateCustomLabel}
-        onToggleLabelOnEmail={(lblId) => labelTargetEmailId && handleToggleLabelOnEmail(labelTargetEmailId, lblId)}
-        assignedLabelIds={labelTargetEmailId ? emailLabelsMap[labelTargetEmailId] || [] : []}
-      />
-
-      <EmailTemplatesModal
-        isOpen={isTemplatesModalOpen}
-        onClose={() => setIsTemplatesModalOpen(false)}
-        templates={savedTemplates}
-        onSelectTemplate={(tpl) => {
-          if (tpl.subject && !composeDraft.composeSubject) composeDraft.setComposeSubject(tpl.subject);
-          composeDraft.setComposeBody((prev) => (prev ? `${prev}\n\n${tpl.body}` : tpl.body));
+      <InboxProductivityModals
+        search={{
+          isOpen: isSearchModalOpen,
+          onClose: () => setIsSearchModalOpen(false),
+          onApplyFilters: (filters) => setAdvancedFilters(filters),
+          onResetFilters: () => setAdvancedFilters(null),
         }}
-        onCreateTemplate={(title, subject, body) => {
-          setSavedTemplates((prev) => [...prev, { id: `tpl-${Date.now()}`, title, subject, body }]);
+        snooze={{ isOpen: isSnoozeModalOpen, onClose: () => setIsSnoozeModalOpen(false), onSnooze: handleSnoozeEmail }}
+        labels={{
+          isOpen: isLabelModalOpen,
+          onClose: () => setIsLabelModalOpen(false),
+          labels: customLabels,
+          onCreateLabel: handleCreateCustomLabel,
+          onToggleLabelOnEmail: (lblId) => labelTargetEmailId && handleToggleLabelOnEmail(labelTargetEmailId, lblId),
+          assignedLabelIds: labelTargetEmailId ? emailLabelsMap[labelTargetEmailId] || [] : [],
         }}
-        onDeleteTemplate={(id) => setSavedTemplates((prev) => prev.filter((t) => t.id !== id))}
-      />
-
-      <ConfidentialModeModal
-        isOpen={isConfidentialModalOpen}
-        onClose={() => setIsConfidentialModalOpen(false)}
-        currentConfig={composeDraft.confidentialConfig}
-        onSave={(config) => composeDraft.setConfidentialConfig(config)}
-      />
-
-      <GmailSettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        settings={appSettings}
-        onUpdateSettings={(newSettings) => setAppSettings((prev) => ({ ...prev, ...newSettings }))}
-        accounts={accounts}
-        onRefreshAccounts={loadData}
-        customLabels={customLabels}
-        onCreateLabel={handleCreateCustomLabel}
-        onDeleteLabel={(id) => {
-          const updated = customLabels.filter((l) => l.id !== id);
-          setCustomLabels(updated);
-          localStorage.setItem(STORAGE_KEYS.customLabels, JSON.stringify(updated));
+        templates={{
+          isOpen: isTemplatesModalOpen,
+          onClose: () => setIsTemplatesModalOpen(false),
+          templates: savedTemplates,
+          onSelectTemplate: (tpl) => {
+            if (tpl.subject && !composeDraft.composeSubject) composeDraft.setComposeSubject(tpl.subject);
+            composeDraft.setComposeBody((prev) => (prev ? `${prev}\n\n${tpl.body}` : tpl.body));
+          },
+          onCreateTemplate: (title, subject, body) => {
+            setSavedTemplates((prev) => [...prev, { id: `tpl-${Date.now()}`, title, subject, body }]);
+          },
+          onDeleteTemplate: (id) => setSavedTemplates((prev) => prev.filter((t) => t.id !== id)),
+        }}
+        confidential={{
+          isOpen: isConfidentialModalOpen,
+          onClose: () => setIsConfidentialModalOpen(false),
+          currentConfig: composeDraft.confidentialConfig,
+          onSave: (config) => composeDraft.setConfidentialConfig(config),
+        }}
+        settings={{
+          isOpen: isSettingsModalOpen,
+          onClose: () => setIsSettingsModalOpen(false),
+          settings: appSettings,
+          onUpdateSettings: (newSettings) => setAppSettings((prev) => ({ ...prev, ...newSettings })),
+          accounts,
+          onRefreshAccounts: loadData,
+          customLabels,
+          onCreateLabel: handleCreateCustomLabel,
+          onDeleteLabel: (id) => {
+            const updated = customLabels.filter((l) => l.id !== id);
+            setCustomLabels(updated);
+            localStorage.setItem(STORAGE_KEYS.customLabels, JSON.stringify(updated));
+          },
         }}
       />
     </div>
