@@ -21,9 +21,6 @@ export interface UseInboxThreadsOptions {
   /** Whether a thread is already selected — mirrors the original "auto-select first email" guard. */
   hasSelectedEmail: boolean;
   onFirstEmailLoaded: (id: string) => void;
-  /** Whether a compose "from" account is already chosen — mirrors the original guard. */
-  hasComposeFromAccount: boolean;
-  onFirstAccountLoaded: (id: string) => void;
 }
 
 export interface UseInboxThreadsResult {
@@ -43,12 +40,7 @@ export interface UseInboxThreadsResult {
  * exact same moments as the original inline implementation — this hook does
  * not rely on RQ's automatic refetch-on-focus/polling, to keep behavior identical.
  */
-export function useInboxThreads({
-  hasSelectedEmail,
-  onFirstEmailLoaded,
-  hasComposeFromAccount,
-  onFirstAccountLoaded,
-}: UseInboxThreadsOptions): UseInboxThreadsResult {
+export function useInboxThreads({ hasSelectedEmail, onFirstEmailLoaded }: UseInboxThreadsOptions): UseInboxThreadsResult {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
 
@@ -96,12 +88,10 @@ export function useInboxThreads({
     [setEmails],
   );
 
-  // Keep latest selection/compose guards in refs so the callbacks below don't
-  // need to change identity on every render (they feed effect dependency arrays).
+  // Keep latest selection guard in a ref so the callback below doesn't need to
+  // change identity on every render (it feeds an effect dependency array).
   const hasSelectedEmailRef = useRef(hasSelectedEmail);
   hasSelectedEmailRef.current = hasSelectedEmail;
-  const hasComposeFromAccountRef = useRef(hasComposeFromAccount);
-  hasComposeFromAccountRef.current = hasComposeFromAccount;
 
   const loadData = useCallback(
     async (forceSync: boolean = false) => {
@@ -119,9 +109,6 @@ export function useInboxThreads({
         }
         if (accData && accData.length > 0) {
           setAccounts(accData);
-          if (!hasComposeFromAccountRef.current && accData[0]) {
-            onFirstAccountLoaded(accData[0].id);
-          }
         }
 
         if (forceSync) {
@@ -140,7 +127,7 @@ export function useInboxThreads({
         setLoading(false);
       }
     },
-    [onFirstAccountLoaded, onFirstEmailLoaded, setAccounts, updateEmailsState],
+    [onFirstEmailLoaded, setAccounts, updateEmailsState],
   );
 
   const refreshEmails = useCallback(() => {

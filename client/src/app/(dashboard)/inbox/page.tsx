@@ -1,55 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useState, useRef, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { SectionErrorBoundary } from '@/components/ui/SectionErrorBoundary';
-import {
-  Inbox as InboxIcon,
-  Star,
-  Clock,
-  Send,
-  FileText,
-  Trash2,
-  Tag,
-  AlertOctagon,
-  RefreshCw,
-  Search,
-  Square,
-  CheckSquare,
-  Paperclip,
-  ArrowLeft,
-  X,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Users,
-  Minus,
-  Maximize2,
-  Minimize2,
-  Download,
-  File,
-  Pencil,
-  Columns,
-  List,
-  SlidersHorizontal,
-  Mail,
-  MailOpen,
-  Printer,
-  CornerUpLeft,
-  CornerUpRight,
-  Undo2,
-  Calendar as CalendarIcon,
-  Plus,
-  Bookmark,
-  Check,
-  Lock,
-  Rows,
-  ShieldAlert,
-  FolderInput,
-  Settings as SettingsIcon,
-  Flame,
-  Sparkles,
-} from 'lucide-react';
+import { Undo2 } from 'lucide-react';
 
 import {
   markEmailAsReadApi,
@@ -62,28 +16,26 @@ import {
 import { safeFetch } from '@/lib/api/client';
 import { useInboxThreads } from '@/lib/hooks/useInboxThreads';
 
-import { SanitizedEmailBody } from '@/components/inbox/thread/SanitizedEmailBody';
-import { formatEmailDate } from '@/lib/utils';
-import { ThemeToggle } from '@/components/layout/ThemeToggle';
 import { AdvancedSearchModal, SearchFilterState } from '@/components/inbox/AdvancedSearchModal';
 import { SnoozeModal } from '@/components/inbox/SnoozeModal';
 import { LabelManagerModal, CustomLabel } from '@/components/inbox/LabelManagerModal';
 import { WorkspaceRightPanel } from '@/components/inbox/WorkspaceRightPanel';
 import { EmailTemplatesModal, EmailTemplate } from '@/components/inbox/EmailTemplatesModal';
-import { ConfidentialModeModal, ConfidentialModeConfig } from '@/components/inbox/ConfidentialModeModal';
-import { SenderContactCard } from '@/components/inbox/SenderContactCard';
+import { ConfidentialModeModal } from '@/components/inbox/ConfidentialModeModal';
 import { AttachmentsView } from '@/components/inbox/AttachmentsView';
 import { GmailSettingsModal, GmailAppSettings } from '@/components/inbox/GmailSettingsModal';
-import { AiReplyDrafterModal } from '@/components/inbox/AiReplyDrafterModal';
 import { useCopilot } from '@/providers/CopilotContext';
-import { PendingActionsBanner } from '@/components/agent/PendingActionsBanner';
 import { InboxHeader } from '@/components/inbox/InboxHeader';
 import { InboxSidebar } from '@/components/inbox/InboxSidebar';
-import { getEmailCategory, detectSmartTopic } from '@/lib/inbox/categorize';
-import { formatFileSize } from '@/lib/inbox/format';
+import { EmailListPanel } from '@/components/inbox/EmailListPanel';
+import { ThreadReaderPanel } from '@/components/inbox/ThreadReaderPanel';
+import { ComposeDock } from '@/components/inbox/ComposeDock';
+import { useUndoToast } from '@/lib/hooks/useUndoToast';
+import { useComposeDraft } from '@/lib/hooks/useComposeDraft';
+import { useReplyDrafter } from '@/lib/hooks/useReplyDrafter';
 import { filterEmails, groupThreads, paginate } from '@/lib/inbox/filters';
 import { ITEMS_PER_PAGE, STORAGE_KEYS, DEFAULT_CUSTOM_LABELS, DEFAULT_TEMPLATES, DEFAULT_APP_SETTINGS } from '@/lib/inbox/constants';
-import type { ActiveFolder, ComposeAttachment, UndoToastState } from '@/lib/inbox/types';
+import type { ActiveFolder } from '@/lib/inbox/types';
 
 function InboxContent() {
   const { openCopilot, pendingCount } = useCopilot();
@@ -126,48 +78,13 @@ function InboxContent() {
 
   // Confidential Mode State
   const [isConfidentialModalOpen, setIsConfidentialModalOpen] = useState(false);
-  const [confidentialConfig, setConfidentialConfig] = useState<ConfidentialModeConfig | null>(null);
 
   // Gmail Settings State
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [appSettings, setAppSettings] = useState<GmailAppSettings>(DEFAULT_APP_SETTINGS);
 
-  // Undo Send Toast State
-  const [undoToast, setUndoToast] = useState<UndoToastState | null>(null);
-  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Scheduled Send state in Compose
-  const [isScheduledSendOpen, setIsScheduledSendOpen] = useState(false);
-  const [scheduledSendTime, setScheduledSendTime] = useState<string | null>(null);
-
   // Floating Compose modal state
-  const [showComposeModal, setShowComposeModal] = useState(false);
-  const [isComposeMinimized, setIsComposeMinimized] = useState(false);
-  const [isComposeMaximized, setIsComposeMaximized] = useState(false);
   const [iframeHeights, setIframeHeights] = useState<Record<string, number>>({});
-
-  // File input refs
-  const composeFileInputRef = useRef<HTMLInputElement>(null);
-  const replyFileInputRef = useRef<HTMLInputElement>(null);
-
-  // Inline Reply / Forward state
-  const [isReplying, setIsReplying] = useState(false);
-  const [replyMode, setReplyMode] = useState<'reply' | 'forward'>('reply');
-  const [replyText, setReplyText] = useState('');
-  const [replyFiles, setReplyFiles] = useState<ComposeAttachment[]>([]);
-  const [isSendingReply, setIsSendingReply] = useState(false);
-
-  // Compose modal state
-  const [composeFromAccountId, setComposeFromAccountId] = useState<string>('');
-  const [composeTo, setComposeTo] = useState('');
-  const [composeCc, setComposeCc] = useState('');
-  const [composeBcc, setComposeBcc] = useState('');
-  const [showCc, setShowCc] = useState(false);
-  const [showBcc, setShowBcc] = useState(false);
-  const [composeSubject, setComposeSubject] = useState('');
-  const [composeBody, setComposeBody] = useState('');
-  const [composeFiles, setComposeFiles] = useState<ComposeAttachment[]>([]);
-  const [isSendingCompose, setIsSendingCompose] = useState(false);
 
   // Pagination state (50 items per page like Gmail)
   const [currentPage, setCurrentPage] = useState(1);
@@ -176,30 +93,19 @@ function InboxContent() {
   const { emails, accounts, loading, loadData, setEmails } = useInboxThreads({
     hasSelectedEmail: Boolean(selectedEmailId),
     onFirstEmailLoaded: setSelectedEmailId,
-    hasComposeFromAccount: Boolean(composeFromAccountId),
-    onFirstAccountLoaded: setComposeFromAccountId,
   });
+
+  const undo = useUndoToast();
+  const composeDraft = useComposeDraft({ accounts, loadData, showUndo: undo.showUndo });
 
   // Cancel a pending "undo send" if the user navigates away before it fires.
   useEffect(() => {
-    return () => {
-      if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-    };
+    return () => undo.cancelPending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only cleanup
   }, []);
 
-  // Restore Drafts & Custom Labels from localStorage
+  // Restore Custom Labels from localStorage
   useEffect(() => {
-    const savedDraft = localStorage.getItem(STORAGE_KEYS.composeDraft);
-    if (savedDraft) {
-      try {
-        const parsed = JSON.parse(savedDraft);
-        if (parsed.to) setComposeTo(parsed.to);
-        if (parsed.subject) setComposeSubject(parsed.subject);
-        if (parsed.body) setComposeBody(parsed.body);
-        if (parsed.fromAccountId) setComposeFromAccountId(parsed.fromAccountId);
-      } catch (e) {}
-    }
-
     const savedLabels = localStorage.getItem(STORAGE_KEYS.customLabels);
     if (savedLabels) {
       try {
@@ -214,21 +120,6 @@ function InboxContent() {
       } catch (e) {}
     }
   }, []);
-
-  // Auto-save compose draft to localStorage
-  useEffect(() => {
-    if (composeTo || composeSubject || composeBody || composeFromAccountId) {
-      localStorage.setItem(
-        STORAGE_KEYS.composeDraft,
-        JSON.stringify({
-          to: composeTo,
-          subject: composeSubject,
-          body: composeBody,
-          fromAccountId: composeFromAccountId,
-        }),
-      );
-    }
-  }, [composeTo, composeSubject, composeBody, composeFromAccountId]);
 
   // Automatically fetch full HTML body for all messages in current thread if missing
   useEffect(() => {
@@ -268,7 +159,6 @@ function InboxContent() {
   // Reset modal state whenever user switches emails
   useEffect(() => {
     setIsAiDraftModalOpen(false);
-    setIsReplying(false);
   }, [selectedEmailId]);
 
   // Handle browser Back / Forward popstate history buttons
@@ -347,6 +237,8 @@ function InboxContent() {
         .sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime())
     : [];
 
+  const drafter = useReplyDrafter({ selectedEmail, currentThreadMessages, loadData, showUndo: undo.showUndo });
+
   // GMAIL KEYBOARD SHORTCUTS HANDLER
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -357,22 +249,19 @@ function InboxContent() {
 
       if (e.key === 'c' || e.key === 'C') {
         e.preventDefault();
-        setShowComposeModal(true);
-        setIsComposeMinimized(false);
+        composeDraft.openCompose();
       } else if (e.key === '/') {
         e.preventDefault();
         document.querySelector<HTMLInputElement>('input[placeholder="Search in mail"]')?.focus();
       } else if (e.key === 'r' || e.key === 'R') {
         if (selectedEmail) {
           e.preventDefault();
-          setIsReplying(true);
-          setReplyMode('reply');
+          drafter.startReply('reply');
         }
       } else if (e.key === 'f' || e.key === 'F') {
         if (selectedEmail) {
           e.preventDefault();
-          setIsReplying(true);
-          setReplyMode('forward');
+          drafter.startReply('forward');
         }
       } else if (e.key === 'e' || e.key === 'E') {
         if (selectedEmail) {
@@ -399,40 +288,6 @@ function InboxContent() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEmail, selectedEmailId, paginatedEmails]);
-
-  const handleComposeFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        setComposeFiles((prev) => [
-          ...prev,
-          { filename: file.name, contentType: file.type || 'application/octet-stream', size: file.size, content },
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  const handleReplyFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        setReplyFiles((prev) => [
-          ...prev,
-          { filename: file.name, contentType: file.type || 'application/octet-stream', size: file.size, content },
-        ]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
 
   const toggleSelectAll = () => {
     if (selectedEmailIds.length === paginatedEmails.length && paginatedEmails.length > 0) {
@@ -492,7 +347,6 @@ function InboxContent() {
   const handleSelectEmail = async (email: EmailData) => {
     setSelectedEmailId(email.id);
     setIsReadingThread(true);
-    setIsReplying(false);
     setIsAiDraftModalOpen(false);
 
     if (typeof window !== 'undefined') {
@@ -584,127 +438,6 @@ function InboxContent() {
     setSelectedEmailIds([]);
   };
 
-  // SEND WITH 5-SECOND UNDO TOAST
-  const dispatchSendReplyWithUndo = async () => {
-    if (!selectedEmail || !replyText.trim()) return;
-    const bodyToSend = `${replyText}\n\n--\nSent from ${selectedEmail.accountName}`;
-    const savedText = replyText;
-    const savedFiles = replyFiles;
-
-    setReplyText('');
-    setReplyFiles([]);
-    setIsReplying(false);
-
-    let seconds = 5;
-    const toastObj = {
-      active: true,
-      message: 'Reply queued for sending.',
-      countdown: seconds,
-      onUndo: () => {
-        if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-        setUndoToast(null);
-        setReplyText(savedText);
-        setReplyFiles(savedFiles);
-        setIsReplying(true);
-      },
-    };
-    setUndoToast(toastObj);
-
-    undoTimerRef.current = setInterval(async () => {
-      seconds -= 1;
-      if (seconds <= 0) {
-        if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-        setUndoToast(null);
-
-        try {
-          const lastMsg =
-            currentThreadMessages.length > 0
-              ? currentThreadMessages[currentThreadMessages.length - 1] || selectedEmail
-              : selectedEmail;
-          const rawSender = lastMsg?.sender || selectedEmail.sender;
-          const senderSplit = rawSender.includes('<') ? rawSender.split('<')[1] : null;
-          const recipient = senderSplit ? senderSplit.replace('>', '') : rawSender;
-          await fetch('/api/emails/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accountId: selectedEmail.accountId,
-              to: recipient,
-              subject:
-                replyMode === 'reply'
-                  ? `Re: ${selectedEmail.subject.replace(/^Re:\s*/i, '')}`
-                  : `Fwd: ${selectedEmail.subject}`,
-              body: bodyToSend,
-              threadId: selectedEmail.threadId,
-              attachments: savedFiles,
-            }),
-          });
-          await loadData();
-        } catch (e) {}
-      } else {
-        setUndoToast((prev) => (prev ? { ...prev, countdown: seconds } : null));
-      }
-    }, 1000);
-  };
-
-  const dispatchSendComposeWithUndo = async () => {
-    if (!composeTo || !composeSubject || !composeBody) return;
-    const savedTo = composeTo;
-    const savedSubject = composeSubject;
-    const savedBody = composeBody;
-    const savedFiles = composeFiles;
-
-    setShowComposeModal(false);
-    setComposeTo('');
-    setComposeSubject('');
-    setComposeBody('');
-    setComposeFiles([]);
-    localStorage.removeItem(STORAGE_KEYS.composeDraft);
-
-    let seconds = 5;
-    const toastObj = {
-      active: true,
-      message: scheduledSendTime ? `Email scheduled for ${scheduledSendTime}.` : 'Message sent.',
-      countdown: seconds,
-      onUndo: () => {
-        if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-        setUndoToast(null);
-        setComposeTo(savedTo);
-        setComposeSubject(savedSubject);
-        setComposeBody(savedBody);
-        setComposeFiles(savedFiles);
-        setShowComposeModal(true);
-      },
-    };
-    setUndoToast(toastObj);
-
-    undoTimerRef.current = setInterval(async () => {
-      seconds -= 1;
-      if (seconds <= 0) {
-        if (undoTimerRef.current) clearInterval(undoTimerRef.current);
-        setUndoToast(null);
-
-        try {
-          const senderAcc = accounts.find((a) => a.id === composeFromAccountId);
-          await fetch('/api/emails/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accountId: composeFromAccountId,
-              to: savedTo,
-              subject: savedSubject,
-              body: `${savedBody}\n\n--\nSent from ${senderAcc ? senderAcc.label : 'Gmail Client'}${confidentialConfig ? `\n[Confidential Mode Active: ${confidentialConfig.expiration}]` : ''}`,
-              attachments: savedFiles,
-            }),
-          });
-          loadData();
-        } catch (e) {}
-      } else {
-        setUndoToast((prev) => (prev ? { ...prev, countdown: seconds } : null));
-      }
-    }, 1000);
-  };
-
   const unreadInboxCount = emails.filter(
     (e) => !e.isRead && ((e as any).folder === 'inbox' || !(e as any).folder),
   ).length;
@@ -712,24 +445,6 @@ function InboxContent() {
 
   return (
     <div className="flex flex-col h-full bg-[#f6f8fc] dark:bg-[#1f1f1f] text-[#1f1f1f] dark:text-[#e3e3e3] overflow-hidden font-sans transition-colors duration-200 select-none min-h-0">
-      {/* Hidden File Inputs */}
-      <input
-        type="file"
-        ref={composeFileInputRef}
-        multiple
-        className="hidden"
-        style={{ display: 'none' }}
-        onChange={handleComposeFileSelect}
-      />
-      <input
-        type="file"
-        ref={replyFileInputRef}
-        multiple
-        className="hidden"
-        style={{ display: 'none' }}
-        onChange={handleReplyFileSelect}
-      />
-
       {/* 1. GMAIL TOP SEARCH HEADER BAR */}
       <InboxHeader
         searchQuery={searchQuery}
@@ -779,10 +494,7 @@ function InboxContent() {
             onSelectCustomLabelFilter: setSelectedCustomLabelFilter,
             onOpenLabelModal: () => setIsLabelModalOpen(true),
           }}
-          onOpenCompose={() => {
-            setShowComposeModal(true);
-            setIsComposeMinimized(false);
-          }}
+          onOpenCompose={composeDraft.openCompose}
         />
 
         {/* 3. MAIN WORKSPACE CANVAS */}
@@ -792,1002 +504,112 @@ function InboxContent() {
           <div className="flex-1 flex bg-white dark:bg-[#141517] overflow-hidden rounded-tl-2xl border-l border-slate-200/80 dark:border-slate-800 shadow-xs min-h-0">
             {/* A. EMAIL LIST / TABLE PANEL */}
             {(!isReadingThread || viewMode === 'split') && (
-              <div
-                className={`flex flex-col bg-white dark:bg-[#141517] border-r border-slate-200/80 dark:border-slate-800 ${
-                  viewMode === 'split' ? 'w-96 shrink-0' : 'w-full'
-                } h-full overflow-hidden min-h-0`}
-              >
-                {/* Account OAuth Re-Authentication Warning Banner */}
-                {accounts.some((a) => a.status === 'error') && (
-                  <div className="mx-4 my-2 px-4 py-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
-                    <div className="flex items-center space-x-2.5">
-                      <AlertOctagon className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                      <span>
-                        Google OAuth session expired for{' '}
-                        <strong>
-                          {accounts
-                            .filter((a) => a.status === 'error')
-                            .map((a) => a.email)
-                            .join(', ')}
-                        </strong>
-                        .
-                      </span>
-                    </div>
-                    <a
-                      href="/settings"
-                      className="px-3 py-1 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition-colors shrink-0 shadow-sm"
-                    >
-                      Reconnect in Settings
-                    </a>
-                  </div>
-                )}
-
-                {/* Top Gmail Action Bar */}
-                <div className="px-4 py-2 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 shrink-0 bg-white dark:bg-[#141517]">
-                  <div className="flex items-center space-x-3">
-                    {/* Select All Checkbox */}
-                    <button
-                      onClick={toggleSelectAll}
-                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors"
-                      title="Select all"
-                    >
-                      {selectedEmailIds.length === paginatedEmails.length && paginatedEmails.length > 0 ? (
-                        <CheckSquare className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
-                      ) : (
-                        <Square className="w-4 h-4 text-slate-400" />
-                      )}
-                    </button>
-
-                    {/* Bulk Action Buttons */}
-                    {selectedEmailIds.length > 0 ? (
-                      <div className="flex items-center space-x-1 text-slate-700 dark:text-slate-200">
-                        <button
-                          onClick={handleBulkMarkRead}
-                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Mark as read"
-                        >
-                          <MailOpen className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleBulkDelete}
-                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-rose-600 dark:text-rose-400 transition-colors"
-                          title="Delete selected"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <span className="text-[11px] font-medium text-slate-500 ml-2">
-                          {selectedEmailIds.length} selected
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => loadData(true)}
-                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
-                          title="Refresh inbox"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        </button>
-
-                        <button
-                          onClick={handleAutoLabelAll}
-                          disabled={isAutoLabeling}
-                          className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-purple-600/10 via-indigo-600/10 to-pink-600/10 hover:from-purple-600/20 hover:to-indigo-600/20 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 text-[11px] font-semibold transition-all shadow-2xs active:scale-95 disabled:opacity-60"
-                          title="Run Gemini AI Auto-Labeling on all synced emails"
-                        >
-                          <Sparkles
-                            className={`w-3.5 h-3.5 text-purple-600 dark:text-purple-400 ${isAutoLabeling ? 'animate-spin' : ''}`}
-                          />
-                          <span>{isAutoLabeling ? 'Auto-Labeling with Gemini...' : '✨ AI Auto-Label'}</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Pagination & Live Push Status */}
-                  <div className="flex items-center space-x-3 text-slate-500">
-                    <div
-                      className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium shrink-0"
-                      title="Google Cloud Pub/Sub & SSE Live Push Ingestion active (<500ms)"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span className="hidden sm:inline">Live Push</span>
-                    </div>
-                    <span className="text-[11px] font-mono">
-                      {totalCount === 0 ? '0 of 0' : `${startIndex + 1}–${endIndex} of ${totalCount}`}
-                    </span>
-                    <div className="flex items-center space-x-0.5">
-                      <button
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
-                        title="Previous page"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <button
-                        disabled={currentPage === totalPages || totalCount === 0}
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
-                        title="Next page"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gmail Category Tabs Bar (Primary, Promotions, Social, Updates, All Mail) */}
-                {activeFolder === 'inbox' && (
-                  <div className="flex items-center border-b border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc]/60 dark:bg-[#1a1b1e] shrink-0 overflow-x-auto">
-                    {[
-                      {
-                        id: 'all',
-                        label: 'All Mail',
-                        icon: Mail,
-                        color: 'border-slate-600 text-slate-600 dark:border-slate-300 dark:text-slate-300',
-                      },
-                      {
-                        id: 'p1_urgent',
-                        label: '🔥 Action Required',
-                        icon: Flame,
-                        color: 'border-red-500 text-red-600 dark:border-red-400 dark:text-red-400',
-                      },
-                      {
-                        id: 'p2_important',
-                        label: '💬 Direct',
-                        icon: InboxIcon,
-                        color: 'border-[#0b57d0] text-[#0b57d0] dark:border-purple-400 dark:text-purple-400',
-                      },
-                      {
-                        id: 'p3_updates',
-                        label: '🔔 Updates',
-                        icon: AlertOctagon,
-                        color: 'border-[#b06000] text-[#b06000] dark:border-amber-400 dark:text-amber-400',
-                      },
-                      {
-                        id: 'p4_newsletter',
-                        label: '📰 Subscriptions',
-                        icon: Tag,
-                        color: 'border-[#137333] text-[#137333] dark:border-emerald-400 dark:text-emerald-400',
-                      },
-                    ].map((cat) => {
-                      const Icon = cat.icon;
-                      const isActive = activeCategory === cat.id;
-                      const count = emails.filter((e) => {
-                        if (e.folder && e.folder !== 'inbox') return false;
-                        if (selectedAccountFilter !== 'all' && e.accountId !== selectedAccountFilter) return false;
-                        if (cat.id === 'all') return true;
-                        return getEmailCategory(e) === cat.id;
-                      }).length;
-
-                      return (
-                        <button
-                          key={cat.id}
-                          onClick={() => {
-                            setActiveCategory(cat.id as any);
-                            setCurrentPage(1);
-                          }}
-                          className={`flex-1 min-w-[120px] py-3.5 px-4 flex items-center justify-center space-x-2.5 text-xs font-semibold transition-all border-b-[3px] ${
-                            isActive
-                              ? `${cat.color} bg-white dark:bg-[#141517]`
-                              : 'border-transparent text-[#5f6368] dark:text-slate-400 hover:bg-[#eaeff6]/60 dark:hover:bg-slate-800/40'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{cat.label}</span>
-                          {count > 0 && (
-                            <span
-                              className={`px-1.5 py-0.2 text-[10px] rounded-full font-mono font-bold ${
-                                isActive
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                              }`}
-                            >
-                              {count}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Staged AI Actions Awaiting Approval Banner */}
-                <div className="p-3 pb-0">
-                  <PendingActionsBanner onActionResolved={() => loadData(false)} />
-                </div>
-
-                {/* Email Table Rows */}
-                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 min-h-0">
-                  {paginatedEmails.length === 0 ? (
-                    <div className="p-16 text-center space-y-3 my-auto">
-                      <InboxIcon className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
-                      <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-400">No emails found</h3>
-                      <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                        There are no messages matching your filters.
-                      </p>
-                    </div>
-                  ) : (
-                    paginatedEmails.map((email) => {
-                      const isSelected =
-                        selectedEmailId === email.id || (selectedEmail && selectedEmail.threadId === email.threadId);
-                      const isChecked = selectedEmailIds.includes(email.id);
-                      const count = (email as any).messageCount || 1;
-                      const hasAttachments = (email as any).attachments && (email as any).attachments.length > 0;
-
-                      const match = email.sender.match(/^(.*?)\s*<([^>]+)>$/);
-                      const senderName =
-                        (match && match[1] ? match[1].replace(/['"]/g, '').trim() : '') ||
-                        (match && match[2] ? match[2] : email.sender) ||
-                        email.sender;
-                      const senderEmail = match && match[2] ? match[2] : email.sender;
-                      const assignedLabels = emailLabelsMap[email.id] || [];
-
-                      return (
-                        <div
-                          key={email.id}
-                          onClick={() => handleSelectEmail(email)}
-                          className={`group px-4 py-2.5 flex items-center space-x-3 cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-[#c2e7ff]/70 text-[#001d35] dark:bg-[#2d3748] dark:text-white'
-                              : !email.isRead
-                                ? 'bg-white text-slate-900 font-bold dark:bg-[#1a1b1e] dark:text-white'
-                                : 'bg-[#f6f8fc]/40 text-slate-700 dark:bg-[#141517] dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/50'
-                          }`}
-                        >
-                          {/* Checkbox */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleSelectEmail(email.id);
-                            }}
-                            className="text-slate-400 hover:text-slate-600 shrink-0"
-                          >
-                            {isChecked ? (
-                              <CheckSquare className="w-4 h-4 text-[#0b57d0] dark:text-purple-400" />
-                            ) : (
-                              <Square className="w-4 h-4 text-slate-300 dark:text-slate-600" />
-                            )}
-                          </button>
-
-                          {/* Star Button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleStar(email.id);
-                            }}
-                            className="text-slate-300 dark:text-slate-600 hover:text-amber-400 shrink-0"
-                          >
-                            <Star className={`w-4 h-4 ${email.isStarred ? 'fill-[#f4b400] text-[#f4b400]' : ''}`} />
-                          </button>
-
-                          {/* Sender Contact Card with Popover */}
-                          <SenderContactCard
-                            senderName={senderName}
-                            senderEmail={senderEmail}
-                            avatarInitial={senderName.charAt(0).toUpperCase()}
-                            avatarColor={email.accountColor || '#0b57d0'}
-                            onFilterBySender={(e) => setSearchQuery(`from:${e}`)}
-                            onComposeToSender={(e) => {
-                              setComposeTo(e);
-                              setShowComposeModal(true);
-                            }}
-                          >
-                            <div className="w-44 shrink-0 flex items-center space-x-1.5 truncate">
-                              {!email.isRead && (
-                                <span className="w-2 h-2 rounded-full bg-[#0b57d0] dark:bg-purple-400 shrink-0" />
-                              )}
-                              <span
-                                className={`text-xs truncate ${!email.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-normal text-slate-700 dark:text-slate-300'}`}
-                              >
-                                {senderName}
-                              </span>
-                              {count > 1 && (
-                                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 font-bold">
-                                  {count}
-                                </span>
-                              )}
-                            </div>
-                          </SenderContactCard>
-
-                          {/* Account / Mailbox Label Badge */}
-                          <span
-                            className="px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 transition-transform hover:scale-105 shadow-2xs"
-                            style={{
-                              backgroundColor: `${email.accountColor || '#0b57d0'}20`,
-                              color: email.accountColor || '#0b57d0',
-                              border: `1px solid ${email.accountColor || '#0b57d0'}40`,
-                            }}
-                            title={`Belongs to mailbox: ${email.accountName || email.accountEmail || 'Connected Account'}`}
-                          >
-                            {email.accountName || email.accountEmail || 'Mailbox'}
-                          </span>
-
-                          {/* Gemini AI Priority Badge */}
-                          {(() => {
-                            const priority = email.aiPriority || getEmailCategory(email);
-                            if (priority === 'p1_urgent') {
-                              return (
-                                <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shrink-0 flex items-center space-x-1 shadow-2xs"
-                                  title="Gemini AI: P1 Urgent / Action Required"
-                                >
-                                  <Flame className="w-2.5 h-2.5 text-rose-500 shrink-0" />
-                                  <span>P1 Action</span>
-                                </span>
-                              );
-                            }
-                            if (priority === 'p2_important') {
-                              return (
-                                <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 shrink-0 shadow-2xs"
-                                  title="Gemini AI: P2 Direct Conversation"
-                                >
-                                  P2 Direct
-                                </span>
-                              );
-                            }
-                            if (priority === 'p3_updates') {
-                              return (
-                                <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 shadow-2xs"
-                                  title="Gemini AI: P3 Updates / Notifications"
-                                >
-                                  P3 Updates
-                                </span>
-                              );
-                            }
-                            if (priority === 'p4_newsletter') {
-                              return (
-                                <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0 shadow-2xs"
-                                  title="Gemini AI: P4 Subscriptions / Newsletters"
-                                >
-                                  P4 News
-                                </span>
-                              );
-                            }
-                            return null;
-                          })()}
-
-                          {/* Gemini AI Smart Topic Tag */}
-                          {(() => {
-                            const topic = detectSmartTopic(email);
-                            if (!topic) return null;
-                            return (
-                              <span
-                                className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 shrink-0 max-w-[120px] truncate shadow-2xs"
-                                title={`Smart Topic: ${topic}`}
-                              >
-                                {topic}
-                              </span>
-                            );
-                          })()}
-
-                          {/* Gemini AI Action Items Detected */}
-                          {email.aiExtractedTasks && email.aiExtractedTasks.length > 0 && (
-                            <span
-                              className="px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30 shrink-0 shadow-2xs"
-                              title={`${email.aiExtractedTasks.length} action item(s) detected`}
-                            >
-                              {email.aiExtractedTasks.length} Action{email.aiExtractedTasks.length > 1 ? 's' : ''}
-                            </span>
-                          )}
-
-                          {/* Assigned Custom Labels */}
-                          {assignedLabels.map((lblId) => {
-                            const lbl = customLabels.find((l) => l.id === lblId);
-                            if (!lbl) return null;
-                            return (
-                              <span
-                                key={lbl.id}
-                                className="px-2 py-0.5 rounded-full text-[9px] font-bold shrink-0"
-                                style={{
-                                  backgroundColor: `${lbl.color}20`,
-                                  color: lbl.color,
-                                  border: `1px solid ${lbl.color}40`,
-                                }}
-                              >
-                                {lbl.name}
-                              </span>
-                            );
-                          })}
-
-                          {/* Subject + Snippet inline */}
-                          <div
-                            className="flex-1 min-w-0 flex items-center space-x-2 truncate text-xs"
-                            title={email.aiSummary ? `✨ Gemini Summary: ${email.aiSummary}` : undefined}
-                          >
-                            <span
-                              className={`truncate ${!email.isRead ? 'font-bold text-slate-900 dark:text-white' : 'font-normal text-slate-800 dark:text-slate-200'}`}
-                            >
-                              {email.subject}
-                            </span>
-                            <span className="text-slate-400 font-normal truncate">— {email.snippet}</span>
-                          </div>
-
-                          {/* Attachment indicator */}
-                          {hasAttachments && (
-                            <span title="Has attachments">
-                              <Paperclip className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            </span>
-                          )}
-
-                          {/* Timestamp & Hover Quick Actions */}
-                          <div className="w-32 shrink-0 flex items-center justify-end">
-                            <span className="group-hover:hidden text-[11px] text-slate-500 dark:text-slate-400 font-mono">
-                              {formatEmailDate(email.receivedAt)}
-                            </span>
-
-                            <div className="hidden group-hover:flex items-center space-x-1 text-slate-500">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSnoozeTargetEmailId(email.id);
-                                  setIsSnoozeModalOpen(true);
-                                }}
-                                className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-amber-500"
-                                title="Snooze"
-                              >
-                                <Clock className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setLabelTargetEmailId(email.id);
-                                  setIsLabelModalOpen(true);
-                                }}
-                                className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-purple-500"
-                                title="Labels"
-                              >
-                                <Tag className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteEmail(email.id);
-                                }}
-                                className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-rose-600"
-                                title="Delete email"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+              <EmailListPanel
+                viewMode={viewMode}
+                activeFolder={activeFolder}
+                activeCategory={activeCategory}
+                onSelectCategory={(categoryId) => {
+                  setActiveCategory(categoryId);
+                  setCurrentPage(1);
+                }}
+                emails={emails}
+                accounts={accounts}
+                selectedAccountFilter={selectedAccountFilter}
+                paginatedEmails={paginatedEmails}
+                selectedEmailId={selectedEmailId}
+                selectedThreadId={selectedEmail?.threadId}
+                selectedEmailIds={selectedEmailIds}
+                onToggleSelectAll={toggleSelectAll}
+                onToggleSelectEmail={toggleSelectEmail}
+                onSelectEmail={handleSelectEmail}
+                customLabels={customLabels}
+                emailLabelsMap={emailLabelsMap}
+                loading={loading}
+                isAutoLabeling={isAutoLabeling}
+                onRefresh={() => loadData(true)}
+                onActionResolved={() => loadData(false)}
+                onAutoLabelAll={handleAutoLabelAll}
+                onBulkMarkRead={handleBulkMarkRead}
+                onBulkDelete={handleBulkDelete}
+                pagination={{
+                  totalCount,
+                  totalPages,
+                  startIndex,
+                  endIndex,
+                  currentPage,
+                  onPrevPage: () => setCurrentPage((p) => Math.max(1, p - 1)),
+                  onNextPage: () => setCurrentPage((p) => Math.min(totalPages, p + 1)),
+                }}
+                rowActions={{
+                  onToggleStar: handleToggleStar,
+                  onFilterBySender: (email) => setSearchQuery(`from:${email}`),
+                  onComposeToSender: composeDraft.prefillComposeTo,
+                  onSnooze: (emailId) => {
+                    setSnoozeTargetEmailId(emailId);
+                    setIsSnoozeModalOpen(true);
+                  },
+                  onOpenLabels: (emailId) => {
+                    setLabelTargetEmailId(emailId);
+                    setIsLabelModalOpen(true);
+                  },
+                  onDelete: handleDeleteEmail,
+                }}
+              />
             )}
 
             {/* B. THREAD READER CANVAS */}
-            {isReadingThread || (viewMode === 'split' && selectedEmail) ? (
-              <div className="flex-1 flex flex-col bg-white dark:bg-[#141517] overflow-hidden min-w-0 h-full">
-                {/* Thread Action Header Bar */}
-                <div className="px-6 py-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 bg-[#f6f8fc]/40 dark:bg-[#1a1b1e]">
-                  <div className="flex items-center space-x-3">
-                    {/* Back to Inbox Arrow Button */}
-                    <button
-                      onClick={handleBackToList}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Back to inbox"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                    </button>
-
-                    <span
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-2xs"
-                      style={{
-                        backgroundColor: `${selectedEmail?.accountColor || '#0b57d0'}20`,
-                        color: selectedEmail?.accountColor || '#0b57d0',
-                        border: `1px solid ${selectedEmail?.accountColor || '#0b57d0'}40`,
-                      }}
-                      title={`Belongs to mailbox: ${selectedEmail?.accountName || selectedEmail?.accountEmail}`}
-                    >
-                      {selectedEmail?.accountName || selectedEmail?.accountEmail || 'Mailbox'}
-                    </span>
-
-                    {/* Shift Category Pill Dropdown */}
-                    <div className="relative">
-                      <button
-                        onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
-                        className="flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all shadow-2xs cursor-pointer hover:opacity-90"
-                        style={{
-                          backgroundColor: `${selectedEmail?.accountColor || '#0b57d0'}15`,
-                          color: selectedEmail?.accountColor || '#0b57d0',
-                          borderColor: `${selectedEmail?.accountColor || '#0b57d0'}40`,
-                        }}
-                        title="Move to category"
-                      >
-                        <FolderInput className="w-3 h-3" />
-                        <span className="capitalize">{selectedEmail?.category || 'primary'}</span>
-                        <ChevronDown className="w-3 h-3" />
-                      </button>
-
-                      {isCategoryDropdownOpen && (
-                        <div className="absolute left-0 mt-2 w-44 rounded-2xl bg-white dark:bg-[#1a1b1e] border border-slate-200 dark:border-slate-800 shadow-xl z-50 py-1.5 animate-in fade-in zoom-in-95">
-                          <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Move to Category
-                          </div>
-                          {[
-                            { id: 'primary', label: 'Primary', icon: InboxIcon, color: 'text-[#0b57d0]' },
-                            { id: 'promotions', label: 'Promotions', icon: Tag, color: 'text-emerald-600' },
-                            { id: 'social', label: 'Social', icon: Users, color: 'text-blue-600' },
-                            { id: 'updates', label: 'Updates', icon: AlertOctagon, color: 'text-amber-600' },
-                          ].map((cat) => {
-                            const Icon = cat.icon;
-                            return (
-                              <button
-                                key={cat.id}
-                                onClick={() => {
-                                  if (selectedEmail) {
-                                    handleCategoryShift(selectedEmail.id, cat.id as any);
-                                  }
-                                  setIsCategoryDropdownOpen(false);
-                                }}
-                                className={`w-full flex items-center space-x-2.5 px-3.5 py-2 text-xs font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 ${
-                                  (selectedEmail?.category || 'primary') === cat.id
-                                    ? 'font-bold bg-purple-50 dark:bg-purple-950/40 text-purple-600'
-                                    : 'text-slate-700 dark:text-slate-300'
-                                }`}
-                              >
-                                <Icon className={`w-4 h-4 ${cat.color}`} />
-                                <span>{cat.label}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        if (selectedEmail) {
-                          setSnoozeTargetEmailId(selectedEmail.id);
-                          setIsSnoozeModalOpen(true);
-                        }
-                      }}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Snooze email"
-                    >
-                      <Clock className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (selectedEmail) {
-                          setLabelTargetEmailId(selectedEmail.id);
-                          setIsLabelModalOpen(true);
-                        }
-                      }}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Labels"
-                    >
-                      <Tag className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => selectedEmail && handleToggleStar(selectedEmail.id)}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Star message"
-                    >
-                      <Star className={`w-4 h-4 ${selectedEmail?.isStarred ? 'fill-[#f4b400] text-[#f4b400]' : ''}`} />
-                    </button>
-                    <button
-                      onClick={() => selectedEmail && handleDeleteEmail(selectedEmail.id)}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-rose-600 transition-colors"
-                      title="Delete message"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => window.print()}
-                      className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Print email"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Thread Content Body */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
-                  {/* Subject Header */}
-                  <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
-                    {selectedEmail?.subject}
-                  </h1>
-
-                  {/* Gemini AI Intelligence Card */}
-                  {selectedEmail &&
-                    (selectedEmail.aiPriority ||
-                      selectedEmail.aiSummary ||
-                      (selectedEmail.aiExtractedTasks && selectedEmail.aiExtractedTasks.length > 0) ||
-                      selectedEmail.aiNewsletterTopic) && (
-                      <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/8 via-indigo-500/5 to-pink-500/8 border border-purple-200/80 dark:border-purple-800/50 space-y-3 shadow-xs">
-                        <div className="flex items-center justify-between flex-wrap gap-2">
-                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                            <div className="p-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs">
-                              <Sparkles className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                              Gemini Intelligence
-                            </span>
-
-                            {selectedEmail.aiPriority === 'p1_urgent' && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30 flex items-center space-x-1">
-                                <Flame className="w-3 h-3 text-rose-500" />
-                                <span>P1 Action Required</span>
-                              </span>
-                            )}
-                            {selectedEmail.aiPriority === 'p2_important' && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
-                                💬 P2 Direct
-                              </span>
-                            )}
-                            {selectedEmail.aiPriority === 'p3_updates' && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                                🔔 P3 Updates
-                              </span>
-                            )}
-                            {selectedEmail.aiPriority === 'p4_newsletter' && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                                📰 P4 Subscription
-                              </span>
-                            )}
-
-                            {selectedEmail.aiUrgencyScore !== undefined && selectedEmail.aiUrgencyScore !== null && (
-                              <span className="text-[10px] font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-                                Urgency: {selectedEmail.aiUrgencyScore}/100
-                              </span>
-                            )}
-
-                            {selectedEmail.aiNewsletterTopic && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800">
-                                {selectedEmail.aiNewsletterTopic}
-                              </span>
-                            )}
-                          </div>
-
-                          <button
-                            onClick={() => handleLabelSingleEmail(selectedEmail.id)}
-                            className="text-[11px] font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 flex items-center space-x-1 transition-colors"
-                            title="Re-analyze email with Gemini AI"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                            <span>Re-analyze</span>
-                          </button>
-                        </div>
-
-                        {selectedEmail.aiSummary && (
-                          <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white/70 dark:bg-slate-900/50 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
-                            <span className="font-bold text-slate-900 dark:text-white mr-1.5">Executive Summary:</span>
-                            {selectedEmail.aiSummary}
-                          </div>
-                        )}
-
-                        {selectedEmail.aiExtractedTasks && selectedEmail.aiExtractedTasks.length > 0 && (
-                          <div className="space-y-1.5 pt-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                              Extracted Action Items ({selectedEmail.aiExtractedTasks.length}):
-                            </span>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {selectedEmail.aiExtractedTasks.map((t: any) => (
-                                <div
-                                  key={t.id || t.title}
-                                  className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between text-xs space-x-2 shadow-2xs"
-                                >
-                                  <span className="truncate text-slate-800 dark:text-slate-200 font-medium">
-                                    {t.title}
-                                  </span>
-                                  <button
-                                    onClick={async () => {
-                                      await safeFetch('/ai/tasks/convert', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          emailId: selectedEmail.id,
-                                          taskId: t.id,
-                                          title: t.title,
-                                          priority: t.priority,
-                                          dueDate: t.dueDate,
-                                        }),
-                                      });
-                                      loadData(true);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-[10px] font-bold shrink-0 shadow-2xs transition-all active:scale-95"
-                                  >
-                                    Accept Task
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  {/* Chronological Messages Flow */}
-                  <div className="space-y-6">
-                    {currentThreadMessages.map((msg, index) => {
-                      const match = msg.sender.match(/^(.*?)\s*<([^>]+)>$/);
-                      const senderName =
-                        (match && match[1] ? match[1].replace(/['"]/g, '').trim() : '') ||
-                        (match && match[2] ? match[2] : msg.sender) ||
-                        msg.sender;
-                      const senderEmail = match && match[2] ? match[2] : msg.sender;
-                      const recipientClean = msg.recipients.replace(/[<>]/g, '');
-
-                      let attachmentsList: Array<{
-                        filename: string;
-                        mimeType?: string;
-                        size?: number;
-                        content?: string;
-                      }> = [];
-                      try {
-                        const rawAtt = (msg as any).attachments;
-                        if (Array.isArray(rawAtt)) attachmentsList = rawAtt;
-                        else if (typeof rawAtt === 'string') attachmentsList = JSON.parse(rawAtt);
-                      } catch (e) {
-                        attachmentsList = [];
-                      }
-
-                      return (
-                        <div
-                          key={msg.id}
-                          className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-[#1a1b1e] space-y-4 shadow-xs"
-                        >
-                          {/* Sender info */}
-                          <div className="flex items-center justify-between">
-                            <SenderContactCard
-                              senderName={senderName}
-                              senderEmail={senderEmail}
-                              avatarInitial={senderName.charAt(0).toUpperCase()}
-                              avatarColor={msg.accountColor || '#0b57d0'}
-                              onFilterBySender={(e) => setSearchQuery(`from:${e}`)}
-                              onComposeToSender={(e) => {
-                                setComposeTo(e);
-                                setShowComposeModal(true);
-                              }}
-                            >
-                              <div className="flex items-center space-x-3 cursor-pointer">
-                                <div className="h-10 w-10 rounded-full bg-[#0b57d0] dark:bg-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-xs shrink-0">
-                                  {senderName.charAt(0).toUpperCase()}
-                                </div>
-                                <div>
-                                  <div className="flex items-center space-x-2">
-                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white">{senderName}</h3>
-                                    <span className="text-xs text-slate-500">&lt;{senderEmail}&gt;</span>
-                                  </div>
-                                  <div className="text-[11px] text-slate-400 mt-0.5">to me ({recipientClean})</div>
-                                </div>
-                              </div>
-                            </SenderContactCard>
-
-                            <span className="text-xs text-slate-400 font-mono">
-                              {new Date(msg.receivedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                            </span>
-                          </div>
-
-                          {/* Email HTML / Plain Text Body */}
-                          <div className="pt-2 text-slate-800 dark:text-slate-200 text-sm leading-relaxed">
-                            {msg.bodyHtml || msg.bodyText ? (
-                              <SanitizedEmailBody html={msg.bodyHtml} text={msg.bodyText} />
-                            ) : msg.snippet && msg.snippet !== '(No content snippet)' ? (
-                              <div className="whitespace-pre-wrap font-sans text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                                {msg.snippet}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-slate-400 italic py-2">
-                                (No content in this message body)
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Attachments */}
-                          {attachmentsList.length > 0 && (
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                              <div className="flex items-center space-x-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                                <Paperclip className="w-4 h-4 text-[#0b57d0]" />
-                                <span>
-                                  {attachmentsList.length} Attachment{attachmentsList.length === 1 ? '' : 's'}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap gap-3">
-                                {attachmentsList.map((att, attIdx) => (
-                                  <div
-                                    key={attIdx}
-                                    className="flex items-center space-x-2.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs shadow-2xs"
-                                  >
-                                    <File className="w-4 h-4 text-[#0b57d0] shrink-0" />
-                                    <div className="flex flex-col truncate max-w-[160px]">
-                                      <span className="font-semibold text-slate-900 dark:text-white truncate">
-                                        {att.filename}
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 font-mono">
-                                        {formatFileSize(att.size || 0)}
-                                      </span>
-                                    </div>
-                                    {att.content && (
-                                      <a
-                                        href={att.content}
-                                        download={att.filename}
-                                        className="p-1 rounded-lg bg-blue-50 dark:bg-purple-900/40 text-[#0b57d0] hover:bg-blue-100 transition-colors shrink-0"
-                                        title="Download"
-                                      >
-                                        <Download className="w-3.5 h-3.5" />
-                                      </a>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Bottom Action Area (Reply & Forward Box) */}
-                <div className="p-4 border-t border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc]/60 dark:bg-[#1a1b1e] shrink-0 space-y-3">
-                  {!isReplying ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <button
-                          onClick={() => {
-                            setIsReplying(true);
-                            setReplyMode('reply');
-                          }}
-                          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs"
-                        >
-                          <CornerUpLeft className="w-4 h-4 text-slate-500" />
-                          <span>Reply</span>
-                        </button>
-
-                        <button
-                          onClick={() => {
-                            setIsReplying(true);
-                            setReplyMode('forward');
-                          }}
-                          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-xs"
-                        >
-                          <CornerUpRight className="w-4 h-4 text-slate-500" />
-                          <span>Forward</span>
-                        </button>
-
-                        <button
-                          onClick={() => setIsAiDraftModalOpen(true)}
-                          className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-semibold shadow-md shadow-purple-600/25 transition-all hover:scale-[1.02] active:scale-95"
-                        >
-                          <Sparkles className="w-4 h-4 text-purple-200" />
-                          <span>Draft with Gemini</span>
-                        </button>
-                      </div>
-
-                      <button
-                        onClick={() => setIsTemplatesModalOpen(true)}
-                        className="p-2 rounded-xl text-slate-500 hover:text-[#0b57d0] hover:bg-slate-200 dark:hover:bg-slate-800 text-xs font-semibold flex items-center space-x-1 transition-colors"
-                        title="Insert Email Template"
-                      >
-                        <FileText className="w-4 h-4 text-[#0b57d0]" />
-                        <span className="hidden sm:inline text-[11px]">Templates</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="p-4 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-2xl space-y-3 shadow-md">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {replyMode === 'reply' ? (
-                            <CornerUpLeft className="w-4 h-4 text-[#0b57d0]" />
-                          ) : (
-                            <CornerUpRight className="w-4 h-4 text-[#0b57d0]" />
-                          )}
-                          <span>{replyMode === 'reply' ? `Reply to ${selectedEmail?.sender}` : `Forward message`}</span>
-                        </div>
-                        <button onClick={() => setIsReplying(false)} className="text-slate-400 hover:text-slate-600">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <textarea
-                        rows={4}
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Write your response..."
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#0b57d0] resize-none"
-                      />
-
-                      {replyFiles.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {replyFiles.map((file, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-purple-950/40 border border-blue-200 dark:border-purple-800 text-xs text-[#0b57d0]"
-                            >
-                              <Paperclip className="w-3.5 h-3.5" />
-                              <span className="truncate max-w-[140px] font-medium">{file.filename}</span>
-                              <button
-                                type="button"
-                                onClick={() => setReplyFiles((prev) => prev.filter((_, i) => i !== idx))}
-                                className="text-slate-400 hover:text-rose-600 ml-1"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex items-center justify-between pt-1">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            disabled={isSendingReply || !replyText.trim()}
-                            onClick={dispatchSendReplyWithUndo}
-                            className="inline-flex items-center space-x-2 px-5 py-2 rounded-xl bg-[#0b57d0] hover:bg-[#0a4ab8] text-white text-xs font-semibold shadow-md transition-all active:scale-95 disabled:opacity-50"
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            <span>{isSendingReply ? 'Sending...' : 'Send'}</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => replyFileInputRef.current?.click()}
-                            className="p-2 text-slate-400 hover:text-[#0b57d0] transition-colors"
-                            title="Attach files"
-                          >
-                            <Paperclip className="w-4 h-4 text-[#0b57d0]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsTemplatesModalOpen(true)}
-                            className="p-2 text-slate-400 hover:text-[#0b57d0] transition-colors"
-                            title="Insert template"
-                          >
-                            <FileText className="w-4 h-4 text-[#0b57d0]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsAiDraftModalOpen(true)}
-                            className="p-1.5 px-2.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg transition-colors flex items-center space-x-1"
-                            title="Draft with Gemini"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                            <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hidden sm:inline">
-                              AI Draft
-                            </span>
-                          </button>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            setIsReplying(false);
-                            setReplyText('');
-                            setReplyFiles([]);
-                          }}
-                          className="p-2 text-slate-400 hover:text-rose-600"
-                          title="Discard draft"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              viewMode === 'split' && (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-12 space-y-3 bg-slate-50/50 dark:bg-[#141517]">
-                  <InboxIcon className="w-12 h-12 text-slate-300 dark:text-slate-700" />
-                  <h3 className="text-base font-semibold text-slate-700 dark:text-slate-300">No Email Selected</h3>
-                  <p className="text-xs text-slate-400 max-w-sm">
-                    Select an email thread from your inbox to view full details.
-                  </p>
-                </div>
-              )
+            {(isReadingThread || viewMode === 'split') && (
+              <ThreadReaderPanel
+                selectedEmail={selectedEmail}
+                currentThreadMessages={currentThreadMessages}
+                viewMode={viewMode}
+                isCategoryDropdownOpen={isCategoryDropdownOpen}
+                onToggleCategoryDropdown={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                onBackToList={handleBackToList}
+                onShiftCategory={(category) => {
+                  if (selectedEmail) handleCategoryShift(selectedEmail.id, category);
+                  setIsCategoryDropdownOpen(false);
+                }}
+                onSnooze={() => {
+                  if (selectedEmail) {
+                    setSnoozeTargetEmailId(selectedEmail.id);
+                    setIsSnoozeModalOpen(true);
+                  }
+                }}
+                onOpenLabels={() => {
+                  if (selectedEmail) {
+                    setLabelTargetEmailId(selectedEmail.id);
+                    setIsLabelModalOpen(true);
+                  }
+                }}
+                onToggleStar={() => selectedEmail && handleToggleStar(selectedEmail.id)}
+                onDelete={() => selectedEmail && handleDeleteEmail(selectedEmail.id)}
+                onReanalyze={() => selectedEmail && handleLabelSingleEmail(selectedEmail.id)}
+                onAcceptTask={async (task) => {
+                  if (!selectedEmail) return;
+                  await safeFetch('/ai/tasks/convert', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      emailId: selectedEmail.id,
+                      taskId: task.id,
+                      title: task.title,
+                      priority: task.priority,
+                      dueDate: task.dueDate,
+                    }),
+                  });
+                  loadData(true);
+                }}
+                onFilterBySender={(email) => setSearchQuery(`from:${email}`)}
+                onComposeToSender={composeDraft.prefillComposeTo}
+                drafter={drafter}
+                isAiDraftModalOpen={isAiDraftModalOpen}
+                onOpenAiDraft={() => setIsAiDraftModalOpen(true)}
+                onCloseAiDraft={() => setIsAiDraftModalOpen(false)}
+                onOpenTemplates={() => setIsTemplatesModalOpen(true)}
+              />
             )}
+
           </div>
         )}
 
@@ -1796,327 +618,26 @@ function InboxContent() {
       </div>
 
       {/* FLOATING UNDO SEND TOAST NOTIFICATION */}
-      {undoToast && (
+      {undo.undoToast && (
         <div className="fixed bottom-6 left-6 z-50 bg-[#1e1e1e] text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-4 border border-slate-700 animate-in slide-in-from-bottom-5 duration-200">
-          <span className="text-xs font-semibold">{undoToast.message}</span>
+          <span className="text-xs font-semibold">{undo.undoToast.message}</span>
           <button
-            onClick={undoToast.onUndo}
+            onClick={undo.undoToast.onUndo}
             className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-[#c2e7ff] text-[#001d35] text-xs font-bold hover:bg-[#b3d7f0] transition-colors"
           >
             <Undo2 className="w-3.5 h-3.5 text-[#0b57d0]" />
-            <span>Undo ({undoToast.countdown}s)</span>
+            <span>Undo ({undo.undoToast.countdown}s)</span>
           </button>
         </div>
       )}
 
       {/* GMAIL FLOATING BOTTOM-RIGHT COMPOSE DOCK */}
-      {showComposeModal &&
-        (isComposeMinimized ? (
-          <div
-            onClick={() => setIsComposeMinimized(false)}
-            className="fixed bottom-0 right-16 z-50 bg-[#1f1f1f] hover:bg-slate-800 text-white rounded-t-xl px-5 py-3 text-xs font-semibold shadow-2xl flex items-center space-x-4 cursor-pointer transition-all border-t border-x border-slate-700"
-          >
-            <span>New Message</span>
-            <div className="flex items-center space-x-2 text-slate-400">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsComposeMinimized(false);
-                }}
-                className="hover:text-white"
-                title="Expand"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowComposeModal(false);
-                }}
-                className="hover:text-white"
-                title="Close"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div
-            className={`fixed z-50 bg-white dark:bg-[#1e1e1e] border border-slate-200/90 dark:border-slate-800 rounded-t-2xl shadow-2xl flex flex-col transition-all duration-200 overflow-hidden ${
-              isComposeMaximized ? 'inset-6 rounded-2xl' : 'bottom-0 right-16 w-[580px] h-[540px]'
-            }`}
-          >
-            {/* Compose Header Bar */}
-            <div className="bg-[#f2f6fc] dark:bg-slate-800 text-[#1f1f1f] dark:text-white px-4 py-3 rounded-t-2xl flex items-center justify-between shrink-0 select-none border-b border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-bold tracking-tight">New Message</span>
-              <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
-                <button
-                  onClick={() => setIsComposeMinimized(true)}
-                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
-                  title="Minimize"
-                >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  onClick={() => setIsComposeMaximized(!isComposeMaximized)}
-                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
-                  title={isComposeMaximized ? 'Restore' : 'Maximize'}
-                >
-                  {isComposeMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                </button>
-                <button
-                  onClick={() => setShowComposeModal(false)}
-                  className="p-1 hover:text-slate-900 dark:hover:text-white transition-colors"
-                  title="Close"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Compose Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                dispatchSendComposeWithUndo();
-              }}
-              className="flex-1 flex flex-col min-h-0"
-            >
-              <div className="divide-y divide-slate-200/80 dark:divide-slate-800">
-                {/* From Field (Select Sender Account) */}
-                <div className="px-4 py-2 flex items-center space-x-2 text-xs bg-[#f6f8fc]/40 dark:bg-slate-900/40">
-                  <span className="text-slate-400 font-semibold w-8 shrink-0">From</span>
-                  <select
-                    value={composeFromAccountId}
-                    onChange={(e) => setComposeFromAccountId(e.target.value)}
-                    className="flex-1 bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white font-semibold text-xs cursor-pointer"
-                  >
-                    {accounts.map((acc) => (
-                      <option
-                        key={acc.id}
-                        value={acc.id}
-                        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-medium"
-                      >
-                        {acc.label} &lt;{acc.email}&gt;
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* To Field */}
-                <div className="px-4 py-2 flex items-center space-x-2 text-xs">
-                  <span className="text-slate-400 font-semibold w-8 shrink-0">To</span>
-                  <input
-                    type="email"
-                    required
-                    value={composeTo}
-                    onChange={(e) => setComposeTo(e.target.value)}
-                    placeholder="Recipients"
-                    className="flex-1 bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white text-xs"
-                  />
-                  <div className="flex items-center space-x-2 text-slate-400 text-[11px] font-mono">
-                    {!showCc && (
-                      <button type="button" onClick={() => setShowCc(true)} className="hover:text-[#0b57d0]">
-                        Cc
-                      </button>
-                    )}
-                    {!showBcc && (
-                      <button type="button" onClick={() => setShowBcc(true)} className="hover:text-[#0b57d0]">
-                        Bcc
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Cc Field */}
-                {showCc && (
-                  <div className="px-4 py-2 flex items-center space-x-2 text-xs">
-                    <span className="text-slate-400 font-semibold w-8 shrink-0">Cc</span>
-                    <input
-                      type="email"
-                      value={composeCc}
-                      onChange={(e) => setComposeCc(e.target.value)}
-                      placeholder="Cc recipients"
-                      className="flex-1 bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white text-xs"
-                    />
-                  </div>
-                )}
-
-                {/* Bcc Field */}
-                {showBcc && (
-                  <div className="px-4 py-2 flex items-center space-x-2 text-xs">
-                    <span className="text-slate-400 font-semibold w-8 shrink-0">Bcc</span>
-                    <input
-                      type="email"
-                      value={composeBcc}
-                      onChange={(e) => setComposeBcc(e.target.value)}
-                      placeholder="Bcc recipients"
-                      className="flex-1 bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white text-xs"
-                    />
-                  </div>
-                )}
-
-                {/* Subject Field */}
-                <div className="px-4 py-2 flex items-center text-xs">
-                  <input
-                    type="text"
-                    required
-                    value={composeSubject}
-                    onChange={(e) => setComposeSubject(e.target.value)}
-                    placeholder="Subject"
-                    className="w-full bg-transparent border-0 focus:outline-none text-slate-900 dark:text-white font-medium text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* Body Textarea */}
-              <div className="flex-1 p-4 flex flex-col min-h-0 space-y-2">
-                {confidentialConfig && (
-                  <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 text-amber-800 dark:text-amber-300 text-[11px] flex items-center justify-between">
-                    <span className="flex items-center space-x-1.5 font-semibold">
-                      <Lock className="w-3.5 h-3.5" />
-                      <span>Confidential mode ({confidentialConfig.expiration})</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setConfidentialConfig(null)}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-
-                <textarea
-                  required
-                  value={composeBody}
-                  onChange={(e) => setComposeBody(e.target.value)}
-                  placeholder="Write your email here..."
-                  className="flex-1 w-full bg-transparent border-0 focus:outline-none text-xs text-slate-900 dark:text-white leading-relaxed resize-none"
-                />
-
-                {composeFiles.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-                    {composeFiles.map((file, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-purple-950/40 border border-blue-200 dark:border-purple-800 text-xs text-[#0b57d0]"
-                      >
-                        <Paperclip className="w-3.5 h-3.5 text-[#0b57d0]" />
-                        <span className="truncate max-w-[160px] font-medium">{file.filename}</span>
-                        <span className="text-[10px] opacity-70 font-mono">({formatFileSize(file.size)})</span>
-                        <button
-                          type="button"
-                          onClick={() => setComposeFiles((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-slate-400 hover:text-rose-600 ml-1"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Compose Action Bar */}
-              <div className="px-4 py-3 border-t border-slate-200/80 dark:border-slate-800 bg-[#f6f8fc] dark:bg-[#1a1b1e] flex items-center justify-between shrink-0">
-                <div className="flex items-center space-x-3">
-                  <div className="relative flex items-center">
-                    <button
-                      type="submit"
-                      disabled={isSendingCompose}
-                      className="inline-flex items-center space-x-2 px-5 py-2.5 rounded-l-full bg-[#0b57d0] hover:bg-[#0a4ab8] text-white font-bold text-xs shadow-md transition-all active:scale-95 disabled:opacity-50"
-                    >
-                      <span>{isSendingCompose ? 'Sending...' : 'Send'}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsScheduledSendOpen(!isScheduledSendOpen)}
-                      className="px-2 py-2.5 rounded-r-full bg-[#0a4ab8] hover:bg-[#083b94] text-white border-l border-blue-400/40"
-                      title="Schedule send"
-                    >
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </button>
-
-                    {isScheduledSendOpen && (
-                      <div className="absolute left-0 bottom-12 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl z-50 text-xs space-y-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2">
-                          Schedule Send
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScheduledSendTime('Tomorrow 8:00 AM');
-                            setIsScheduledSendOpen(false);
-                            dispatchSendComposeWithUndo();
-                          }}
-                          className="w-full text-left px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                          Tomorrow morning (8 AM)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setScheduledSendTime('Monday 8:00 AM');
-                            setIsScheduledSendOpen(false);
-                            dispatchSendComposeWithUndo();
-                          }}
-                          className="w-full text-left px-2 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
-                        >
-                          Next Monday (8 AM)
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => composeFileInputRef.current?.click()}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors text-[#0b57d0]"
-                    title="Attach files"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsTemplatesModalOpen(true)}
-                    className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors text-[#0b57d0]"
-                    title="Insert template"
-                  >
-                    <FileText className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsConfidentialModalOpen(true)}
-                    className={`p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors ${confidentialConfig ? 'text-amber-500 font-bold' : 'text-slate-400'}`}
-                    title="Toggle Confidential Mode"
-                  >
-                    <Lock className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowComposeModal(false);
-                    setComposeTo('');
-                    setComposeSubject('');
-                    setComposeBody('');
-                    setComposeFiles([]);
-                    setConfidentialConfig(null);
-                    localStorage.removeItem(STORAGE_KEYS.composeDraft);
-                  }}
-                  className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
-                  title="Discard draft"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </form>
-          </div>
-        ))}
+      <ComposeDock
+        draft={composeDraft}
+        accounts={accounts}
+        onOpenTemplates={() => setIsTemplatesModalOpen(true)}
+        onOpenConfidentialModal={() => setIsConfidentialModalOpen(true)}
+      />
 
       {/* Modals */}
       <AdvancedSearchModal
@@ -2146,8 +667,8 @@ function InboxContent() {
         onClose={() => setIsTemplatesModalOpen(false)}
         templates={savedTemplates}
         onSelectTemplate={(tpl) => {
-          if (tpl.subject && !composeSubject) setComposeSubject(tpl.subject);
-          setComposeBody((prev) => (prev ? `${prev}\n\n${tpl.body}` : tpl.body));
+          if (tpl.subject && !composeDraft.composeSubject) composeDraft.setComposeSubject(tpl.subject);
+          composeDraft.setComposeBody((prev) => (prev ? `${prev}\n\n${tpl.body}` : tpl.body));
         }}
         onCreateTemplate={(title, subject, body) => {
           setSavedTemplates((prev) => [...prev, { id: `tpl-${Date.now()}`, title, subject, body }]);
@@ -2158,8 +679,8 @@ function InboxContent() {
       <ConfidentialModeModal
         isOpen={isConfidentialModalOpen}
         onClose={() => setIsConfidentialModalOpen(false)}
-        currentConfig={confidentialConfig}
-        onSave={(config) => setConfidentialConfig(config)}
+        currentConfig={composeDraft.confidentialConfig}
+        onSave={(config) => composeDraft.setConfidentialConfig(config)}
       />
 
       <GmailSettingsModal
@@ -2177,31 +698,6 @@ function InboxContent() {
           localStorage.setItem(STORAGE_KEYS.customLabels, JSON.stringify(updated));
         }}
       />
-
-      {/* Gemini AI Reply Drafter Modal */}
-      {selectedEmail && (
-        <AiReplyDrafterModal
-          isOpen={isAiDraftModalOpen}
-          onClose={() => setIsAiDraftModalOpen(false)}
-          threadId={selectedEmail.threadId || selectedEmail.id}
-          emailId={selectedEmail.id}
-          threadSubject={selectedEmail.subject}
-          emailContext={
-            currentThreadMessages.length > 0
-              ? currentThreadMessages
-                  .map(
-                    (m, idx) =>
-                      `[Message ${idx + 1} of ${currentThreadMessages.length}]\nFrom: ${m.sender}\nTo: ${m.recipients}\nDate: ${new Date(m.receivedAt).toLocaleString()}\nSubject: ${m.subject || ''}\nBody:\n${m.bodyText || m.snippet || ''}`,
-                  )
-                  .join('\n\n------------------------\n\n')
-              : `From: ${selectedEmail.sender}\nTo: ${selectedEmail.recipients}\nSubject: ${selectedEmail.subject || ''}\nBody:\n${selectedEmail.bodyText || selectedEmail.snippet || ''}`
-          }
-          onInsertDraft={(draftText) => {
-            setIsReplying(true);
-            setReplyText((prev) => (prev ? `${prev}\n\n${draftText}` : draftText));
-          }}
-        />
-      )}
     </div>
   );
 }
